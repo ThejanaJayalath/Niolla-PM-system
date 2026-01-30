@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Plus, FileText, Download } from 'lucide-react';
+import { Plus, FileText, Download, Pencil } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './InquiryDetail.module.css';
 
@@ -35,11 +35,11 @@ interface Proposal {
 }
 
 const STATUS_OPTIONS = ['new', 'contacted', 'proposal_sent', 'negotiating', 'won', 'lost'];
-type TabId = 'overview' | 'reminders' | 'proposal';
+
 
 export default function InquiryDetail() {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [proposal, setProposal] = useState<Proposal | null>(null);
@@ -124,227 +124,234 @@ export default function InquiryDetail() {
     URL.revokeObjectURL(url);
   };
 
-  if (loading || !inquiry) return <p className={styles.muted}>Loading...</p>;
-
-  const tabs: { id: TabId; label: string }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'reminders', label: 'Reminders' },
-    { id: 'proposal', label: 'Proposal' },
-  ];
+  if (loading || !inquiry) return <p className={styles.emptyState}>Loading...</p>;
 
   return (
-    <div>
+    <div className={styles.pageContainer}>
+      {/* Header */}
       <div className={styles.header}>
-        <Link to="/inquiries" className={styles.back}>← Inquiries</Link>
-        <div className={styles.headerRow}>
-          <h1 className={styles.title}>{inquiry.customerName}</h1>
-          <select
-            value={inquiry.status}
-            onChange={(e) => updateStatus(e.target.value)}
-            className={styles.statusSelect}
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s.replace('_', ' ')}</option>
-            ))}
-          </select>
+        <div className={styles.headerTop}>
+          <div className={styles.headerInfo}>
+            <Link to="/inquiries" className={styles.back}>← Back to Inquiries</Link>
+            <h1 className={styles.title}>{inquiry.customerName}</h1>
+            <div className={styles.metaRow}>
+              <span>{inquiry.phoneNumber}</span>
+              <span>•</span>
+              <span>Created {format(new Date(inquiry.createdAt), 'MMM d, yyyy')}</span>
+              <select
+                value={inquiry.status}
+                onChange={(e) => updateStatus(e.target.value)}
+                className={styles.statusSelect}
+              >
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className={styles.actionBar}>
+            <Link to={`/inquiries/${id}/edit`} className={styles.actionBtn}>
+              <Pencil size={18} /> Edit Inquiry
+            </Link>
+            <button type="button" onClick={() => setShowReminderForm(!showReminderForm)} className={styles.actionBtn}>
+              <Plus size={18} /> Add Reminder
+            </button>
+            {!proposal && (
+              <button type="button" onClick={() => setShowProposalForm(!showProposalForm)} className={styles.actionBtn}>
+                <FileText size={18} /> Create Proposal
+              </button>
+            )}
+          </div>
         </div>
-        <p className={styles.meta}>{inquiry.phoneNumber} · Created {format(new Date(inquiry.createdAt), 'MMM d, yyyy')}</p>
       </div>
 
-      <div className={styles.tabList}>
-        {tabs.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            className={`${styles.tab} ${activeTab === id ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <div className={styles.grid}>
+        {/* Main Content Column */}
+        <div className={styles.mainContent}>
+          {/* Project Details Card */}
+          <div className={styles.glassCard}>
+            <h3 className={styles.cardTitle}>Project Details</h3>
 
-      <div className={styles.tabContent}>
-        {activeTab === 'overview' && (
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>Project description</h2>
-            <p className={styles.body}>{inquiry.projectDescription}</p>
+            <div>
+              <span className={styles.label}>Description</span>
+              <p className={styles.bodyText}>{inquiry.projectDescription}</p>
+            </div>
+
             {inquiry.requiredFeatures?.length > 0 && (
-              <>
-                <h3 className={styles.subTitle}>Feature list</h3>
+              <div>
+                <span className={styles.label}>Required Features</span>
                 <div className={styles.chips}>
                   {inquiry.requiredFeatures.map((f, i) => (
                     <span key={i} className={styles.chip}>{f}</span>
                   ))}
                 </div>
-              </>
-            )}
-            {inquiry.internalNotes && (
-              <>
-                <h3 className={styles.subTitle}>Internal notes</h3>
-                <p className={styles.body}>{inquiry.internalNotes}</p>
-              </>
-            )}
-            <p className={styles.created}>Created {format(new Date(inquiry.createdAt), 'MMM d, yyyy')}</p>
-            <Link to={`/inquiries/${id}/edit`} className={styles.editLink}>Edit inquiry</Link>
-          </section>
-        )}
-
-        {activeTab === 'reminders' && (
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Reminders</h2>
-              <button type="button" onClick={() => setShowReminderForm(!showReminderForm)} className={styles.smallButton}>
-                <Plus size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                {showReminderForm ? 'Cancel' : 'Add Reminder'}
-              </button>
-            </div>
-            {showReminderForm && (
-              <form onSubmit={addReminder} className={styles.form}>
-                <label className={styles.label}>Type</label>
-                <select
-                  value={reminderForm.type}
-                  onChange={(e) => setReminderForm((f) => ({ ...f, type: e.target.value as 'reminder' | 'meeting' }))}
-                  className={styles.input}
-                >
-                  <option value="reminder">Reminder</option>
-                  <option value="meeting">Meeting</option>
-                </select>
-                <label className={styles.label}>Title</label>
-                <input
-                  placeholder="Title"
-                  value={reminderForm.title}
-                  onChange={(e) => setReminderForm((f) => ({ ...f, title: e.target.value }))}
-                  required
-                  className={styles.input}
-                />
-                <label className={styles.label}>Date & Time</label>
-                <input
-                  type="datetime-local"
-                  value={reminderForm.scheduledAt}
-                  onChange={(e) => setReminderForm((f) => ({ ...f, scheduledAt: e.target.value }))}
-                  required
-                  className={styles.input}
-                />
-                <label className={styles.label}>Notes</label>
-                <input
-                  placeholder="Notes (optional)"
-                  value={reminderForm.notes}
-                  onChange={(e) => setReminderForm((f) => ({ ...f, notes: e.target.value }))}
-                  className={styles.input}
-                />
-                <div className={styles.formActions}>
-                  <button type="button" onClick={() => setShowReminderForm(false)} className={styles.cancelBtn}>Cancel</button>
-                  <button type="submit" className={styles.button}>Save</button>
-                </div>
-              </form>
-            )}
-            <ul className={styles.timeline}>
-              {reminders.map((r) => (
-                <li key={r._id} className={styles.timelineItem}>
-                  <span className={`${styles.timelineBadge} badge-${r.type === 'meeting' ? 'negotiating' : 'new'}`}>{r.type}</span>
-                  <div className={styles.timelineContent}>
-                    <strong>{r.title}</strong>
-                    <span className={styles.timelineDate}>{format(new Date(r.scheduledAt), 'MMM d, yyyy · HH:mm')}</span>
-                    {r.notes && <p className={styles.timelineNotes}>{r.notes}</p>}
-                  </div>
-                </li>
-              ))}
-              {reminders.length === 0 && !showReminderForm && (
-                <p className={styles.emptyText}>No reminders or meetings yet. Click &lsquo;Add Reminder&rsquo; to create one.</p>
-              )}
-            </ul>
-          </section>
-        )}
-
-        {activeTab === 'proposal' && (
-          <section className={styles.section}>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Sample proposal</h2>
-              {proposal ? (
-                <button type="button" onClick={() => downloadPdf(proposal._id)} className={styles.primaryButton}>
-                  <Download size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                  Download PDF
-                </button>
-              ) : (
-                <button type="button" onClick={() => setShowProposalForm(!showProposalForm)} className={styles.smallButton}>
-                  <Plus size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-                  {showProposalForm ? 'Cancel' : 'Create Sample Proposal'}
-                </button>
-              )}
-            </div>
-            {showProposalForm && !proposal && (
-              <form onSubmit={createProposal} className={styles.form}>
-                <label className={styles.label}>Project name (for cover page)</label>
-                <input
-                  placeholder="e.g. Customer Relationship Management System"
-                  value={proposalForm.projectName}
-                  onChange={(e) => setProposalForm((f) => ({ ...f, projectName: e.target.value }))}
-                  className={styles.input}
-                />
-                <p className={styles.formHint}>Milestones and pricing (filled from inquiry; adjust as needed)</p>
-                {proposalForm.milestones.map((m, i) => (
-                  <div key={i} className={styles.milestoneRow}>
-                    <input
-                      placeholder="Milestone title"
-                      value={m.title}
-                      onChange={(e) => {
-                        const next = [...proposalForm.milestones];
-                        next[i] = { ...next[i], title: e.target.value };
-                        setProposalForm((f) => ({ ...f, milestones: next }));
-                      }}
-                      className={styles.input}
-                    />
-                    <input
-                      type="number"
-                      placeholder="Amount"
-                      value={m.amount}
-                      onChange={(e) => {
-                        const next = [...proposalForm.milestones];
-                        next[i] = { ...next[i], amount: e.target.value };
-                        setProposalForm((f) => ({ ...f, milestones: next }));
-                      }}
-                      className={styles.input}
-                      style={{ width: '120px' }}
-                    />
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setProposalForm((f) => ({ ...f, milestones: [...f.milestones, { title: '', amount: '' }] }))}
-                  className={styles.smallButton}
-                >
-                  + Add milestone
-                </button>
-                <label className={styles.label}>Valid until (optional)</label>
-                <input
-                  type="date"
-                  value={proposalForm.validUntil}
-                  onChange={(e) => setProposalForm((f) => ({ ...f, validUntil: e.target.value }))}
-                  className={styles.input}
-                />
-                <label className={styles.label}>Notes (optional)</label>
-                <input
-                  value={proposalForm.notes}
-                  onChange={(e) => setProposalForm((f) => ({ ...f, notes: e.target.value }))}
-                  className={styles.input}
-                />
-                <button type="submit" className={styles.button}>Create proposal</button>
-              </form>
-            )}
-            {proposal && !showProposalForm && (
-              <div className={styles.proposalSummary}>
-                <p><strong>Total:</strong> ${proposal.totalAmount.toLocaleString()}</p>
-                <ul>
-                  {proposal.milestones.map((m, i) => (
-                    <li key={i}>{m.title} — ${m.amount.toLocaleString()}</li>
-                  ))}
-                </ul>
-                <Link to={`/proposals/${proposal._id}`} className={styles.viewLink}>View proposal</Link>
               </div>
             )}
-          </section>
-        )}
+
+            {inquiry.internalNotes && (
+              <div>
+                <span className={styles.label}>Internal Notes</span>
+                <p className={styles.bodyText}>{inquiry.internalNotes}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Proposal Form (Inline) */}
+          {showProposalForm && !proposal && (
+            <div className={styles.inlineForm}>
+              <h3 className={styles.cardTitle} style={{ marginBottom: '1rem' }}>Create Proposal</h3>
+              <form onSubmit={createProposal}>
+                <div className={styles.formGrid}>
+                  <div>
+                    <span className={styles.label}>Project Name</span>
+                    <input
+                      placeholder="e.g. CRM System"
+                      value={proposalForm.projectName}
+                      onChange={(e) => setProposalForm((f) => ({ ...f, projectName: e.target.value }))}
+                      className={styles.input}
+                    />
+                  </div>
+                  <div>
+                    <span className={styles.label}>Milestones</span>
+                    {proposalForm.milestones.map((m, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <input
+                          placeholder="Title"
+                          value={m.title}
+                          onChange={(e) => {
+                            const next = [...proposalForm.milestones];
+                            next[i] = { ...next[i], title: e.target.value };
+                            setProposalForm((f) => ({ ...f, milestones: next }));
+                          }}
+                          className={styles.input}
+                        />
+                        <input
+                          type="number"
+                          placeholder="Amount"
+                          value={m.amount}
+                          onChange={(e) => {
+                            const next = [...proposalForm.milestones];
+                            next[i] = { ...next[i], amount: e.target.value };
+                            setProposalForm((f) => ({ ...f, milestones: next }));
+                          }}
+                          className={styles.input}
+                          style={{ width: '120px' }}
+                        />
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setProposalForm((f) => ({ ...f, milestones: [...f.milestones, { title: '', amount: '' }] }))}
+                      style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.85rem' }}
+                    >
+                      + Add another milestone
+                    </button>
+                  </div>
+                </div>
+                <div className={styles.formActions}>
+                  <button type="button" onClick={() => setShowProposalForm(false)} className={styles.btnCancel}>Cancel</button>
+                  <button type="submit" className={styles.btnSave}>Create Proposal</button>
+                </div>
+              </form>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar Column */}
+        <div className={styles.sidebar}>
+
+          {/* Proposal Summary Card (if exists) */}
+          {proposal && (
+            <div className={styles.glassCard}>
+              <h3 className={styles.cardTitle}>
+                <FileText size={20} /> Active Proposal
+              </h3>
+              <div className={styles.proposalSummary}>
+                <div className={styles.proposalAmount}>${proposal.totalAmount.toLocaleString()}</div>
+                <ul className={styles.proposalList}>
+                  {proposal.milestones.map((m, i) => (
+                    <li key={i} className={styles.proposalItem}>
+                      <span>{m.title}</span>
+                      <span>${m.amount.toLocaleString()}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={() => downloadPdf(proposal._id)} className={styles.btnPrimary}>
+                    <Download size={16} /> Download PDF
+                  </button>
+                  <Link to={`/proposals/${proposal._id}`} className={styles.btnCancel} style={{ textAlign: 'center', flex: 1 }}>
+                    View
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reminders Card */}
+          <div className={styles.glassCard}>
+            <h3 className={styles.cardTitle}>
+              Reminders & Meetings
+            </h3>
+
+            {showReminderForm && (
+              <div className={styles.inlineForm} style={{ marginBottom: 0, padding: '1rem' }}>
+                <form onSubmit={addReminder}>
+                  <div className={styles.formGrid}>
+                    <select
+                      value={reminderForm.type}
+                      onChange={(e) => setReminderForm((f) => ({ ...f, type: e.target.value as 'reminder' | 'meeting' }))}
+                      className={styles.input}
+                    >
+                      <option value="reminder">Reminder</option>
+                      <option value="meeting">Meeting</option>
+                    </select>
+                    <input
+                      placeholder="Title"
+                      value={reminderForm.title}
+                      onChange={(e) => setReminderForm((f) => ({ ...f, title: e.target.value }))}
+                      required
+                      className={styles.input}
+                    />
+                    <input
+                      type="datetime-local"
+                      value={reminderForm.scheduledAt}
+                      onChange={(e) => setReminderForm((f) => ({ ...f, scheduledAt: e.target.value }))}
+                      required
+                      className={styles.input}
+                    />
+                  </div>
+                  <div className={styles.formActions}>
+                    <button type="button" onClick={() => setShowReminderForm(false)} className={styles.btnCancel}>Cancel</button>
+                    <button type="submit" className={styles.btnSave}>Save</button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {reminders.length === 0 && !showReminderForm ? (
+              <p className={styles.emptyState}>No upcoming reminders.</p>
+            ) : (
+              <ul className={styles.timeline}>
+                {reminders.map((r) => (
+                  <li key={r._id} className={styles.timelineItem}>
+                    <div className={styles.timelineDateBox}>
+                      <span className={styles.timelineDay}>{format(new Date(r.scheduledAt), 'd')}</span>
+                      <span className={styles.timelineMonth}>{format(new Date(r.scheduledAt), 'MMM')}</span>
+                    </div>
+                    <div className={styles.timelineContent}>
+                      <div className={styles.timelineTitle}>{r.title}</div>
+                      <div className={styles.timelineMeta}>
+                        {format(new Date(r.scheduledAt), 'h:mm a')} • {r.type}
+                      </div>
+                      {r.notes && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{r.notes}</div>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -27,34 +27,42 @@ export default function Login() {
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Niolla PM</h1>
-        <p className={styles.subtitle}>Sign in to manage leads and proposals</p>
+        <div>
+          <h1 className={styles.title}>Welcome Back</h1>
+          <p className={styles.subtitle}>Enter your credentials to access your account</p>
+        </div>
+
         <form onSubmit={handleSubmit} className={styles.form}>
           {error && <div className={styles.error}>{error}</div>}
-          <label>
-            Email
+
+          <div className={styles.inputGroup}>
+            <label className={styles.label}>Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
+              placeholder="name@company.com"
               className={styles.input}
             />
-          </label>
-          <label>
-            Password
+          </div>
+
+          <div className={styles.inputGroup}>
+            <label className={styles.label}>Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
+              placeholder="••••••••"
               className={styles.input}
             />
-          </label>
+          </div>
+
           <button type="submit" disabled={submitting} className={styles.button}>
-            {submitting ? 'Signing in...' : 'Sign in'}
+            {submitting ? 'Authenticating...' : 'Sign In'}
           </button>
         </form>
       </div>

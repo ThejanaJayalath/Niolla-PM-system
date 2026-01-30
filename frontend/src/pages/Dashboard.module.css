@@ -1,26 +1,28 @@
 .pageTitle {
-  margin: 0 0 1.5rem;
-  font-size: 1.5rem;
+  margin: 0 0 2rem;
+  font-size: 1.875rem;
   font-weight: 700;
-  color: var(--text);
+  color: var(--text-primary);
+  letter-spacing: -0.025em;
 }
 
 .cardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
+/* Inherit base card styles but add specific flex layout */
 .card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.25rem;
+  composes: card-base from global;
+  padding: 1.5rem;
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
-  box-shadow: var(--shadow);
+  gap: 1.25rem;
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-surface);
 }
 
 .cardLink {
@@ -28,24 +30,29 @@
   color: inherit;
   display: flex;
   align-items: flex-start;
-  gap: 1rem;
-  flex: 1;
-}
-
-.cardLink:hover .cardValue {
-  color: var(--primary);
+  gap: 1.25rem;
+  width: 100%;
 }
 
 .cardIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius);
-  background: #eef2ff;
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-lg);
+  background: var(--primary-50);
   color: var(--primary);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.card:hover .cardIcon,
+.cardLink:hover .cardIcon {
+  background: var(--primary);
+  color: white;
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
 .cardContent {
@@ -56,33 +63,79 @@
 
 .cardLabel {
   font-size: 0.875rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .cardValue {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: var(--text);
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+/* Specific Card Colors (Optional variety) */
+.card:nth-child(2) .cardIcon {
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.card:nth-child(2):hover .cardIcon {
+  background: var(--info);
+  color: white;
+}
+
+.card:nth-child(3) .cardIcon {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.card:nth-child(3):hover .cardIcon,
+.cardLink:hover .cardIcon {
+  background: var(--warning);
+  color: white;
+}
+
+/* Fix hover selector specificity */
+
+.card:nth-child(4) .cardIcon {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.card:nth-child(4):hover .cardIcon,
+.cardLink:hover .cardIcon {
+  background: var(--success);
+  color: white;
 }
 
 .section {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.25rem;
-  box-shadow: var(--shadow);
+  composes: card-base from global;
+  padding: 0;
+  /* Table normally goes edge to edge or has specific padding */
+  overflow: hidden;
+}
+
+.sectionHeader {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .sectionTitle {
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--text-primary);
 }
 
 .tableWrap {
   overflow-x: auto;
+  width: 100%;
 }
 
 .table {
@@ -91,42 +144,58 @@
   font-size: 0.9375rem;
 }
 
-.table th,
-.table td {
-  padding: 0.75rem 1rem;
+.table th {
+  background: var(--slate-50);
+  padding: 0.875rem 1.5rem;
   text-align: left;
-  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
-.table th {
-  font-weight: 600;
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-  text-transform: uppercase;
-  letter-spacing: 0.025em;
+.table td {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr {
+  transition: background var(--transition-fast);
 }
 
 .table tbody tr:hover {
-  background: var(--surface-hover);
+  background: var(--bg-surface-hover);
 }
 
 .viewLink {
   color: var(--primary);
-  font-weight: 500;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast);
 }
 
 .viewLink:hover {
-  color: var(--primary-hover);
-  text-decoration: underline;
+  background: var(--primary-50);
 }
 
 .muted {
-  color: var(--text-muted);
-  margin: 0;
+  padding: 1.5rem;
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 .emptyText {
-  color: var(--text-muted);
-  margin: 0;
+  padding: 3rem 1.5rem;
+  color: var(--text-secondary);
+  text-align: center;
   font-size: 0.9375rem;
 }

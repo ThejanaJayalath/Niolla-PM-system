@@ -11,6 +11,7 @@ import {
   ChevronRight,
   User,
   LogOut,
+  Layers, // Logo icon
 } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './Layout.module.css';
@@ -34,8 +35,10 @@ export default function Layout() {
 
   useEffect(() => {
     api.get<{ length: number }>('/reminders/upcoming?limit=100').then((res) => {
-      if (res.success && Array.isArray((res as { data?: unknown[] }).data))
-        setUpcomingCount(((res as { data: unknown[] }).data).length);
+      // Safely access data length
+      if (res.success && res.data && Array.isArray(res.data)) {
+        setUpcomingCount(res.data.length);
+      }
     });
   }, []);
 
@@ -64,6 +67,9 @@ export default function Layout() {
       <aside className={`${styles.sidebar} ${sidebarCollapsed ? styles.sidebarCollapsed : ''}`}>
         <div className={styles.sidebarHeader}>
           <Link to="/dashboard" className={styles.logo}>
+            <div className={styles.logoIcon}>
+              <Layers size={20} />
+            </div>
             <span className={styles.logoText}>Niolla PM</span>
           </Link>
           <button
@@ -72,7 +78,7 @@ export default function Layout() {
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            {sidebarCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
         </div>
         <nav className={styles.nav}>
@@ -81,6 +87,7 @@ export default function Layout() {
               key={path}
               to={path}
               className={`${styles.navItem} ${isActive(path) ? styles.navItemActive : ''}`}
+              title={sidebarCollapsed ? label : ''}
             >
               <Icon size={20} />
               <span className={styles.navLabel}>{label}</span>
@@ -111,12 +118,16 @@ export default function Layout() {
             </button>
             {userDropdownOpen && (
               <div className={styles.dropdown}>
+                <div style={{ padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-subtle)', marginBottom: '0.5rem' }}>
+                  <div className="font-semibold text-sm">{user?.name}</div>
+                  <div className="text-xs text-muted" style={{ marginTop: 2 }}>{user?.email}</div>
+                </div>
                 <button type="button" className={`${styles.dropdownItem} ${styles.dropdownItemDisabled}`} disabled>
-                  <User size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
-                  Profile (coming soon)
+                  <User size={16} />
+                  Profile
                 </button>
                 <button type="button" className={styles.dropdownItem} onClick={handleSignOut}>
-                  <LogOut size={16} style={{ marginRight: 8, verticalAlign: 'middle' }} />
+                  <LogOut size={16} />
                   Sign Out
                 </button>
               </div>

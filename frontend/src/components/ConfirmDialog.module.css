@@ -2,92 +2,143 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 9999;
   padding: 1rem;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .dialog {
-  background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-md);
-  padding: 1.5rem;
-  max-width: 400px;
+  background: white;
+  border-radius: 24px;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  max-width: 420px;
   width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transform-origin: center;
+  animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .iconWrap {
-  margin-bottom: 1rem;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.25rem;
 }
 
-.iconDanger {
-  color: var(--error);
+.iconWrap svg {
+  width: 48px;
+  height: 48px;
+  padding: 10px;
+  background: #fee2e2;
+  border-radius: 50%;
+  color: #ef4444;
 }
 
-.iconWarn {
-  color: var(--warning);
+.iconWarn svg {
+  background: #fef3c7;
+  color: #f59e0b;
 }
 
 .title {
-  margin: 0 0 0.5rem;
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--text);
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: center;
 }
 
 .message {
-  margin: 0 0 1.5rem;
-  font-size: 0.9375rem;
-  color: var(--text-muted);
-  line-height: 1.5;
+  margin: 0 0 2rem;
+  font-size: 0.95rem;
+  color: #64748b;
+  line-height: 1.6;
+  text-align: center;
 }
 
 .actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
 
 .cancelBtn {
-  padding: 0.5rem 1rem;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  color: var(--text);
-  font-size: 0.9375rem;
-  font-weight: 500;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .cancelBtn:hover {
-  background: var(--surface-hover);
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #cbd5e1;
 }
 
 .confirmBtn {
-  padding: 0.5rem 1rem;
-  background: var(--primary);
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
   border: none;
-  border-radius: var(--radius);
-  color: #fff;
-  font-size: 0.9375rem;
-  font-weight: 500;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
 }
 
 .confirmBtn:hover {
-  background: var(--primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -1px rgba(99, 102, 241, 0.4);
 }
 
 .dangerBtn {
-  padding: 0.5rem 1rem;
-  background: var(--error);
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   border: none;
-  border-radius: var(--radius);
-  color: #fff;
-  font-size: 0.9375rem;
-  font-weight: 500;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.3);
 }
 
 .dangerBtn:hover {
-  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px -1px rgba(239, 68, 68, 0.4);
 }

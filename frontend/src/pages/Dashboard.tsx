@@ -112,7 +112,9 @@ export default function Dashboard() {
       </div>
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Upcoming Reminders</h2>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Upcoming Reminders</h2>
+        </div>
         {loading ? (
           <p className={styles.muted}>Loading...</p>
         ) : reminders.length === 0 ? (
@@ -122,18 +124,20 @@ export default function Dashboard() {
             <table className={styles.table}>
               <thead>
                 <tr>
-                  <th>Inquiry name</th>
-                  <th>Reminder title</th>
-                  <th>Date & time</th>
+                  <th>Inquiry Name</th>
+                  <th>Reminder Title</th>
+                  <th>Date & Time</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {reminders.map((r) => (
                   <tr key={r._id}>
-                    <td>{getInquiryName(r.inquiryId)}</td>
+                    <td>
+                      <span className="font-medium">{getInquiryName(r.inquiryId)}</span>
+                    </td>
                     <td>{r.title}</td>
-                    <td>{format(new Date(r.scheduledAt), 'MMM d, yyyy · HH:mm')}</td>
+                    <td>{format(new Date(r.scheduledAt), 'MMM d, yyyy · p')}</td>
                     <td>
                       <Link to={`/inquiries/${getInquiryId(r.inquiryId)}`} className={styles.viewLink}>
                         View

@@ -55,6 +55,20 @@ export default function Inquiries() {
     if (res?.success !== false) load();
   };
 
+  const updateStatus = async (id: string, newStatus: string) => {
+    // Optimistic update
+    setInquiries((prev) =>
+      prev.map((inq) => (inq._id === id ? { ...inq, status: newStatus } : inq))
+    );
+
+    const res = await api.patch<Inquiry>(`/inquiries/${id}`, { status: newStatus });
+
+    // Revert if failed
+    if (!res.success) {
+      load(); // Reload to get true state
+    }
+  };
+
   return (
     <div>
       <div className={styles.toolbar}>
@@ -86,12 +100,15 @@ export default function Inquiries() {
         <p className={styles.muted}>Loading...</p>
       ) : inquiries.length === 0 ? (
         <div className={styles.empty}>
-          <p>No inquiries yet. Click &lsquo;New Inquiry&rsquo; to add your first customer.</p>
+          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>👋</div>
+          <h3 style={{ margin: 0, color: 'var(--text-primary)', fontWeight: 600 }}>No inquiries yet</h3>
+          <p>Click 'New Inquiry' to add your first potential customer.</p>
           <button
             type="button"
             onClick={() => setShowNewModal(true)}
             className={styles.emptyButton}
           >
+            <Plus size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} />
             New Inquiry
           </button>
         </div>
@@ -118,9 +135,18 @@ export default function Inquiries() {
                     {inq.projectDescription.length > 60 ? '…' : ''}
                   </td>
                   <td>
-                    <span className={`${styles.badge} badge-${inq.status}`}>
-                      {STATUS_LABELS[inq.status] || inq.status}
-                    </span>
+                    <select
+                      value={inq.status}
+                      onChange={(e) => updateStatus(inq._id, e.target.value)}
+                      className={`${styles.statusSelect} badge-${inq.status}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {Object.keys(STATUS_LABELS).map((statusKey) => (
+                        <option key={statusKey} value={statusKey}>
+                          {STATUS_LABELS[statusKey]}
+                        </option>
+                      ))}
+                    </select>
                   </td>
                   <td>{format(new Date(inq.createdAt), 'MMM d, yyyy')}</td>
                   <td>

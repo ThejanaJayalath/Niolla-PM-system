@@ -100,91 +100,96 @@ export default function InquiryForm() {
   if (loading) return <p className={styles.muted}>Loading...</p>;
 
   return (
-    <div>
+    <div className={styles.container}>
       <div className={styles.header}>
         <Link to={isEdit ? `/inquiries/${id}` : '/inquiries'} className={styles.back}>← Back</Link>
-        <h1 className={styles.title}>{isEdit ? 'Edit inquiry' : 'New inquiry'}</h1>
+        <h1 className={styles.title}>{isEdit ? 'Edit Inquiry' : 'New Inquiry'}</h1>
       </div>
 
-      {duplicateAlert && (
-        <div className={styles.alert} role="alert">
-          This phone number already exists. Please verify before proceeding.
-        </div>
-      )}
-
-      <form onSubmit={handleSubmit} className={styles.form}>
-        {error && <div className={styles.error}>{error}</div>}
-        <label>
-          Customer Name <span className={styles.required}>*</span>
-          <input
-            name="customerName"
-            value={form.customerName}
-            onChange={handleChange}
-            required
-            className={styles.input}
-          />
-        </label>
-        <label>
-          Phone Number <span className={styles.required}>*</span>
-          <input
-            name="phoneNumber"
-            value={form.phoneNumber}
-            onChange={handleChange}
-            required
-            className={styles.input}
-            placeholder="e.g. +1 234 567 8900"
-          />
-        </label>
-        <label>
-          Project Description <span className={styles.required}>*</span>
-          <textarea
-            name="projectDescription"
-            value={form.projectDescription}
-            onChange={handleChange}
-            required
-            rows={4}
-            className={styles.input}
-          />
-        </label>
-        <label>
-          Required Features (add with Enter or comma)
-          <div className={styles.tagWrap}>
-            {form.requiredFeatures.map((f, i) => (
-              <span key={i} className={styles.tag}>
-                {f}
-                <button type="button" className={styles.tagRemove} onClick={() => removeFeature(i)} aria-label="Remove">
-                  <X size={14} />
-                </button>
-              </span>
-            ))}
-            <input
-              ref={featureInputRef}
-              type="text"
-              value={featureInput}
-              onChange={(e) => setFeatureInput(e.target.value)}
-              onKeyDown={addFeature}
-              placeholder="Type and press Enter"
-              className={styles.tagInput}
-            />
+      <div className={styles.card}>
+        {duplicateAlert && (
+          <div className={styles.alert} role="alert">
+            <span>⚠️</span> This phone number already exists. Please verify before proceeding.
           </div>
-        </label>
-        <label>
-          Internal Notes <span className={styles.optional}>(optional)</span>
-          <textarea
-            name="internalNotes"
-            value={form.internalNotes}
-            onChange={handleChange}
-            rows={2}
-            className={styles.input}
-          />
-        </label>
-        <div className={styles.actions}>
-          <Link to={isEdit ? `/inquiries/${id}` : '/inquiries'} className={styles.cancel}>Cancel</Link>
-          <button type="submit" disabled={submitting} className={styles.button}>
-            {submitting ? 'Saving…' : 'Save Inquiry'}
-          </button>
-        </div>
-      </form>
+        )}
+
+        <form onSubmit={handleSubmit} className={styles.form}>
+          {error && <div className={styles.error}>{error}</div>}
+          <label>
+            Customer Name <span className={styles.required}>*</span>
+            <input
+              name="customerName"
+              value={form.customerName}
+              onChange={handleChange}
+              required
+              className={styles.input}
+              placeholder="Enter customer name"
+            />
+          </label>
+          <label>
+            Phone Number <span className={styles.required}>*</span>
+            <input
+              name="phoneNumber"
+              value={form.phoneNumber}
+              onChange={handleChange}
+              required
+              className={styles.input}
+              placeholder="e.g. +1 234 567 8900"
+            />
+          </label>
+          <label>
+            Project Description <span className={styles.required}>*</span>
+            <textarea
+              name="projectDescription"
+              value={form.projectDescription}
+              onChange={handleChange}
+              required
+              rows={4}
+              className={styles.input}
+              placeholder="Describe the project..."
+            />
+          </label>
+          <label>
+            Required Features
+            <div className={styles.tagWrap}>
+              {form.requiredFeatures.map((f, i) => (
+                <span key={i} className={styles.tag}>
+                  {f}
+                  <button type="button" className={styles.tagRemove} onClick={() => removeFeature(i)} aria-label="Remove">
+                    <X size={14} />
+                  </button>
+                </span>
+              ))}
+              <input
+                ref={featureInputRef}
+                type="text"
+                value={featureInput}
+                onChange={(e) => setFeatureInput(e.target.value)}
+                onKeyDown={addFeature}
+                placeholder={form.requiredFeatures.length === 0 ? "Type feature and press Enter" : "Add another..."}
+                className={styles.tagInput}
+              />
+            </div>
+          </label>
+          <label>
+            Internal Notes <span className={styles.optional}>(optional)</span>
+            <textarea
+              name="internalNotes"
+              value={form.internalNotes}
+              onChange={handleChange}
+              rows={2}
+              className={styles.input}
+              placeholder="Private notes for your team..."
+            />
+          </label>
+          <div className={styles.actions}>
+            <Link to={isEdit ? `/inquiries/${id}` : '/inquiries'} className={styles.cancel}>Cancel</Link>
+            <button type="submit" disabled={submitting} className={styles.button}>
+              {submitting ? 'Saving…' : 'Save Inquiry'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
