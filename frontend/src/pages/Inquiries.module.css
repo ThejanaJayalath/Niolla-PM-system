@@ -10,6 +10,7 @@
   margin: 0;
   font-size: 1.5rem;
   font-weight: 700;
+  color: var(--text);
 }
 
 .actions {
@@ -26,23 +27,32 @@
   border-radius: var(--radius);
   color: var(--text);
   font-size: 0.9rem;
+  min-width: 140px;
 }
 
 .primaryButton {
+  display: inline-flex;
+  align-items: center;
   padding: 0.5rem 1rem;
-  background: var(--accent);
+  background: var(--primary);
   color: #fff;
   border-radius: var(--radius);
   font-weight: 600;
+  font-size: 0.9375rem;
   text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .primaryButton:hover {
-  background: var(--accent-hover);
+  background: var(--primary-hover);
+  color: #fff;
 }
 
 .muted {
   color: var(--text-muted);
+  margin: 0;
 }
 
 .empty {
@@ -50,59 +60,116 @@
   text-align: center;
   background: var(--surface);
   border: 1px dashed var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius);
   color: var(--text-muted);
+  font-size: 0.9375rem;
 }
 
-.empty a {
+.empty p {
+  margin: 0 0 1rem;
+}
+
+.emptyButton {
   display: inline-block;
-  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  font-family: inherit;
+  cursor: pointer;
 }
 
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.emptyButton:hover {
+  background: var(--primary-hover);
+  color: #fff;
 }
 
-.item {
+.tableWrap {
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  margin-bottom: 0.5rem;
-  overflow: hidden;
+  overflow-x: auto;
+  box-shadow: var(--shadow);
 }
 
-.itemLink {
-  display: block;
-  padding: 1rem;
-  color: inherit;
-  text-decoration: none;
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
 }
 
-.itemLink:hover {
-  background: var(--surface-hover);
+.table th,
+.table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
 }
 
-.itemHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.35rem;
-}
-
-.name {
+.table th {
   font-weight: 600;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  white-space: nowrap;
 }
 
-.status {
-  font-size: 0.8rem;
-  padding: 0.2rem 0.5rem;
+.table tbody tr:hover {
   background: var(--surface-hover);
-  border-radius: 4px;
-  color: var(--text-muted);
 }
 
-.itemMeta {
-  font-size: 0.9rem;
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cellName {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.cellDesc {
   color: var(--text-muted);
+  max-width: 240px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.iconBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.iconBtn:hover {
+  background: var(--surface-hover);
+  color: var(--primary);
+}
+
+.iconBtnDanger:hover {
+  background: var(--error-bg);
+  color: var(--error);
 }

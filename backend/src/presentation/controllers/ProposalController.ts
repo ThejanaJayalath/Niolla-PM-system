@@ -27,6 +27,11 @@ export async function getProposal(req: AuthenticatedRequest, res: Response): Pro
   res.json({ success: true, data: proposal });
 }
 
+export async function listProposals(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const proposals = await proposalService.findAll();
+  res.json({ success: true, data: proposals });
+}
+
 export async function getProposalByInquiry(req: AuthenticatedRequest, res: Response): Promise<void> {
   const proposal = await proposalService.findByInquiryId(req.params.inquiryId);
   if (!proposal) {

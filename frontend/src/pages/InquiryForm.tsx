@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import { X } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './InquiryForm.module.css';
 
@@ -7,7 +8,7 @@ interface FormState {
   customerName: string;
   phoneNumber: string;
   projectDescription: string;
-  requiredFeatures: string;
+  requiredFeatures: string[];
   internalNotes: string;
 }
 
@@ -15,13 +16,15 @@ export default function InquiryForm() {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const featureInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<FormState>({
     customerName: '',
     phoneNumber: '',
     projectDescription: '',
-    requiredFeatures: '',
+    requiredFeatures: [],
     internalNotes: '',
   });
+  const [featureInput, setFeatureInput] = useState('');
   const [duplicateAlert, setDuplicateAlert] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(isEdit);
@@ -29,13 +32,13 @@ export default function InquiryForm() {
 
   useEffect(() => {
     if (!id) return;
-    api.get<FormState & { requiredFeatures: string[] }>(`/inquiries/${id}`).then((res) => {
+    api.get<FormState & { requiredFeatures?: string[] }>(`/inquiries/${id}`).then((res) => {
       if (res.success && res.data) {
         setForm({
           customerName: res.data.customerName,
           phoneNumber: res.data.phoneNumber,
           projectDescription: res.data.projectDescription,
-          requiredFeatures: (res.data.requiredFeatures || []).join('\n'),
+          requiredFeatures: res.data.requiredFeatures || [],
           internalNotes: res.data.internalNotes || '',
         });
       }
@@ -49,13 +52,34 @@ export default function InquiryForm() {
     if (name === 'phoneNumber') setDuplicateAlert(false);
   };
 
+  const addFeature = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const val = featureInput.trim();
+      if (val && !form.requiredFeatures.includes(val)) {
+        setForm((prev) => ({ ...prev, requiredFeatures: [...prev.requiredFeatures, val] }));
+        setFeatureInput('');
+      }
+    }
+  };
+
+  const removeFeature = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      requiredFeatures: prev.requiredFeatures.filter((_, i) => i !== index),
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
     const payload = {
-      ...form,
-      requiredFeatures: form.requiredFeatures.split('\n').map((s) => s.trim()).filter(Boolean),
+      customerName: form.customerName,
+      phoneNumber: form.phoneNumber,
+      projectDescription: form.projectDescription,
+      requiredFeatures: form.requiredFeatures,
+      internalNotes: form.internalNotes,
     };
     const path = isEdit ? `/inquiries/${id}` : '/inquiries';
     const res = isEdit
@@ -67,8 +91,10 @@ export default function InquiryForm() {
       setError(res.error?.message || 'Failed to save');
       return;
     }
-    if (!isEdit && (res as { meta?: { duplicatePhone?: boolean } }).meta?.duplicatePhone) setDuplicateAlert(true);
-    navigate(isEdit ? `/inquiries/${id}` : '/inquiries');
+    if (!isEdit && (res as { meta?: { duplicatePhone?: boolean } }).meta?.duplicatePhone)
+      setDuplicateAlert(true);
+    else
+      navigate(isEdit ? `/inquiries/${id}` : '/inquiries');
   };
 
   if (loading) return <p className={styles.muted}>Loading...</p>;
@@ -81,15 +107,15 @@ export default function InquiryForm() {
       </div>
 
       {duplicateAlert && (
-        <div className={styles.alert}>
-          This phone number is already associated with another inquiry. Please check for duplicates.
+        <div className={styles.alert} role="alert">
+          This phone number already exists. Please verify before proceeding.
         </div>
       )}
 
       <form onSubmit={handleSubmit} className={styles.form}>
         {error && <div className={styles.error}>{error}</div>}
         <label>
-          Customer name *
+          Customer Name <span className={styles.required}>*</span>
           <input
             name="customerName"
             value={form.customerName}
@@ -99,7 +125,7 @@ export default function InquiryForm() {
           />
         </label>
         <label>
-          Phone number *
+          Phone Number <span className={styles.required}>*</span>
           <input
             name="phoneNumber"
             value={form.phoneNumber}
@@ -110,7 +136,7 @@ export default function InquiryForm() {
           />
         </label>
         <label>
-          Project description *
+          Project Description <span className={styles.required}>*</span>
           <textarea
             name="projectDescription"
             value={form.projectDescription}
@@ -121,18 +147,29 @@ export default function InquiryForm() {
           />
         </label>
         <label>
-          Required features (one per line)
-          <textarea
-            name="requiredFeatures"
-            value={form.requiredFeatures}
-            onChange={handleChange}
-            rows={4}
-            className={styles.input}
-            placeholder="Feature 1&#10;Feature 2"
-          />
+          Required Features (add with Enter or comma)
+          <div className={styles.tagWrap}>
+            {form.requiredFeatures.map((f, i) => (
+              <span key={i} className={styles.tag}>
+                {f}
+                <button type="button" className={styles.tagRemove} onClick={() => removeFeature(i)} aria-label="Remove">
+                  <X size={14} />
+                </button>
+              </span>
+            ))}
+            <input
+              ref={featureInputRef}
+              type="text"
+              value={featureInput}
+              onChange={(e) => setFeatureInput(e.target.value)}
+              onKeyDown={addFeature}
+              placeholder="Type and press Enter"
+              className={styles.tagInput}
+            />
+          </div>
         </label>
         <label>
-          Internal notes
+          Internal Notes <span className={styles.optional}>(optional)</span>
           <textarea
             name="internalNotes"
             value={form.internalNotes}
@@ -142,10 +179,10 @@ export default function InquiryForm() {
           />
         </label>
         <div className={styles.actions}>
-          <button type="submit" disabled={submitting} className={styles.button}>
-            {submitting ? 'Saving...' : isEdit ? 'Update' : 'Create inquiry'}
-          </button>
           <Link to={isEdit ? `/inquiries/${id}` : '/inquiries'} className={styles.cancel}>Cancel</Link>
+          <button type="submit" disabled={submitting} className={styles.button}>
+            {submitting ? 'Saving…' : 'Save Inquiry'}
+          </button>
         </div>
       </form>
     </div>

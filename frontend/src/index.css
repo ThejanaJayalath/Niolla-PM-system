@@ -1,17 +1,31 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-  --bg: #0f1419;
-  --surface: #1a2332;
-  --surface-hover: #243044;
-  --border: #2d3a4f;
-  --text: #e6edf3;
-  --text-muted: #8b949e;
-  --accent: #58a6ff;
-  --accent-hover: #79b8ff;
-  --success: #3fb950;
-  --warning: #d29922;
-  --error: #f85149;
+  /* Light, professional theme */
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-hover: #f0f2f5;
+  --border: #e2e6ea;
+  --text: #1a1d21;
+  --text-muted: #6b7280;
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --success: #059669;
+  --success-bg: #d1fae5;
+  --warning: #d97706;
+  --warning-bg: #fef3c7;
+  --error: #dc2626;
+  --error-bg: #fee2e2;
   --radius: 8px;
-  --font-sans: 'DM Sans', system-ui, sans-serif;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06);
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --sidebar-width: 240px;
+  --sidebar-collapsed: 72px;
+  --header-height: 56px;
 }
 
 * {
@@ -32,11 +46,11 @@ body {
 }
 
 a {
-  color: var(--accent);
+  color: var(--primary);
   text-decoration: none;
 }
 a:hover {
-  color: var(--accent-hover);
+  color: var(--primary-hover);
 }
 
 button {
@@ -47,3 +61,13 @@ button {
 input, textarea, select {
   font-family: inherit;
 }
+
+/* Status badge colors */
+.badge-new { background: #e0e7ff; color: #4338ca; }
+.badge-contacted { background: #dbeafe; color: #1d4ed8; }
+.badge-proposal_sent { background: #fef3c7; color: #b45309; }
+.badge-negotiating { background: #e0e7ff; color: #4f46e5; }
+.badge-won { background: #d1fae5; color: #059669; }
+.badge-lost { background: #fee2e2; color: #dc2626; }
+.badge-pending { background: #fef3c7; color: #b45309; }
+.badge-completed { background: #d1fae5; color: #059669; }

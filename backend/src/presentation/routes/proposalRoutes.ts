@@ -3,6 +3,7 @@ import { body, param, validationResult } from 'express-validator';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import {
   createProposal,
+  listProposals,
   getProposal,
   getProposalByInquiry,
   downloadProposalPdf,
@@ -37,6 +38,7 @@ router.post(
   createProposal
 );
 
+router.get('/', listProposals);
 router.get('/inquiry/:inquiryId', [param('inquiryId').isMongoId()], validate, getProposalByInquiry);
 router.get('/:id/pdf', [param('id').isMongoId()], validate, downloadProposalPdf);
 router.get('/:id', [param('id').isMongoId()], validate, getProposal);

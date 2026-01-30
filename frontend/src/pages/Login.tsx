@@ -12,7 +12,7 @@ export default function Login() {
   const [submitting, setSubmitting] = useState(false);
 
   if (loading) return <div className={styles.page}>Loading...</div>;
-  if (user) return <Navigate to="/inquiries" replace />;
+  if (user) return <Navigate to="/dashboard" replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +20,7 @@ export default function Login() {
     setSubmitting(true);
     const result = await login(email, password);
     setSubmitting(false);
-    if (result.success) navigate('/inquiries');
+    if (result.success) navigate('/dashboard');
     else setError(result.error || 'Login failed');
   };
 

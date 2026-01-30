@@ -13,6 +13,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 12px;
+  box-shadow: var(--shadow-md);
 }
 
 .title {
@@ -52,13 +53,13 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--primary);
 }
 
 .button {
   margin-top: 0.5rem;
   padding: 0.75rem;
-  background: var(--accent);
+  background: var(--primary);
   border: none;
   border-radius: var(--radius);
   color: #fff;
@@ -67,7 +68,7 @@
 }
 
 .button:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: var(--primary-hover);
 }
 
 .button:disabled {

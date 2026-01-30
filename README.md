@@ -61,13 +61,10 @@ Phase 1 implementation: **Lead & Sample Proposal Management**.
 
 Change the default password after first login (register a new user or update via DB if needed).
 
-## API Base
+## API
 
 - **Base URL:** `http://localhost:5000/api/v1`
-- **Auth:** `POST /auth/login`, `POST /auth/register`
-- **Inquiries:** `GET/POST /inquiries`, `GET/PATCH/DELETE /inquiries/:id`, `GET /inquiries/check-phone?phoneNumber=...`
-- **Reminders:** `GET/POST /reminders`, `GET /reminders/upcoming`, `GET /reminders/inquiry/:inquiryId`, `PATCH/DELETE /reminders/:id`
-- **Proposals:** `POST /proposals`, `GET /proposals/inquiry/:inquiryId`, `GET /proposals/:id`, `GET /proposals/:id/pdf`
+- **Full API docs:** See **[API.md](./API.md)** for all endpoints, request/response formats, and examples.
 
 All protected routes require header: `Authorization: Bearer <token>`.
 
