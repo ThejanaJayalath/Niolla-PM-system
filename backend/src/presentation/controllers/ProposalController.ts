@@ -7,14 +7,15 @@ const proposalService = new ProposalService();
 const pdfGenerator = new ProposalPdfGenerator();
 
 export async function createProposal(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { inquiryId, milestones, totalAmount, validUntil, notes } = req.body;
-  const proposal = await proposalService.create({
-    inquiryId,
-    milestones,
-    totalAmount,
-    validUntil,
-    notes,
-  });
+const { inquiryId, projectName, milestones, totalAmount, validUntil, notes } = req.body;
+    const proposal = await proposalService.create({
+      inquiryId,
+      projectName,
+      milestones,
+      totalAmount,
+      validUntil,
+      notes,
+    });
   res.status(201).json({ success: true, data: proposal });
 }
 

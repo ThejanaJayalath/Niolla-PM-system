@@ -8,6 +8,7 @@ export interface ProposalMilestone {
 export interface Proposal {
   _id?: string;
   inquiryId: string;
+  projectName?: string;
   customerName: string;
   projectDescription: string;
   requiredFeatures: string[];

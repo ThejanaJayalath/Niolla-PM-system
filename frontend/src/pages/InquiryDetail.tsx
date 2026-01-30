@@ -45,7 +45,7 @@ export default function InquiryDetail() {
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [loading, setLoading] = useState(true);
   const [reminderForm, setReminderForm] = useState({ type: 'reminder' as 'reminder' | 'meeting', title: '', scheduledAt: '', notes: '' });
-  const [proposalForm, setProposalForm] = useState({ totalAmount: '', validUntil: '', notes: '', milestones: [{ title: '', amount: '' }] });
+  const [proposalForm, setProposalForm] = useState({ projectName: '', totalAmount: '', validUntil: '', notes: '', milestones: [{ title: '', amount: '' }] });
   const [showReminderForm, setShowReminderForm] = useState(false);
   const [showProposalForm, setShowProposalForm] = useState(false);
 
@@ -97,6 +97,7 @@ export default function InquiryDetail() {
     const totalAmount = milestones.reduce((s, m) => s + m.amount, 0);
     const res = await api.post<Proposal>('/proposals', {
       inquiryId: id,
+      projectName: proposalForm.projectName.trim() || undefined,
       milestones,
       totalAmount,
       validUntil: proposalForm.validUntil || undefined,
@@ -274,6 +275,13 @@ export default function InquiryDetail() {
             </div>
             {showProposalForm && !proposal && (
               <form onSubmit={createProposal} className={styles.form}>
+                <label className={styles.label}>Project name (for cover page)</label>
+                <input
+                  placeholder="e.g. Customer Relationship Management System"
+                  value={proposalForm.projectName}
+                  onChange={(e) => setProposalForm((f) => ({ ...f, projectName: e.target.value }))}
+                  className={styles.input}
+                />
                 <p className={styles.formHint}>Milestones and pricing (filled from inquiry; adjust as needed)</p>
                 {proposalForm.milestones.map((m, i) => (
                   <div key={i} className={styles.milestoneRow}>

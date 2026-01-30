@@ -13,7 +13,17 @@ Phase 1 implementation: **Lead & Sample Proposal Management**.
 1. **Inquiry Management** – Create/edit inquiries (customer name, phone, project description, features, notes). Duplicate phone number alert.
 2. **Reminders & Meetings** – Schedule follow-up reminders and meetings per inquiry.
 3. **Sample Proposal** – Create proposal from inquiry (auto-filled customer/project/features), add milestones and pricing manually.
-4. **PDF Generation** – Download sample proposal as PDF with disclaimer.
+4. **PDF Generation** – Download sample proposal as PDF (cover, table of contents, project overview, project management, deliverables & financials, conclusion).
+
+### Proposal PDF – company logo
+
+To show your logo on the proposal cover page, place your image here:
+
+- **Path:** `backend/assets/proposal-logo.png` (or `proposal-logo.jpg`)
+- Create the `backend/assets` folder if it doesn’t exist.
+- Use a PNG or JPG; recommended width about 200–400 px.
+
+If the file is missing, the cover shows “NIOLLA” text instead. See `backend/assets/README.md` for details.
 
 ## Quick Start
 

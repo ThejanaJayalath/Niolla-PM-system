@@ -4,6 +4,7 @@ import { ProposalModel } from '../../infrastructure/database/models/ProposalMode
 
 export interface CreateProposalInput {
   inquiryId: string;
+  projectName?: string;
   milestones: ProposalMilestone[];
   totalAmount: number;
   validUntil?: string;
@@ -17,6 +18,7 @@ export class ProposalService {
 
     const proposal = await ProposalModel.create({
       inquiryId: data.inquiryId,
+      projectName: data.projectName,
       customerName: inquiry.customerName,
       projectDescription: inquiry.projectDescription,
       requiredFeatures: inquiry.requiredFeatures || [],
