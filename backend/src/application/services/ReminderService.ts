@@ -1,0 +1,55 @@
+import { Reminder } from '../../domain/entities/Reminder';
+import { ReminderModel } from '../../infrastructure/database/models/ReminderModel';
+
+export interface CreateReminderInput {
+  inquiryId: string;
+  type: 'reminder' | 'meeting';
+  title: string;
+  scheduledAt: Date;
+  notes?: string;
+}
+
+export interface UpdateReminderInput {
+  title?: string;
+  scheduledAt?: Date;
+  notes?: string;
+  completed?: boolean;
+}
+
+export class ReminderService {
+  async create(data: CreateReminderInput): Promise<Reminder> {
+    const doc = await ReminderModel.create(data);
+    return doc.toObject() as unknown as Reminder;
+  }
+
+  async findById(id: string): Promise<Reminder | null> {
+    const doc = await ReminderModel.findById(id);
+    return doc ? (doc.toObject() as unknown as Reminder) : null;
+  }
+
+  async findByInquiryId(inquiryId: string): Promise<Reminder[]> {
+    const docs = await ReminderModel.find({ inquiryId }).sort({ scheduledAt: 1 });
+    return docs.map((d) => d.toObject() as unknown as Reminder);
+  }
+
+  async findUpcoming(limit = 20): Promise<Reminder[]> {
+    const docs = await ReminderModel.find({
+      scheduledAt: { $gte: new Date() },
+      completed: { $ne: true },
+    })
+      .sort({ scheduledAt: 1 })
+      .limit(limit)
+      .populate('inquiryId', 'customerName phoneNumber');
+    return docs.map((d) => d.toObject() as unknown as Reminder);
+  }
+
+  async update(id: string, data: UpdateReminderInput): Promise<Reminder | null> {
+    const doc = await ReminderModel.findByIdAndUpdate(id, data, { new: true });
+    return doc ? (doc.toObject() as unknown as Reminder) : null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await ReminderModel.findByIdAndDelete(id);
+    return !!result;
+  }
+}
