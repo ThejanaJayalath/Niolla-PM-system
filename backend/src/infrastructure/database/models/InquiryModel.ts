@@ -30,6 +30,4 @@ const inquirySchema = new Schema<InquiryDocument>(
   { timestamps: true }
 );
 
-inquirySchema.index({ phoneNumber: 1 });
-
 export const InquiryModel = mongoose.model<InquiryDocument>('Inquiry', inquirySchema);

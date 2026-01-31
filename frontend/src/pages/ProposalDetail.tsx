@@ -12,9 +12,11 @@ interface Proposal {
   projectDescription: string;
   requiredFeatures: string[];
   totalAmount: number;
+  maintenanceCostPerMonth?: number;
+  maintenanceNote?: string;
   validUntil?: string;
   notes?: string;
-  milestones: { title: string; amount: number; description?: string; dueDate?: string }[];
+  milestones: { title: string; amount?: number; timePeriod?: string; description?: string; dueDate?: string }[];
   createdAt: string;
 }
 
@@ -75,8 +77,11 @@ export default function ProposalDetail() {
       </section>
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Pricing</h2>
-        <p><strong>Total Amount:</strong> ${proposal.totalAmount.toLocaleString()}</p>
+        <h2 className={styles.sectionTitle}>4. Financials</h2>
+        <p><strong>Total cost for development:</strong> Rs. {proposal.totalAmount.toLocaleString()}</p>
+        {proposal.maintenanceCostPerMonth != null && (
+          <p><strong>Maintain & Server cost per month:</strong> Rs. {proposal.maintenanceCostPerMonth.toLocaleString()}{proposal.maintenanceNote ? ` (${proposal.maintenanceNote})` : ''}</p>
+        )}
         {proposal.validUntil && (
           <p><strong>Valid Until:</strong> {format(new Date(proposal.validUntil), 'MMM d, yyyy')}</p>
         )}
@@ -90,6 +95,7 @@ export default function ProposalDetail() {
               <tr>
                 <th>Title</th>
                 <th>Amount</th>
+                <th>Time Period</th>
                 <th>Description</th>
                 <th>Due Date</th>
               </tr>
@@ -98,7 +104,8 @@ export default function ProposalDetail() {
               {proposal.milestones.map((m, i) => (
                 <tr key={i}>
                   <td>{m.title}</td>
-                  <td>${m.amount.toLocaleString()}</td>
+                  <td>{m.amount != null ? `Rs. ${m.amount.toLocaleString()}` : '—'}</td>
+                  <td>{m.timePeriod || '—'}</td>
                   <td>{m.description || '—'}</td>
                   <td>{m.dueDate ? format(new Date(m.dueDate), 'MMM d, yyyy') : '—'}</td>
                 </tr>

@@ -89,7 +89,7 @@ export class ProposalPdfGenerator {
       drawPageHeader(doc);
 
       doc.fontSize(14).font('Helvetica-Bold').text('Table of contents.', 0, doc.y, { width: PAGE_WIDTH, align: 'center' });
-      doc.y += 28;
+      doc.y += 20;
 
       doc.fontSize(10).font('Helvetica');
       const toc = [
@@ -101,15 +101,15 @@ export class ProposalPdfGenerator {
         { t: '2.1.1 Project Team', p: 3 },
         { t: '2.2 Project Phases', p: 3 },
         { t: '3. Project Deliverables & Milestones', p: 4 },
-        { t: '4. Financials', p: 4 },
+        { t: '4. Financials.', p: 4 },
         { t: '4.1 Project Costs', p: 4 },
-        { t: '4.2 Deployment, Maintain & Publication cost', p: 5 },
+        { t: '4.2 Deployment, Maintain & Publication cost', p: 4 },
         { t: '5. Conclusion', p: 5 },
       ];
       toc.forEach(({ t, p }) => {
         doc.text(t, MARGIN, doc.y);
         doc.text(String(p), PAGE_WIDTH - MARGIN - 25, doc.y, { width: 25, align: 'right' });
-        doc.y += 18;
+        doc.y += 14;
       });
 
       drawFooter(doc, 1);
@@ -121,26 +121,26 @@ export class ProposalPdfGenerator {
       drawPageHeader(doc);
 
       doc.fontSize(12).font('Helvetica-Bold').text('1. Project Overview.', MARGIN, doc.y);
-      doc.moveTo(MARGIN, doc.y + 16).lineTo(PAGE_WIDTH - MARGIN, doc.y + 16).stroke();
-      doc.y += 28;
+      doc.moveTo(MARGIN, doc.y + 14).lineTo(PAGE_WIDTH - MARGIN, doc.y + 14).stroke();
+      doc.y += 18;
 
       doc.fontSize(10).font('Helvetica-Bold').text('1.1 Introduction', MARGIN, doc.y);
-      doc.y += 16;
+      doc.y += 12;
       doc.font('Helvetica');
       doc.text(proposal.projectDescription, MARGIN, doc.y, { width: CONTENT_WIDTH });
-      doc.y += 20;
+      doc.y += 14;
 
       doc.font('Helvetica-Bold').text('1.2 Key Features', MARGIN, doc.y);
-      doc.y += 16;
+      doc.y += 12;
       doc.font('Helvetica');
       if (proposal.requiredFeatures?.length) {
         proposal.requiredFeatures.forEach((f) => {
           doc.text(`• ${f}`, MARGIN, doc.y, { width: CONTENT_WIDTH });
-          doc.y += 14;
+          doc.y += 12;
         });
       } else {
         doc.text('(To be defined)', MARGIN, doc.y, { width: CONTENT_WIDTH });
-        doc.y += 14;
+        doc.y += 12;
       }
 
       drawFooter(doc, 2);
@@ -151,25 +151,24 @@ export class ProposalPdfGenerator {
       doc.y = 50;
       drawPageHeader(doc);
 
-      doc.fontSize(12).font('Helvetica-Bold').fillColor('#c00000').text('2. Project Management.', MARGIN, doc.y);
-      doc.moveTo(MARGIN, doc.y + 16).lineTo(PAGE_WIDTH - MARGIN, doc.y + 16).stroke();
-      doc.fillColor('#000000');
-      doc.y += 28;
+      doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000').text('2. Project Management.', MARGIN, doc.y);
+      doc.moveTo(MARGIN, doc.y + 14).lineTo(PAGE_WIDTH - MARGIN, doc.y + 14).stroke();
+      doc.y += 18;
 
       doc.fontSize(10).font('Helvetica-Bold').text('Project Structure & Phases', MARGIN, doc.y);
-      doc.y += 20;
+      doc.y += 14;
       doc.font('Helvetica-Bold').text('Project Team', MARGIN, doc.y);
-      doc.y += 14;
+      doc.y += 12;
       doc.font('Helvetica').text('• Project Manager (1)', MARGIN + 15, doc.y);
-      doc.y += 14;
+      doc.y += 12;
       doc.text('• Developers (2)', MARGIN + 15, doc.y);
-      doc.y += 24;
+      doc.y += 16;
       doc.font('Helvetica-Bold').text('Project Phases', MARGIN, doc.y);
-      doc.y += 14;
+      doc.y += 12;
       doc.font('Helvetica');
       PROJECT_PHASES.forEach((phase, i) => {
         doc.text(`${i + 1}. ${phase}`, MARGIN + 15, doc.y, { width: CONTENT_WIDTH - 15 });
-        doc.y += 14;
+        doc.y += 12;
       });
 
       drawFooter(doc, 3);
@@ -181,55 +180,71 @@ export class ProposalPdfGenerator {
       drawPageHeader(doc);
 
       doc.fontSize(12).font('Helvetica-Bold').text('3. Project Deliverables & Milestones.', MARGIN, doc.y);
-      doc.moveTo(MARGIN, doc.y + 16).lineTo(PAGE_WIDTH - MARGIN, doc.y + 16).stroke();
-      doc.y += 28;
+      doc.moveTo(MARGIN, doc.y + 14).lineTo(PAGE_WIDTH - MARGIN, doc.y + 14).stroke();
+      doc.y += 18;
 
       doc.fontSize(10).font('Helvetica');
       proposal.milestones.forEach((m, i) => {
         doc.font('Helvetica-Bold').text(`${i + 1}. ${m.title}`, MARGIN, doc.y);
-        doc.y += 14;
+        doc.y += 12;
         if (m.description) {
           doc.font('Helvetica').text(m.description, MARGIN + 15, doc.y, { width: CONTENT_WIDTH - 15 });
-          doc.y += 10;
+          doc.y += 8;
         }
-        doc.font('Helvetica').text(`Amount: $${m.amount.toLocaleString()}${m.dueDate ? `  |  Due: ${m.dueDate}` : ''}`, MARGIN + 15, doc.y);
-        doc.y += 20;
+        const amountStr = m.amount != null ? `Amount: Rs. ${m.amount.toLocaleString()}` : '';
+        const timeStr = m.timePeriod ? (amountStr ? '  |  ' : '') + `Time: ${m.timePeriod}` : '';
+        const dueStr = m.dueDate ? (amountStr || timeStr ? '  |  ' : '') + `Due: ${m.dueDate}` : '';
+        if (amountStr || timeStr || dueStr) {
+          doc.font('Helvetica').text(`${amountStr}${timeStr}${dueStr}`, MARGIN + 15, doc.y);
+        }
+        doc.y += 14;
       });
 
-      doc.y += 8;
+      doc.y += 10;
       doc.fontSize(12).font('Helvetica-Bold').text('4. Financials.', MARGIN, doc.y);
-      doc.moveTo(MARGIN, doc.y + 16).lineTo(PAGE_WIDTH - MARGIN, doc.y + 16).stroke();
-      doc.y += 28;
+      doc.moveTo(MARGIN, doc.y + 14).lineTo(PAGE_WIDTH - MARGIN, doc.y + 14).stroke();
+      doc.y += 18;
       doc.fontSize(10).font('Helvetica-Bold').text('4.1 Project Costs', MARGIN, doc.y);
-      doc.y += 14;
-      doc.font('Helvetica').text(`Total: $${proposal.totalAmount.toLocaleString()}`, MARGIN + 15, doc.y);
-      doc.y += 14;
+      doc.y += 12;
+      doc.font('Helvetica').text(`Total cost for development: Rs. ${proposal.totalAmount.toLocaleString()}`, MARGIN + 15, doc.y);
+      doc.y += 12;
       if (proposal.validUntil) {
         doc.text(`Valid until: ${proposal.validUntil}`, MARGIN + 15, doc.y);
-        doc.y += 14;
+        doc.y += 12;
       }
+      doc.y += 10;
+      doc.fontSize(10).font('Helvetica-Bold').text('4.2 Deployment, Maintain & Publication cost', MARGIN, doc.y);
+      doc.y += 12;
+      doc.font('Helvetica');
+      if (proposal.maintenanceCostPerMonth != null || proposal.maintenanceNote) {
+        const maintLine =
+          proposal.maintenanceCostPerMonth != null
+            ? `Maintain & Server cost per month Rs. ${proposal.maintenanceCostPerMonth.toLocaleString()}`
+            : '';
+        const notePart = proposal.maintenanceNote ? (maintLine ? ` (${proposal.maintenanceNote})` : proposal.maintenanceNote) : '';
+        doc.text(`• ${maintLine}${notePart}`, MARGIN, doc.y, { width: CONTENT_WIDTH });
+        doc.y += 12;
+      }
+      doc.text('• Play Store one time registration fee - $25', MARGIN, doc.y);
+      doc.y += 12;
+      doc.text('• App store annual fee - $99', MARGIN, doc.y);
+      if (proposal.maintenanceCostPerMonth == null && !proposal.maintenanceNote) {
+        doc.text('• Maintain & Server cost per month (as per agreement)', MARGIN, doc.y, { width: CONTENT_WIDTH });
+        doc.y += 12;
+      }
+      doc.y += 12;
 
       drawFooter(doc, 4);
       doc.addPage();
 
-      // ========== PAGE 5: DEPLOYMENT + CONCLUSION ==========
+      // ========== PAGE 5: CONCLUSION ==========
       doc.x = MARGIN;
       doc.y = 50;
       drawPageHeader(doc);
 
-      doc.fontSize(10).font('Helvetica-Bold').text('4.2 Deployment, Maintain & Publication cost', MARGIN, doc.y);
+      doc.fontSize(12).font('Helvetica-Bold').text('5. Conclusion', MARGIN, doc.y);
+      doc.moveTo(MARGIN, doc.y + 14).lineTo(PAGE_WIDTH - MARGIN, doc.y + 14).stroke();
       doc.y += 18;
-      doc.font('Helvetica');
-      doc.text('• Play Store one time registration fee - $25', MARGIN, doc.y);
-      doc.y += 14;
-      doc.text('• App store annual fee - $99', MARGIN, doc.y);
-      doc.y += 14;
-      doc.text('• Maintain & Server cost per month for first 10,000 users - $50 (then $0.01 per user)', MARGIN, doc.y, { width: CONTENT_WIDTH });
-      doc.y += 28;
-
-      doc.font('Helvetica-Bold').text('5. Conclusion', MARGIN, doc.y);
-      doc.moveTo(MARGIN, doc.y + 16).lineTo(PAGE_WIDTH - MARGIN, doc.y + 16).stroke();
-      doc.y += 24;
       doc.fontSize(9).font('Helvetica-Oblique').fillColor('#666666');
       doc.text(DISCLAIMER, MARGIN, doc.y, { width: CONTENT_WIDTH });
       doc.fillColor('#000000');

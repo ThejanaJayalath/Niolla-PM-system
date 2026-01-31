@@ -7,6 +7,8 @@ export interface CreateProposalInput {
   projectName?: string;
   milestones: ProposalMilestone[];
   totalAmount: number;
+  maintenanceCostPerMonth?: number;
+  maintenanceNote?: string;
   validUntil?: string;
   notes?: string;
 }
@@ -24,6 +26,8 @@ export class ProposalService {
       requiredFeatures: inquiry.requiredFeatures || [],
       milestones: data.milestones,
       totalAmount: data.totalAmount,
+      maintenanceCostPerMonth: data.maintenanceCostPerMonth,
+      maintenanceNote: data.maintenanceNote,
       validUntil: data.validUntil,
       notes: data.notes,
     });

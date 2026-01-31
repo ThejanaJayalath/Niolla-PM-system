@@ -55,7 +55,7 @@ export default function Proposals() {
             <thead>
               <tr>
                 <th>Customer Name</th>
-                <th>Total Amount</th>
+                <th>Price (Rs.)</th>
                 <th>Created Date</th>
                 <th>Valid Until</th>
                 <th>Actions</th>
@@ -65,7 +65,7 @@ export default function Proposals() {
               {proposals.map((p) => (
                 <tr key={p._id}>
                   <td className={styles.cellName}>{p.customerName}</td>
-                  <td>${p.totalAmount.toLocaleString()}</td>
+                  <td>Rs. {p.totalAmount.toLocaleString()}</td>
                   <td>{format(new Date(p.createdAt), 'MMM d, yyyy')}</td>
                   <td>{p.validUntil ? format(new Date(p.validUntil), 'MMM d, yyyy') : '—'}</td>
                   <td>

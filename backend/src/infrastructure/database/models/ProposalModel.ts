@@ -9,6 +9,8 @@ export interface ProposalDocument extends Document {
   requiredFeatures: string[];
   milestones: ProposalMilestone[];
   totalAmount: number;
+  maintenanceCostPerMonth?: number;
+  maintenanceNote?: string;
   validUntil?: string;
   notes?: string;
   createdAt: Date;
@@ -19,7 +21,8 @@ const milestoneSchema = new Schema<ProposalMilestone>(
   {
     title: { type: String, required: true },
     description: { type: String },
-    amount: { type: Number, required: true },
+    amount: { type: Number },
+    timePeriod: { type: String },
     dueDate: { type: String },
   },
   { _id: false }
@@ -34,6 +37,8 @@ const proposalSchema = new Schema<ProposalDocument>(
     requiredFeatures: [{ type: String }],
     milestones: [milestoneSchema],
     totalAmount: { type: Number, required: true },
+    maintenanceCostPerMonth: { type: Number },
+    maintenanceNote: { type: String },
     validUntil: { type: String },
     notes: { type: String },
   },

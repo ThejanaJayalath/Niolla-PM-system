@@ -31,7 +31,7 @@ interface Proposal {
   inquiryId: string;
   customerName: string;
   totalAmount: number;
-  milestones: { title: string; amount: number }[];
+  milestones: { title: string; amount?: number; timePeriod?: string }[];
 }
 
 const STATUS_OPTIONS = ['new', 'contacted', 'proposal_sent', 'negotiating', 'won', 'lost'];
@@ -45,7 +45,15 @@ export default function InquiryDetail() {
   const [proposal, setProposal] = useState<Proposal | null>(null);
   const [loading, setLoading] = useState(true);
   const [reminderForm, setReminderForm] = useState({ type: 'reminder' as 'reminder' | 'meeting', title: '', scheduledAt: '', notes: '' });
-  const [proposalForm, setProposalForm] = useState({ projectName: '', totalAmount: '', validUntil: '', notes: '', milestones: [{ title: '', amount: '' }] });
+  const [proposalForm, setProposalForm] = useState({
+    projectName: '',
+    totalAmount: '',
+    maintenanceCostPerMonth: '',
+    maintenanceNote: '',
+    validUntil: '',
+    notes: '',
+    milestones: [{ title: '', amount: '', timePeriod: '' }],
+  });
   const [showReminderForm, setShowReminderForm] = useState(false);
   const [showProposalForm, setShowProposalForm] = useState(false);
 
@@ -93,13 +101,19 @@ export default function InquiryDetail() {
     if (!id) return;
     const milestones = proposalForm.milestones
       .filter((m) => m.title.trim())
-      .map((m) => ({ title: m.title.trim(), amount: Number(m.amount) || 0 }));
-    const totalAmount = milestones.reduce((s, m) => s + m.amount, 0);
+      .map((m) => ({
+        title: m.title.trim(),
+        amount: m.amount === '' || m.amount === undefined ? undefined : Number(m.amount),
+        timePeriod: m.timePeriod?.trim() || undefined,
+      }));
+    const totalAmount = Number(proposalForm.totalAmount) || 0;
     const res = await api.post<Proposal>('/proposals', {
       inquiryId: id,
       projectName: proposalForm.projectName.trim() || undefined,
       milestones,
       totalAmount,
+      maintenanceCostPerMonth: proposalForm.maintenanceCostPerMonth ? Number(proposalForm.maintenanceCostPerMonth) : undefined,
+      maintenanceNote: proposalForm.maintenanceNote?.trim() || undefined,
       validUntil: proposalForm.validUntil || undefined,
       notes: proposalForm.notes || undefined,
     });
@@ -212,9 +226,35 @@ export default function InquiryDetail() {
                     />
                   </div>
                   <div>
+                    <span className={styles.label}>Price (LKR)</span>
+                    <input
+                      type="number"
+                      placeholder="Total cost for development (Rs.)"
+                      value={proposalForm.totalAmount}
+                      onChange={(e) => setProposalForm((f) => ({ ...f, totalAmount: e.target.value }))}
+                      className={styles.input}
+                      required
+                    />
+                    <span className={styles.label} style={{ marginTop: '0.75rem', display: 'block' }}>Deployment, Maintain & Publication (optional)</span>
+                    <input
+                      type="number"
+                      placeholder="Maintain & Server cost per month (Rs.)"
+                      value={proposalForm.maintenanceCostPerMonth}
+                      onChange={(e) => setProposalForm((f) => ({ ...f, maintenanceCostPerMonth: e.target.value }))}
+                      className={styles.input}
+                      style={{ marginBottom: '0.5rem' }}
+                    />
+                    <input
+                      placeholder="Note (e.g. first month free)"
+                      value={proposalForm.maintenanceNote}
+                      onChange={(e) => setProposalForm((f) => ({ ...f, maintenanceNote: e.target.value }))}
+                      className={styles.input}
+                    />
+                  </div>
+                  <div>
                     <span className={styles.label}>Milestones</span>
                     {proposalForm.milestones.map((m, i) => (
-                      <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                      <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                         <input
                           placeholder="Title"
                           value={m.title}
@@ -224,10 +264,11 @@ export default function InquiryDetail() {
                             setProposalForm((f) => ({ ...f, milestones: next }));
                           }}
                           className={styles.input}
+                          style={{ minWidth: '120px', flex: 1 }}
                         />
                         <input
                           type="number"
-                          placeholder="Amount"
+                          placeholder="Amount (optional)"
                           value={m.amount}
                           onChange={(e) => {
                             const next = [...proposalForm.milestones];
@@ -235,13 +276,24 @@ export default function InquiryDetail() {
                             setProposalForm((f) => ({ ...f, milestones: next }));
                           }}
                           className={styles.input}
-                          style={{ width: '120px' }}
+                          style={{ width: '110px' }}
+                        />
+                        <input
+                          placeholder="Time period (optional)"
+                          value={m.timePeriod ?? ''}
+                          onChange={(e) => {
+                            const next = [...proposalForm.milestones];
+                            next[i] = { ...next[i], timePeriod: e.target.value };
+                            setProposalForm((f) => ({ ...f, milestones: next }));
+                          }}
+                          className={styles.input}
+                          style={{ width: '140px' }}
                         />
                       </div>
                     ))}
                     <button
                       type="button"
-                      onClick={() => setProposalForm((f) => ({ ...f, milestones: [...f.milestones, { title: '', amount: '' }] }))}
+                      onClick={() => setProposalForm((f) => ({ ...f, milestones: [...f.milestones, { title: '', amount: '', timePeriod: '' }] }))}
                       style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.85rem' }}
                     >
                       + Add another milestone
@@ -267,12 +319,15 @@ export default function InquiryDetail() {
                 <FileText size={20} /> Active Proposal
               </h3>
               <div className={styles.proposalSummary}>
-                <div className={styles.proposalAmount}>${proposal.totalAmount.toLocaleString()}</div>
+                <div className={styles.proposalAmount}>Rs. {proposal.totalAmount.toLocaleString()}</div>
                 <ul className={styles.proposalList}>
                   {proposal.milestones.map((m, i) => (
                     <li key={i} className={styles.proposalItem}>
                       <span>{m.title}</span>
-                      <span>${m.amount.toLocaleString()}</span>
+                      <span>
+                        {m.amount != null ? `Rs. ${m.amount.toLocaleString()}` : '—'}
+                        {m.timePeriod ? ` · ${m.timePeriod}` : ''}
+                      </span>
                     </li>
                   ))}
                 </ul>

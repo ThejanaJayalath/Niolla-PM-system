@@ -1,7 +1,8 @@
 export interface ProposalMilestone {
   title: string;
   description?: string;
-  amount: number;
+  amount?: number;
+  timePeriod?: string;
   dueDate?: string;
 }
 
@@ -14,6 +15,8 @@ export interface Proposal {
   requiredFeatures: string[];
   milestones: ProposalMilestone[];
   totalAmount: number;
+  maintenanceCostPerMonth?: number;
+  maintenanceNote?: string;
   validUntil?: string;
   notes?: string;
   createdAt: Date;
