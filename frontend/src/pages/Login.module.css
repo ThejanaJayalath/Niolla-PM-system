@@ -1,58 +1,117 @@
+/* Full-page dark background using background.png */
 .page {
   min-height: 100vh;
+  min-width: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
-  background-color: #f8fafc;
-  /* Slate-50 */
+  background-color: #0f172a;
+  background-image: url('/login/background.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 2rem 1.5rem;
 }
 
-/* Subtle background decoration */
-.page::before {
-  content: '';
+/* NIOLLA branding: a bit down and closer to login box */
+.brand {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle at top right, #eef2ff, transparent 40%),
-    radial-gradient(circle at bottom left, #f0fdf4, transparent 40%);
-  opacity: 0.6;
-  z-index: 0;
+  top: 2.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
 }
 
+/* Logo: black → white via CSS filter; slightly bigger */
+.logoImage {
+  display: block;
+  height: 60px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.brandName {
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: 0.12em;
+}
+
+.loadingText {
+  position: relative;
+  z-index: 10;
+  color: rgba(248, 250, 252, 0.9);
+  font-size: 1rem;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Centered translucent dark login card */
 .card {
   position: relative;
   z-index: 10;
   width: 100%;
   max-width: 420px;
-  padding: 3rem 2.5rem;
-  background: #ffffff;
+  margin-top: -1.5rem;
+  padding: 2.5rem 2rem;
+  background: rgba(30, 41, 59, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border-radius: 20px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  border: 1px solid #e2e8f0;
+  gap: 1.75rem;
+  animation: cardEnter 0.5s ease-out;
+}
+
+@keyframes cardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card > * {
+  position: relative;
+  z-index: 1;
 }
 
 .title {
-  font-size: 1.875rem;
+  font-size: 1.75rem;
   font-weight: 700;
-  color: #1e293b;
-  /* Slate-800 */
-  margin: 0 0 0.5rem 0;
+  color: #f8fafc;
+  margin: 0 0 0.25rem 0;
   text-align: center;
   letter-spacing: -0.025em;
 }
 
 .subtitle {
-  color: #64748b;
-  /* Slate-500 */
-  font-size: 0.95rem;
+  color: rgba(248, 250, 252, 0.7);
+  font-size: 0.9rem;
   text-align: center;
   margin: 0;
-  /* Reset margin to prevent overlap */
   font-weight: 400;
   line-height: 1.5;
 }
@@ -60,7 +119,7 @@
 .form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.25rem;
 }
 
 .inputGroup {
@@ -73,53 +132,82 @@
 .label {
   font-size: 0.875rem;
   font-weight: 600;
-  color: #334155;
-  /* Slate-700 */
+  color: rgba(248, 250, 252, 0.9);
   margin-left: 0.25rem;
+}
+
+.inputWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 1rem;
+  color: rgba(248, 250, 252, 0.5);
+  pointer-events: none;
 }
 
 .input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  background: #ffffff;
-  border: 1px solid #cbd5e1;
-  /* Slate-300 */
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
-  color: #0f172a;
+  color: #f8fafc;
   font-size: 1rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input::placeholder {
+  color: rgba(248, 250, 252, 0.4);
+}
+
+.input:hover {
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .input:focus {
   outline: none;
-  border-color: #6366f1;
-  /* Primary */
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
-.input::placeholder {
-  color: #94a3b8;
+.forgotWrap {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.forgotLink {
+  font-size: 0.875rem;
+  color: rgba(248, 250, 252, 0.7);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.forgotLink:hover {
+  color: #93c5fd;
 }
 
 .button {
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
   padding: 0.875rem;
-  background: #4f46e5;
+  background: #3b82f6;
   border: none;
   border-radius: 10px;
   color: #fff;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1), 0 2px 4px -1px rgba(79, 70, 229, 0.06);
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.4);
 }
 
 .button:hover:not(:disabled) {
-  background: #4338ca;
+  background: #2563eb;
   transform: translateY(-1px);
-  box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2), 0 4px 6px -2px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 8px 20px 0 rgba(59, 130, 246, 0.45);
 }
 
 .button:active:not(:disabled) {
@@ -127,17 +215,35 @@
 }
 
 .button:disabled {
-  opacity: 0.7;
+  opacity: 0.8;
   cursor: not-allowed;
-  background: #818cf8;
+  transform: none;
+}
+
+.signUpText {
+  text-align: center;
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(248, 250, 252, 0.6);
+}
+
+.signUpLink {
+  color: #93c5fd;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.signUpLink:hover {
+  color: #bfdbfe;
 }
 
 .error {
   padding: 0.75rem;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
   border-radius: 8px;
-  color: #b91c1c;
+  color: #fca5a5;
   font-size: 0.875rem;
   text-align: center;
   font-weight: 500;
