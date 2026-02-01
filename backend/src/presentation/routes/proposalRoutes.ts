@@ -11,7 +11,7 @@ import {
 
 const router = Router();
 router.use(authMiddleware);
-router.use(requireRole('admin', 'user'));
+router.use(requireRole('owner', 'pm', 'employee'));
 
 const validate = (req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => {
   const errors = validationResult(req);

@@ -21,6 +21,7 @@ const navItems = [
   { path: '/inquiries', label: 'Inquiries', icon: MessageSquare },
   { path: '/reminders', label: 'Reminders', icon: Bell },
   { path: '/proposals', label: 'Proposals', icon: FileText },
+  { path: '/profile', label: 'Profile', icon: User },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -122,10 +123,10 @@ export default function Layout() {
                   <div className="font-semibold text-sm">{user?.name}</div>
                   <div className="text-xs text-muted" style={{ marginTop: 2 }}>{user?.email}</div>
                 </div>
-                <button type="button" className={`${styles.dropdownItem} ${styles.dropdownItemDisabled}`} disabled>
+                <Link to="/profile" className={styles.dropdownItem} onClick={() => setUserDropdownOpen(false)}>
                   <User size={16} />
                   Profile
-                </button>
+                </Link>
                 <button type="button" className={styles.dropdownItem} onClick={handleSignOut}>
                   <LogOut size={16} />
                   Sign Out

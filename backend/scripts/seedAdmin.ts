@@ -22,8 +22,8 @@ async function seed() {
   }
 
   const passwordHash = await bcrypt.hash(password, 10);
-  await UserModel.create({ email, passwordHash, name, role: 'admin' });
-  console.log('Admin user created:', email);
+  await UserModel.create({ email, passwordHash, name, role: 'owner' });
+  console.log('Owner user created:', email);
   await mongoose.disconnect();
   process.exit(0);
 }

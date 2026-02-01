@@ -10,6 +10,7 @@ import Reminders from './pages/Reminders';
 import Proposals from './pages/Proposals';
 import ProposalDetail from './pages/ProposalDetail';
 import Settings from './pages/Settings';
+import Profile from './pages/Profile';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -40,6 +41,7 @@ export default function App() {
         <Route path="proposals" element={<Proposals />} />
         <Route path="proposals/:id" element={<ProposalDetail />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

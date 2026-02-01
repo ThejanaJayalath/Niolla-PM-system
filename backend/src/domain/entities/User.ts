@@ -8,4 +8,4 @@ export interface User {
   updatedAt: Date;
 }
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'owner' | 'pm' | 'employee';

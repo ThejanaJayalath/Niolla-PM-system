@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { User } from '../../domain/entities/User';
+import { User, UserRole } from '../../domain/entities/User';
 import { UserModel } from '../../infrastructure/database/models/UserModel';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
@@ -32,7 +32,7 @@ export class AuthService {
     };
   }
 
-  async register(email: string, password: string, name: string, role: 'admin' | 'user' = 'admin'): Promise<User> {
+  async register(email: string, password: string, name: string, role: UserRole = 'employee'): Promise<User> {
     const existing = await UserModel.findOne({ email: email.toLowerCase() });
     if (existing) throw new Error('User with this email already exists');
 
@@ -44,6 +44,16 @@ export class AuthService {
       role,
     });
     return doc.toObject() as unknown as User;
+  }
+
+  async changeOwnPassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    const doc = await UserModel.findById(userId);
+    if (!doc) throw new Error('User not found');
+    const match = await bcrypt.compare(currentPassword, doc.passwordHash);
+    if (!match) throw new Error('Current password is incorrect');
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    doc.passwordHash = passwordHash;
+    await doc.save();
   }
 
   verifyToken(token: string): { userId: string; email: string; role: string } | null {
