@@ -53,7 +53,7 @@ const Sidebar = () => {
                             to={item.path}
                             className={({ isActive }) =>
                                 `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
-                                    ? 'bg-white text-gray-900 shadow-sm'
+                                    ? 'bg-sidebar-active text-gray-900 shadow-sm'
                                     : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
                                 }`
                             }
@@ -82,8 +82,8 @@ const Sidebar = () => {
                                 to={item.path}
                                 className={({ isActive }) =>
                                     `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
-                                        ? 'bg-white text-gray-900 shadow-sm'
-                                        : 'text-gray-600 hover:bg-orange-50 hover:text-gray-900'
+                                        ? 'bg-sidebar-active text-gray-900 shadow-sm'
+                                        : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
                                     }`
                                 }
                             >

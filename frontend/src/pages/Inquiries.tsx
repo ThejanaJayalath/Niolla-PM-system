@@ -86,9 +86,10 @@ export default function Inquiries() {
         <h1 className="text-2xl font-bold text-gray-900">Inquiries</h1>
         <button
           onClick={() => setShowNewModal(true)}
-          className="bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
+          className="bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2"
         >
-          + Add Inquiries
+          <Plus size={18} />
+          Add Inquiries
         </button>
       </div>
 
