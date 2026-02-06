@@ -30,16 +30,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 // Helper for status colors
-const getStatusColor = (status: string) => {
-  const s = status.toUpperCase();
-  switch (s) {
-    case 'NEW': return 'bg-white text-gray-700 border-gray-200';
-    case 'PROPOSAL_SENT': return 'bg-blue-50 text-blue-700 border-blue-200';
-    case 'NEGOTIATING': return 'bg-amber-50 text-amber-700 border-amber-200';
-    case 'CONFIRMED': return 'bg-green-50 text-green-700 border-green-200';
-    case 'LOST': return 'bg-red-50 text-red-700 border-red-200';
-    default: return 'bg-gray-50 text-gray-700 border-gray-200';
-  }
+const getStatusColor = () => {
+  return 'bg-white text-gray-700 border-primary/30 hover:border-primary';
 };
 
 export default function Inquiries() {
@@ -94,10 +86,9 @@ export default function Inquiries() {
         <h1 className="text-2xl font-bold text-gray-900">Inquiries</h1>
         <button
           onClick={() => setShowNewModal(true)}
-          className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm"
+          className="bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors"
         >
-          <Plus size={18} />
-          Add Inquiries
+          + Add Inquiries
         </button>
       </div>
 
@@ -130,7 +121,7 @@ export default function Inquiries() {
 
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
         <table className="w-full text-sm text-left">
-          <thead className="bg-orange-50 text-orange-600 font-medium">
+          <thead className="bg-transparent text-primary font-bold border-b border-orange-100">
             <tr>
               <th className="px-6 py-4">Customer Name</th>
               <th className="px-6 py-4">Customer Id</th>
@@ -157,7 +148,7 @@ export default function Inquiries() {
                       <select
                         value={inq.status}
                         onChange={(e) => updateStatus(inq._id, e.target.value)}
-                        className={`appearance-none pl-4 pr-8 py-1.5 rounded-full text-xs font-semibold border uppercase tracking-wide cursor-pointer focus:outline-none ${getStatusColor(inq.status)}`}
+                        className={`appearance-none w-full pl-4 pr-10 py-2 rounded-full text-xs font-bold border uppercase tracking-wide cursor-pointer focus:outline-none transition-colors ${getStatusColor()}`}
                       >
                         {Object.keys(STATUS_LABELS).filter(k => k === k.toUpperCase()).map((statusKey) => (
                           <option key={statusKey} value={statusKey}>
@@ -165,22 +156,30 @@ export default function Inquiries() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={12} />
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none" size={14} />
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex justify-center">
-                      {/* Logic for proposal button - simplified for now */}
+                    <div className="flex justify-center items-center gap-2">
+                      {/* Logic for proposal button */}
                       {inq.status === 'PROPOSAL_SENT' || inq.status === 'NEGOTIATING' || inq.status === 'CONFIRMED' ? (
-                        <button className="w-full max-w-[180px] border border-orange-200 text-orange-600 hover:bg-orange-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center justify-between transition-colors">
-                          Download Proposal
-                          <Download size={16} />
-                        </button>
+                        <>
+                          <button className="flex-1 border border-primary/30 text-gray-700 hover:border-primary hover:bg-orange-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                            Download Proposal
+                          </button>
+                          <button className="p-2 text-gray-700 hover:text-primary transition-colors">
+                            <Download size={18} />
+                          </button>
+                        </>
                       ) : (
-                        <button className="w-full max-w-[180px] border border-orange-200 text-gray-700 hover:border-orange-300 hover:bg-orange-50 px-3 py-1.5 rounded-lg text-sm font-medium flex items-center justify-between transition-colors">
-                          Create Proposal
-                          <Plus size={16} />
-                        </button>
+                        <div className="flex w-full items-center gap-2">
+                          <button className="flex-1 border border-primary/30 text-gray-700 hover:border-primary hover:bg-orange-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                            Create Proposal
+                          </button>
+                          <button className="p-2 border border-transparent hover:bg-orange-50 rounded-lg text-gray-700 hover:text-primary transition-colors">
+                            <Plus size={18} />
+                          </button>
+                        </div>
                       )}
                     </div>
                   </td>

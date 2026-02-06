@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import {
@@ -12,7 +11,6 @@ import {
     Settings,
     Users,
     User,
-    LogOut
 } from 'lucide-react';
 
 const Sidebar = () => {
@@ -56,7 +54,7 @@ const Sidebar = () => {
                             className={({ isActive }) =>
                                 `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
                                     ? 'bg-white text-gray-900 shadow-sm'
-                                    : 'text-gray-600 hover:bg-orange-50 hover:text-gray-900'
+                                    : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
                                 }`
                             }
                         >
