@@ -43,8 +43,22 @@ export class InquiryService {
     return doc ? (doc.toObject() as unknown as Inquiry) : null;
   }
 
-  async findAll(filters?: { status?: InquiryStatus }): Promise<Inquiry[]> {
-    const query = filters?.status ? { status: filters.status } : {};
+  async findAll(filters?: { status?: InquiryStatus; search?: string }): Promise<Inquiry[]> {
+    const query: Record<string, unknown> = {};
+
+    if (filters?.status) {
+      query.status = filters.status;
+    }
+
+    if (filters?.search) {
+      const searchRegex = { $regex: filters.search, $options: 'i' };
+      query.$or = [
+        { customerName: searchRegex },
+        { phoneNumber: searchRegex },
+        { projectDescription: searchRegex }
+      ];
+    }
+
     const docs = await InquiryModel.find(query).sort({ createdAt: -1 });
     return docs.map((d) => d.toObject() as unknown as Inquiry);
   }

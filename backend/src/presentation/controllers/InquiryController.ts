@@ -35,7 +35,11 @@ export async function getInquiry(req: AuthenticatedRequest, res: Response): Prom
 
 export async function listInquiries(req: AuthenticatedRequest, res: Response): Promise<void> {
   const status = req.query.status as string | undefined;
-  const inquiries = await inquiryService.findAll(status ? { status: status as never } : undefined);
+  const search = req.query.search as string | undefined;
+  const inquiries = await inquiryService.findAll({
+    status: status as never,
+    search
+  });
   res.json({ success: true, data: inquiries });
 }
 

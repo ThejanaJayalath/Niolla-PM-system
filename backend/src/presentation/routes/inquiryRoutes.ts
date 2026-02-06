@@ -35,8 +35,18 @@ router.post(
   createInquiry
 );
 
+// Status enum values (both casing supported)
+const STATUS_VALUES = [
+  'new', 'contacted', 'proposal_sent', 'negotiating', 'won', 'lost',
+  'NEW', 'CONTACTED', 'PROPOSAL_SENT', 'NEGOTIATING', 'WON', 'LOST'
+];
+
 router.get('/check-phone', [query('phoneNumber').notEmpty(), query('excludeId').optional().isMongoId()], validate, checkDuplicatePhone);
-router.get('/', [query('status').optional().isIn(['new', 'contacted', 'proposal_sent', 'negotiating', 'won', 'lost'])], validate, listInquiries);
+router.get('/', [
+  query('status').optional().isIn(STATUS_VALUES),
+  query('search').optional().isString().trim(),
+], validate, listInquiries);
+
 router.get('/:id', [param('id').isMongoId()], validate, getInquiry);
 router.patch(
   '/:id',
@@ -47,7 +57,7 @@ router.patch(
     body('projectDescription').optional().trim().notEmpty(),
     body('requiredFeatures').optional().isArray(),
     body('internalNotes').optional().trim(),
-    body('status').optional().isIn(['new', 'contacted', 'proposal_sent', 'negotiating', 'won', 'lost']),
+    body('status').optional().isIn(STATUS_VALUES),
   ],
   validate,
   updateInquiry

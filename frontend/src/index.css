@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@theme {
+  --color-primary: #FB8C19;
+  --color-primary-hover: #E67E0F;
+  --color-primary-light: #FED8B1;
+
+  --color-sidebar: #FFF1E4;
+  --color-sidebar-active: #FED8B1;
+
+  --color-background: #FAF9F6;
+  --color-table-header: #FFF1E4;
+}
+
 @layer base {
   body {
     @apply antialiased text-gray-800 bg-gray-50;

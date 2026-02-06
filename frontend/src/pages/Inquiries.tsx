@@ -43,21 +43,36 @@ export default function Inquiries() {
   const [deleting, setDeleting] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
 
-  const load = () => {
-    // In a real app, I'd debounce search and pass it to API. 
-    // For now, I'll filter client-side or assume API supports it if I added it.
-    // The current API only supports 'status'.
-    const q = filter ? `?status=${filter}` : '';
-    api.get<Inquiry[]>(`/inquiries${q}`).then((res) => {
-      if (res.success && res.data) setInquiries(res.data);
+  const load = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filter) params.append('status', filter);
+      if (search) params.append('search', search);
+
+      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const res = await api.get<Inquiry[]>(`/inquiries${queryString}`);
+      if (res.success && res.data) {
+        setInquiries(res.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
       setLoading(false);
-    });
+    }
   };
 
   useEffect(() => {
-    setLoading(true);
-    load();
-  }, [filter]);
+    const timer = setTimeout(() => {
+      setLoading(true);
+      load();
+    }, 500); // Debounce search
+    return () => clearTimeout(timer);
+  }, [filter, search]);
+
+  const handleCreateProposal = async (id: string) => {
+    // Placeholder for proposal creation
+    alert(`Create proposal for inquiry: ${id} (Coming Soon)`);
+  };
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -174,7 +189,10 @@ export default function Inquiries() {
                         </>
                       ) : (
                         <div className="flex w-full items-center gap-2">
-                          <button className="flex-1 border border-primary/30 text-gray-700 hover:border-primary hover:bg-orange-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                          <button
+                            onClick={() => handleCreateProposal(inq._id)}
+                            className="flex-1 border border-primary/30 text-gray-700 hover:border-primary hover:bg-orange-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
+                          >
                             Create Proposal
                           </button>
                           <button className="p-2 border border-transparent hover:bg-orange-50 rounded-lg text-gray-700 hover:text-primary transition-colors">

@@ -94,6 +94,11 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
     // @ts-ignore
     if (res.meta?.duplicatePhone) {
       setDuplicateAlert(true);
+      // Wait 3 seconds then close
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 3000);
       return;
     }
     onSuccess();
@@ -120,7 +125,7 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && <div className="text-red-500 text-sm">{error}</div>}
-          {duplicateAlert && <div className="text-amber-600 text-sm bg-amber-50 p-2 rounded">Phone number already exists.</div>}
+          {duplicateAlert && <div className="text-amber-600 text-sm bg-amber-50 p-2 rounded">Phone number already exists. Inquiry created successfully. Redirecting...</div>}
 
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700 block">Name</label>
