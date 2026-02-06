@@ -28,7 +28,7 @@ export class InquiryService {
     const inquiry = await InquiryModel.create({
       ...data,
       phoneNumber: normalizedPhone,
-      status: 'new' as InquiryStatus,
+      status: 'NEW' as InquiryStatus,
       createdBy: data.createdBy,
     });
 

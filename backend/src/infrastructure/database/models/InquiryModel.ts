@@ -22,8 +22,8 @@ const inquirySchema = new Schema<InquiryDocument>(
     internalNotes: { type: String },
     status: {
       type: String,
-      enum: ['new', 'contacted', 'proposal_sent', 'negotiating', 'won', 'lost'] as InquiryStatus[],
-      default: 'new',
+      enum: ['NEW', 'PROPOSAL_SENT', 'NEGOTIATING', 'CONFIRMED', 'LOST'] as InquiryStatus[],
+      default: 'NEW',
     },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },

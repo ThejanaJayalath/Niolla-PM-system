@@ -1,344 +1,67 @@
-🎨 UI/UX DESIGN PROMPT (PHASE 1 ONLY)
+i want to create internal tool for our company ,
+this tool is website that handle our emplyess and projects.
+so basically in dashboard there is 10 main fetureas (tabs)
 
-You can copy-paste this as-is into any UI/UX design AI or give it to a designer.
+1.) Home
+2.)Projects
+3.)Tasks
+4.)Work Logs
+5.)Performance
+6.)Settings
+7.)Inquiries
+8.)Meetings
+9.)Proposal
+10.)Profile
 
-🔹 UI/UX DESIGN PROMPT
-
-Design a modern, professional, and scalable web-based internal dashboard for a small software company called Niolla Customer Solution.
-
-The system is a Phase 1 Lead & Sample Proposal Management System.
-
-The UI must be:
-
-Clean, minimal, and professional
-
-Business-focused (not flashy)
-
-Easy to extend for future phases (projects, payments, users)
-
-Responsive (desktop-first, tablet-friendly)
-
-Use a left sidebar navigation layout with a top header bar.
-
-Color style:
-
-Neutral background (light gray / off-white)
-
-Primary color: deep blue or indigo
-
-Accent color: soft green or orange for status indicators
-
-Typography:
-
-Clean sans-serif (Inter / Roboto / SF Pro style)
-
-Clear hierarchy for headings, labels, and body text
-
-🧭 NAVIGATION STRUCTURE (VERY IMPORTANT)
-🔹 Sidebar (Left Navigation – Collapsible)
-
-Tabs (in this exact order):
-
-Dashboard
+but currently i only need this 3 Tabs for now.
 
 Inquiries
-
 Reminders
-
-Proposals
-
-Settings (future-ready)
-
-👉 Icons only when collapsed, icon + label when expanded.
-
-🔹 Top Header Bar
-
-Right side:
-
-🔔 Notifications icon (Phase 1: upcoming reminders count)
-
-👤 User avatar + name
-
-Dropdown:
-
-Profile (disabled / future)
-
-Sign Out
-
-📌 Sign Out button must always be here, not in sidebar.
-
-🖥️ SCREEN-BY-SCREEN UI/UX DESIGN (PHASE 1)
-1️⃣ Dashboard Screen
-Purpose
-
-Quick overview for admins when they log in.
-
-Layout
-
-Top: Page title → Dashboard
-
-Grid layout with cards
-
-Cards
-
-🧾 Total Inquiries
-
-📞 New Inquiries
-
-⏰ Upcoming Reminders
-
-📄 Proposals Created
-
-Below Cards
-
-Upcoming Reminders Table
-
-Inquiry name
-
-Reminder title
-
-Date & time
-
-Action: “View”
-
-📌 No heavy charts in Phase 1 (keep it clean).
-
-2️⃣ Inquiries Screen (MOST IMPORTANT)
-Header Area
-
-Title: Inquiries
-
-Right side buttons:
-
-➕ New Inquiry
-
-Filter dropdown (Status)
-
-Inquiry List (Table)
-
-Columns:
-
-Customer Name
-
-Phone Number
-
-Short Description
-
-Status (colored badge)
-
-Created Date
-
-Actions
-
-Row Actions (icon buttons):
-
-👁 View
-
-✏️ Edit
-
-🗑 Delete
-
-🔴 Duplicate Phone UX (CRITICAL)
-
-When creating/editing:
-
-If duplicate detected:
-
-Show yellow warning banner
-
-Text:
-
-“This phone number already exists. Please verify before proceeding.”
-
-(No blocking, just warning – professional behavior)
-
-➕ New Inquiry Modal / Page
-
-Form Fields (exact order):
-
-Customer Name (required)
-
-Phone Number (required)
-
-Project Description (textarea)
-
-Required Features (tag input – add/remove)
-
-Internal Notes (optional textarea)
-
-Buttons (bottom right):
-
-Save Inquiry (primary)
-
-Cancel (text button)
-
-3️⃣ Inquiry Detail Page
-
-This is a multi-tab page (important for scalability).
-
-Top Section
-
-Customer Name
-
-Phone Number
-
-Status dropdown (New, Contacted, Proposal Sent, etc.)
-
-Tabs inside Inquiry Detail
-🔹 Tab 1: Overview
-
-Project description
-
-Feature list (chips)
-
-Internal notes
-
-Created date
-
-🔹 Tab 2: Reminders
-
-List of reminders (timeline style)
-
-Button:
-
-➕ Add Reminder
-
-Reminder form:
-
-Type (Reminder / Meeting)
-
-Title
-
-Date & Time
-
-Notes
-
-Buttons:
-
-Save
-
-Cancel
-
-🔹 Tab 3: Proposal
-
-Button:
-
-➕ Create Sample Proposal
-
-or View Proposal (if exists)
-
-📌 Proposal is always linked to inquiry.
-
-4️⃣ Proposals Screen
-Proposal List Table
-
-Columns:
-
-Customer Name
-
-Total Amount
-
-Created Date
-
-Valid Until
-
-Actions
-
-Actions:
-
-👁 View
-
-📄 Download PDF
-
-5️⃣ Proposal Detail Page
-Sections (Vertical Layout)
-🔹 Auto-filled Section (Read-only)
-
-Customer Name
-
-Project Description
-
-Required Features
-
-🔹 Pricing Section
-
-Total Amount
-
-Valid Until
-
-🔹 Milestones Section
-
-Table:
-
-Title
-
-Amount
-
-Description
-
-Due Date
-
-➕ Add Milestone
-
-Bottom Action Bar (Sticky)
-
-Buttons (right aligned):
-
-Save Proposal
-
-Download PDF
-
-Cancel
-
-6️⃣ Reminders Screen
-List View
-
-Date & time
-
-Inquiry name
-
-Reminder title
-
-Type badge (Meeting / Reminder)
-
-Status (Pending / Completed)
-
-Actions:
-
-Mark as completed
-
-View inquiry
-
-🎯 UX PRINCIPLES (DO NOT SKIP)
-
-All primary actions on the right
-
-Destructive actions (Delete) need confirmation
-
-Status always shown with color badges
-
-Forms should show inline validation
-
-Empty states must explain what to do next
-
-Example empty state:
-
-“No inquiries yet. Click ‘New Inquiry’ to add your first customer.”
-
-🧱 FUTURE-READY DESIGN DECISIONS (VERY IMPORTANT)
-
-Sidebar has space for:
-
-Projects
-
-Payments
-
-Users
-
-Inquiry detail page already uses tabs → easy extension
-
-Proposal system expandable to “Final Proposal”
-
-Dashboard cards can grow
-
-You are not redesigning later, only extending.
+Proposal
+
+
+Inquiries Tab
+
+so first Feature what is Inquiries tab - Inquiries tab means when cutomer call our comapny 
+we get there name, number and there projects , thier needs that stuff and store in our DB for 
+our Future advantages and for better management. 
+so in inquiries tab i want like huge table 
+it shows Customer name ,phone number ,Short Description ,Status and proposel.
+so some one click in one raw anywhere it should open that customer record , but some one click on Status it will trigger option menu that can 
+use to change status if we add new Inquiries , it show NEW as a default then we can change this status NEW , Proposel SENT, Negotiating , CONFIRMED and Lost
+and also need to add down arrow on all status that help for better visul.
+and next colum is proposal , in that colom have box name Create proposal, when some one create Inquiries first time that should be default in proposla tab.
+but after some one create propsal that box should be change to Download Proposal, and once again ge create more than one propsal for same inqurie it change to Proposal list and when click it it should open drop down menu and show all the proposal as a list.
+and also that tab have add New inquiries button serch bar and sort and filter.
+and if i click New inquiries button it should open pop up screen to add new inquiries.
+	in that screen this field should include
+		1. Customer Name
+		2. Phone Number
+		3. Project Description
+		4. Required Features (this can add requirement as separate Features )
+		5. Internal Notes
+after creating new Inquiries, it directly go that table, in that table,
+ if i select any raw it will open curent customer record as a pop up screen.
+in that pop up screen it shows that details we enter when creating new Inquiries.
+All project details Description,Required Features,Internal Notes,names etc. , and also 
+it have Edit Inquiries , Delete Inquiries buttons and also it have Create Proposal and Add Meeting buttons.
+and also each cutomer record have Proposel button, Default it show create Propsal but if we alredy create praposal it should show Download Praposal insted
+this is basically all Inquiries Tab.
+
+Then Proposal Tab.
+
+This tab have first Create New proposl button(This same button in Inquiries tab table if user not create propsal to new Inquiries this button show in that table and also in Inquiries table if we select one user and view there recrod it also show this same button) if we click it it open pop up screen , in that screen first fiel is 
+select Inquiries - this field allows users to select Inquiries that we create in Inquiries tab(because all proposel linked with Inquiries).so it contain serchbar as well.
+Next Field is Project Name- we can give name to this project(This is normal text box),
+Milestones-you can add Milestones give it name and add time(optional) and Time(Optional) {Milstone have 3 Text box title,amount and time and have +mark that can add any milstone each have 3 text box like before},
+Deployment, Maintain & Publication (optional)-This is optional field (This also have 3 text box , for Title cost and description){and aslo have + mark that can add those 3 text field multiple time like Milestones },
+Total_Price- Last one is Total Price it have To 3 text box Advance pay , Project pay, Total Price (Total price is auto genarate when they add Advance pay+ Project pay = Total price ) ,like that 
+then have create Proposal , cancel and view demo buttons(If user click View demo it will open in another field)
+after create proposal it should show in proposal tab main table ,
+this tab have same like Table that cantail all detail that create proporsal cutomer name ,Price (Rs.),Created Date and download proposal button and also have delete button.
+and also some one click raw in this tab it will view proposal record , in that it will show Customer Name,Project Description,Required Features,Total cost for development,Maintain & Server cost per month,Milestones (Customer Name,Project Description and Required Features should get in Inquiries tab) and also have edit button.
+
+Meetings tab
+
+this tab allow us to create meetings reminders. as metion before in Inquiries tab view cutomer record have Add Meeting button and also this tab also contain add Meeting button both are same. when this click come small pop up screen that cantain Title , Discription , date and time cacel and save button, after create new mmeting 
+it goes to table like other 2 tabs , in this table have meeting Title,discription, time and date , status (when first create meeting it show as schedule , after time is over it auto change to overdue and also it has more status Done , cacel and postpone), and also have delete and edit button

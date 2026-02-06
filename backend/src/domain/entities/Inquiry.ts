@@ -11,4 +11,4 @@ export interface Inquiry {
   createdBy?: string;
 }
 
-export type InquiryStatus = 'new' | 'contacted' | 'proposal_sent' | 'negotiating' | 'won' | 'lost';
+export type InquiryStatus = 'NEW' | 'PROPOSAL_SENT' | 'NEGOTIATING' | 'CONFIRMED' | 'LOST';
