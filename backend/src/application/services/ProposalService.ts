@@ -32,6 +32,19 @@ export class ProposalService {
       notes: data.notes,
     });
 
+    // Link proposal to Inquiry
+    await InquiryModel.findByIdAndUpdate(data.inquiryId, {
+      $push: {
+        proposals: {
+          _id: proposal._id,
+          createdAt: proposal.createdAt,
+          status: 'CREATED'
+        }
+      },
+      // Auto-update status to PROPOSAL_SENT
+      $set: { status: 'PROPOSAL_SENT' }
+    });
+
     return proposal.toObject() as unknown as Proposal;
   }
 

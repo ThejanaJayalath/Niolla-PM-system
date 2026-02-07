@@ -41,8 +41,8 @@ and if i click New inquiries button it should open pop up screen to add new inqu
 		4. Required Features (this can add requirement as separate Features )
 		5. Internal Notes
 after creating new Inquiries, it directly go that table, in that table,
- if i select any raw it will open curent customer record as a pop up screen.
-in that pop up screen it shows that details we enter when creating new Inquiries.
+ if i select any raw it will open curent customer record as a new screen.
+in that screen it shows that details we enter when creating new Inquiries.
 All project details Description,Required Features,Internal Notes,names etc. , and also 
 it have Edit Inquiries , Delete Inquiries buttons and also it have Create Proposal and Add Meeting buttons.
 and also each cutomer record have Proposel button, Default it show create Propsal but if we alredy create praposal it should show Download Praposal insted

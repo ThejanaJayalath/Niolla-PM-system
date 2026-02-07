@@ -7,6 +7,11 @@ export interface InquiryDocument extends Document {
   projectDescription: string;
   requiredFeatures: string[];
   internalNotes?: string;
+  proposals?: {
+    _id: string;
+    createdAt: Date;
+    status: 'CREATED' | 'DOWNLOADED';
+  }[];
   status: InquiryStatus;
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -20,6 +25,13 @@ const inquirySchema = new Schema<InquiryDocument>(
     projectDescription: { type: String, required: true },
     requiredFeatures: [{ type: String }],
     internalNotes: { type: String },
+    proposals: [
+      {
+        _id: { type: String, required: true }, // Using string ID for simplicity or ObjectId if referencing a Proposal collection later
+        createdAt: { type: Date, default: Date.now },
+        status: { type: String, enum: ['CREATED', 'DOWNLOADED'], default: 'CREATED' },
+      },
+    ],
     status: {
       type: String,
       enum: ['NEW', 'PROPOSAL_SENT', 'NEGOTIATING', 'CONFIRMED', 'LOST'] as InquiryStatus[],

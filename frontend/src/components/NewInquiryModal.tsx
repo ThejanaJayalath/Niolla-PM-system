@@ -1,6 +1,5 @@
-
 import { useState, useRef, useEffect } from 'react';
-import { X, User, Phone, FileText, Calendar } from 'lucide-react';
+import { X, User, Phone, FileText } from 'lucide-react';
 import { api } from '../api/client';
 
 interface FormState {
@@ -205,14 +204,15 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
 
           <div className="space-y-1">
             <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-              <Calendar size={16} className="text-primary" /> Notes
+              <FileText size={16} className="text-primary" /> Internal Notes
             </label>
-            <input
+            <textarea
               name="internalNotes"
               value={form.internalNotes}
               onChange={handleChange}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400"
-              placeholder="Pick a date"
+              rows={2}
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400 resize-none"
+              placeholder="Add internal notes..."
             />
           </div>
 

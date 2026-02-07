@@ -5,6 +5,11 @@ export interface Inquiry {
   projectDescription: string;
   requiredFeatures: string[];
   internalNotes?: string;
+  proposals?: {
+    _id: string;
+    createdAt: Date;
+    status: 'CREATED' | 'DOWNLOADED';
+  }[];
   status: InquiryStatus;
   createdAt: Date;
   updatedAt: Date;

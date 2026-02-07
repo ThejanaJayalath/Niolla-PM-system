@@ -9,12 +9,10 @@
 
 .title {
   margin: 0;
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -0.03em;
+  color: #111827;
+  letter-spacing: -0.02em;
 }
 
 .actions {
@@ -114,82 +112,75 @@
   opacity: 1;
 }
 
-/* Table Container - Removed background to let rows float */
+/* Table Container - Standard Table Look */
 .tableWrap {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  overflow-x: auto;
-  box-shadow: none;
-  padding-bottom: 2rem;
-  /* Space for shadows */
+  background: white;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 0;
 }
 
 .table {
   width: 100%;
-  border-collapse: separate;
-  /* Key for floating rows */
-  border-spacing: 0 0.75rem;
-  /* Gap between rows */
-  font-size: 0.95rem;
+  border-collapse: collapse;
+  font-size: 0.85rem;
 }
 
 .table th {
-  padding: 0 1.5rem 1rem;
+  background: #eff6ff;
+  /* Light Blue 50 */
+  padding: 0.85rem 1.5rem;
   text-align: left;
   font-weight: 700;
-  color: var(--text-tertiary);
-  /* Lighter styling */
-  font-size: 0.75rem;
+  color: #ea580c;
+  /* Orange Text */
+  font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  border: none;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #fed7aa;
   white-space: nowrap;
 }
 
 .table tbody tr {
   background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.03);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  border: 1px solid var(--border-subtle);
-  /* Won't show on tr in separated table */
-}
-
-/* Floating row card effect */
-.table td {
-  padding: 1.25rem 1.5rem;
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
-  background: white;
-  color: var(--text-primary);
-  vertical-align: middle;
-}
-
-.table td:first-child {
-  border-left: 1px solid var(--border-subtle);
-  border-top-left-radius: 16px;
-  border-bottom-left-radius: 16px;
-}
-
-.table td:last-child {
-  border-right: 1px solid var(--border-subtle);
-  border-top-right-radius: 16px;
-  border-bottom-right-radius: 16px;
-}
-
-/* Hover Effects */
-.table tbody tr:hover td {
-  background: white;
-  border-color: transparent;
-  transform: scale(1);
-  /* Hack to force z-index stacking context if needed */
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s;
 }
 
 .table tbody tr:hover {
-  transform: translateY(-3px) scale(1.005);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-  z-index: 10;
+  background-color: #fff7ed;
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+/* Compact Cells */
+.table td {
+  padding: 0.65rem 1.5rem;
+  background: transparent;
+  color: var(--text-primary);
+  vertical-align: middle;
+  border: none;
+}
+
+.table td:first-child {
+  border-radius: 0;
+  border: none;
+}
+
+.table td:last-child {
+  border-radius: 0;
+  border: none;
+}
+
+/* Hover Effects */
+/* Reset Hover Effects */
+.table tbody tr:hover td {
+  transform: none;
+  border-color: transparent;
 }
 
 .cellName {
@@ -221,21 +212,16 @@
 
 /* Override global badges for specific glow effects */
 :global(.badge-new) {
-  background: #eff6ff;
-  color: #3b82f6;
-  border: 1px solid #dbeafe;
-}
-
-:global(.badge-contacted) {
-  background: #fdf2f8;
-  color: #db2777;
-  border: 1px solid #fce7f3;
+  background: white;
+  color: #ea580c;
+  border: 1px solid #ea580c;
 }
 
 :global(.badge-proposal_sent) {
-  background: #fff7ed;
-  color: #ea580c;
-  border: 1px solid #ffedd5;
+  background: #d1d5db;
+  /* Grayish */
+  color: #374151;
+  border: none;
 }
 
 :global(.badge-negotiating) {

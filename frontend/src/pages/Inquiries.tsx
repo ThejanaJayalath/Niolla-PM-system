@@ -4,6 +4,7 @@ import { Plus, Search, ChevronDown, Download } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 import NewInquiryModal from '../components/NewInquiryModal';
+import styles from './Inquiries.module.css';
 
 interface Inquiry {
   _id: string;
@@ -12,6 +13,11 @@ interface Inquiry {
   projectDescription: string;
   status: string;
   createdAt: string;
+  proposals?: {
+    _id: string;
+    createdAt: string;
+    status: 'CREATED' | 'DOWNLOADED';
+  }[];
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -30,8 +36,15 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 // Helper for status colors
-const getStatusColor = () => {
-  return 'bg-white text-gray-700 border-primary/30 hover:border-primary';
+const getStatusColor = (status: string) => {
+  const s = status.toLowerCase();
+  // Exact match to Image 2 colors
+  if (s === 'new') return 'bg-white text-orange-500 border-orange-200 hover:border-orange-300';
+  if (s === 'proposal_sent') return 'bg-[#d1d5db] text-gray-700 border-transparent'; // Proposal Sent (Gray pill)
+  if (s === 'negotiating') return 'bg-[#f3e8ff] text-purple-600 border-transparent'; // Negotiating (Purple pill)
+  if (s === 'confirmed') return 'bg-[#dcfce7] text-green-600 border-transparent'; // Confirmed (Green pill)
+  if (s === 'lost') return 'bg-[#fee2e2] text-red-600 border-transparent'; // Lost (Red pill)
+  return 'bg-white text-gray-700 border-gray-200';
 };
 
 export default function Inquiries() {
@@ -70,8 +83,31 @@ export default function Inquiries() {
   }, [filter, search]);
 
   const handleCreateProposal = async (id: string) => {
-    // Placeholder for proposal creation
-    alert(`Create proposal for inquiry: ${id} (Coming Soon)`);
+    try {
+      const res = await api.post('/proposals', {
+        inquiryId: id,
+        totalAmount: 0,
+        milestones: [{ title: 'Initial Draft', amount: 0 }],
+        notes: 'Auto-generated draft'
+      });
+
+      if (res.success) {
+        load();
+      } else {
+        console.error('Failed to create proposal', res.error);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDownloadProposal = async (proposalId: string) => {
+    try {
+      await (api as any).download(`/proposals/${proposalId}/pdf`, `proposal-${proposalId}.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to download proposal');
+    }
   };
 
   const handleDelete = async () => {
@@ -135,18 +171,18 @@ export default function Inquiries() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-        <table className="w-full text-sm text-left">
-          <thead className="bg-transparent text-primary font-bold border-b border-orange-100">
+      <div className={styles.tableWrap}>
+        <table className={styles.table}>
+          <thead>
             <tr>
-              <th className="px-6 py-4">Customer Name</th>
-              <th className="px-6 py-4">Customer Id</th>
-              <th className="px-6 py-4">Description</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-center">proposal</th>
+              <th className="px-6 py-4 w-[20%]">Customer Name</th>
+              <th className="px-6 py-4 w-[15%]">Customer Id</th>
+              <th className="px-6 py-4 w-[30%]">Description</th>
+              <th className="px-6 py-4 w-[15%]">Status</th>
+              <th className="px-6 py-4 w-[20%] text-center">proposal</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y-0"> {/* divide-y-0 because we use border-spacing */}
             {loading ? (
               <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading...</td></tr>
             ) : filteredInquiries.length === 0 ? (
@@ -160,11 +196,11 @@ export default function Inquiries() {
                     {inq.projectDescription}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="relative">
+                    <div className="relative w-40">
                       <select
                         value={inq.status}
                         onChange={(e) => updateStatus(inq._id, e.target.value)}
-                        className={`appearance-none w-full pl-4 pr-10 py-2 rounded-full text-xs font-bold border uppercase tracking-wide cursor-pointer focus:outline-none transition-colors ${getStatusColor()}`}
+                        className={`appearance-none w-full pl-4 pr-10 py-2 rounded-full text-xs font-bold border uppercase tracking-wide cursor-pointer focus:outline-none transition-colors shadow-sm ${getStatusColor(inq.status)}`}
                       >
                         {Object.keys(STATUS_LABELS).filter(k => k === k.toUpperCase()).map((statusKey) => (
                           <option key={statusKey} value={statusKey}>
@@ -172,32 +208,41 @@ export default function Inquiries() {
                           </option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-primary pointer-events-none" size={14} />
+                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={14} />
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex justify-center items-center gap-2">
-                      {/* Logic for proposal button */}
-                      {inq.status === 'PROPOSAL_SENT' || inq.status === 'NEGOTIATING' || inq.status === 'CONFIRMED' ? (
-                        <>
-                          <button className="flex-1 border border-primary/30 text-gray-700 hover:border-primary hover:bg-orange-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
-                            Download Proposal
+                    <div className="flex justify-center items-center w-full max-w-[200px] mx-auto">
+                      {/* Proposal Logic */}
+                      {(!inq.proposals || inq.proposals.length === 0) ? (
+                        <button
+                          onClick={() => handleCreateProposal(inq._id)}
+                          className="w-full flex items-center justify-between border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm"
+                        >
+                          <span>Create Proposal</span>
+                          <Plus size={16} />
+                        </button>
+                      ) : inq.proposals.length === 1 ? (
+                        <div className="flex w-full gap-2">
+                          <button className="flex-1 border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
+                            <span>Download Proposal</span>
+                            <Download size={16} />
                           </button>
-                          <button className="p-2 text-gray-700 hover:text-primary transition-colors">
-                            <Download size={18} />
-                          </button>
-                        </>
+                        </div>
                       ) : (
-                        <div className="flex w-full items-center gap-2">
-                          <button
-                            onClick={() => handleCreateProposal(inq._id)}
-                            className="flex-1 border border-primary/30 text-gray-700 hover:border-primary hover:bg-orange-50 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-                          >
-                            Create Proposal
+                        <div className="relative w-full group">
+                          <button className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
+                            <span>Proposal List</span>
+                            <ChevronDown size={16} />
                           </button>
-                          <button className="p-2 border border-transparent hover:bg-orange-50 rounded-lg text-gray-700 hover:text-primary transition-colors">
-                            <Plus size={18} />
-                          </button>
+                          {/* Simple dropdown mock */}
+                          <div className="absolute top-right-0 w-full bg-white border border-gray-100 shadow-lg rounded-lg mt-1 hidden group-hover:block z-20">
+                            {inq.proposals.map((_, i) => (
+                              <div key={i} className="px-4 py-2 hover:bg-gray-50 text-sm cursor-pointer border-b border-gray-50 last:border-0">
+                                Proposal #{i + 1}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -209,10 +254,10 @@ export default function Inquiries() {
         </table>
 
         {/* Pagination placeholder (mock) */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+        <div className="px-6 py-3 bg-[#eff6ff] border-t border-[#fed7aa] flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center gap-2">
             <span>Rows Per Page:</span>
-            <select className="bg-gray-50 border border-gray-200 rounded px-2 py-1 focus:outline-none">
+            <select className="bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-orange-300">
               <option>10</option>
               <option>20</option>
             </select>
@@ -220,8 +265,8 @@ export default function Inquiries() {
           <div className="flex items-center gap-2">
             <span>1-5 of 5</span>
             <div className="flex gap-1">
-              <button className="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50" disabled>&lt; Previous</button>
-              <button className="px-2 py-1 border border-gray-200 rounded hover:bg-gray-50">Next &gt;</button>
+              <button className="px-2 py-1 border border-gray-300 rounded hover:bg-white disabled:opacity-50" disabled>&lt;</button>
+              <button className="px-2 py-1 border border-gray-300 rounded hover:bg-white">&gt;</button>
             </div>
           </div>
         </div>
