@@ -5,7 +5,7 @@ import {
   createProposal,
   listProposals,
   getProposal,
-  getProposalByInquiry,
+  getProposalsByInquiry,
   downloadProposalPdf,
 } from '../controllers/ProposalController';
 
@@ -43,7 +43,7 @@ router.post(
 );
 
 router.get('/', listProposals);
-router.get('/inquiry/:inquiryId', [param('inquiryId').isMongoId()], validate, getProposalByInquiry);
+router.get('/inquiry/:inquiryId', [param('inquiryId').isMongoId()], validate, getProposalsByInquiry);
 router.get('/:id/pdf', [param('id').isMongoId()], validate, downloadProposalPdf);
 router.get('/:id', [param('id').isMongoId()], validate, getProposal);
 

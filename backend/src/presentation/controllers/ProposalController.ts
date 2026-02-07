@@ -7,17 +7,17 @@ const proposalService = new ProposalService();
 const pdfGenerator = new ProposalPdfGenerator();
 
 export async function createProposal(req: AuthenticatedRequest, res: Response): Promise<void> {
-const { inquiryId, projectName, milestones, totalAmount, maintenanceCostPerMonth, maintenanceNote, validUntil, notes } = req.body;
-    const proposal = await proposalService.create({
-      inquiryId,
-      projectName,
-      milestones,
-      totalAmount,
-      maintenanceCostPerMonth,
-      maintenanceNote,
-      validUntil,
-      notes,
-    });
+  const { inquiryId, projectName, milestones, totalAmount, maintenanceCostPerMonth, maintenanceNote, validUntil, notes } = req.body;
+  const proposal = await proposalService.create({
+    inquiryId,
+    projectName,
+    milestones,
+    totalAmount,
+    maintenanceCostPerMonth,
+    maintenanceNote,
+    validUntil,
+    notes,
+  });
   res.status(201).json({ success: true, data: proposal });
 }
 
@@ -35,13 +35,9 @@ export async function listProposals(req: AuthenticatedRequest, res: Response): P
   res.json({ success: true, data: proposals });
 }
 
-export async function getProposalByInquiry(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const proposal = await proposalService.findByInquiryId(req.params.inquiryId);
-  if (!proposal) {
-    res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Proposal not found' } });
-    return;
-  }
-  res.json({ success: true, data: proposal });
+export async function getProposalsByInquiry(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const proposals = await proposalService.findAllByInquiryId(req.params.inquiryId);
+  res.json({ success: true, data: proposals });
 }
 
 export async function downloadProposalPdf(req: AuthenticatedRequest, res: Response): Promise<void> {

@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, ChevronDown, Download } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -48,6 +49,7 @@ const getStatusColor = (status: string) => {
 };
 
 export default function Inquiries() {
+  const navigate = useNavigate();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('');
@@ -189,13 +191,17 @@ export default function Inquiries() {
               <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">No inquiries found.</td></tr>
             ) : (
               filteredInquiries.map((inq) => (
-                <tr key={inq._id} className="hover:bg-gray-50 transition-colors group cursor-default">
+                <tr
+                  key={inq._id}
+                  onClick={() => navigate(`/inquiries/${inq._id}`)}
+                  className="hover:bg-gray-50 transition-colors group cursor-pointer"
+                >
                   <td className="px-6 py-4 font-medium text-gray-900">{inq.customerName}</td>
                   <td className="px-6 py-4 text-gray-600">{inq.phoneNumber}</td>
                   <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={inq.projectDescription}>
                     {inq.projectDescription}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                     <div className="relative w-40">
                       <select
                         value={inq.status}
@@ -211,7 +217,7 @@ export default function Inquiries() {
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={14} />
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-center items-center w-full max-w-[200px] mx-auto">
                       {/* Proposal Logic */}
                       {(!inq.proposals || inq.proposals.length === 0) ? (

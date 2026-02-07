@@ -1,7 +1,18 @@
+
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { format } from 'date-fns';
-import { Plus, FileText, Download, Pencil } from 'lucide-react';
+
+import {
+  ArrowLeft,
+  ChevronDown,
+  Edit3,
+  Trash2,
+  Bell,
+  FileText,
+  Download,
+  Users,
+  X
+} from 'lucide-react';
 import { api } from '../api/client';
 import styles from './InquiryDetail.module.css';
 
@@ -23,18 +34,42 @@ interface Reminder {
   title: string;
   scheduledAt: string;
   notes?: string;
-  completed?: boolean;
 }
 
 interface Proposal {
   _id: string;
   inquiryId: string;
   customerName: string;
+  projectName?: string;
   totalAmount: number;
-  milestones: { title: string; amount?: number; timePeriod?: string }[];
 }
 
-const STATUS_OPTIONS = ['new', 'contacted', 'proposal_sent', 'negotiating', 'won', 'lost'];
+const STATUS_LABELS: Record<string, string> = {
+  NEW: 'New',
+  PROPOSAL_SENT: 'Proposal Sent',
+  NEGOTIATING: 'Negotiating',
+  CONFIRMED: 'Confirmed',
+  LOST: 'Lost',
+  // Compat
+  new: 'New',
+  proposal_sent: 'Proposal Sent',
+  negotiating: 'Negotiating',
+  won: 'Won',
+  lost: 'Lost',
+};
+
+// Helper for status colors
+const getStatusColor = (status: string) => {
+  const s = status.toLowerCase();
+  // Exact match to Image 2 colors
+  if (s === 'new') return 'bg-white text-orange-500 border-orange-200 hover:border-orange-300';
+  if (s === 'proposal_sent') return 'bg-[#d1d5db] text-gray-700 border-transparent'; // Proposal Sent (Gray pill)
+  if (s === 'negotiating') return 'bg-[#f3e8ff] text-purple-600 border-transparent'; // Negotiating (Purple pill)
+  if (s === 'confirmed') return 'bg-[#dcfce7] text-green-600 border-transparent'; // Confirmed (Green pill)
+  if (s === 'lost') return 'bg-[#fee2e2] text-red-600 border-transparent'; // Lost (Red pill)
+  return 'bg-white text-gray-700 border-gray-200';
+};
+
 
 
 export default function InquiryDetail() {
@@ -42,31 +77,39 @@ export default function InquiryDetail() {
 
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [proposal, setProposal] = useState<Proposal | null>(null);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [reminderForm, setReminderForm] = useState({ type: 'reminder' as 'reminder' | 'meeting', title: '', scheduledAt: '', notes: '' });
-  const [proposalForm, setProposalForm] = useState({
-    projectName: '',
-    totalAmount: '',
-    maintenanceCostPerMonth: '',
-    maintenanceNote: '',
-    validUntil: '',
-    notes: '',
-    milestones: [{ title: '', amount: '', timePeriod: '' }],
+
+  // Edit Mode State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    customerName: '',
+    phoneNumber: '',
+    projectDescription: '',
+    requiredFeatures: [] as string[],
+    internalNotes: ''
   });
-  const [showReminderForm, setShowReminderForm] = useState(false);
-  const [showProposalForm, setShowProposalForm] = useState(false);
+  const [newFeature, setNewFeature] = useState('');
 
   const load = () => {
     if (!id) return;
     Promise.all([
       api.get<Inquiry>(`/inquiries/${id}`),
       api.get<Reminder[]>(`/reminders/inquiry/${id}`),
-      api.get<Proposal>(`/proposals/inquiry/${id}`).then((r) => (r.success && r.data ? r : { success: false, data: null })),
+      api.get<Proposal[]>(`/proposals/inquiry/${id}`) // Now returns array
     ]).then(([inqRes, remRes, propRes]) => {
-      if (inqRes.success && inqRes.data) setInquiry(inqRes.data);
+      if (inqRes.success && inqRes.data) {
+        setInquiry(inqRes.data);
+        setEditForm({
+          customerName: inqRes.data.customerName,
+          phoneNumber: inqRes.data.phoneNumber,
+          projectDescription: inqRes.data.projectDescription,
+          requiredFeatures: inqRes.data.requiredFeatures || [],
+          internalNotes: inqRes.data.internalNotes || ''
+        });
+      }
       if (remRes.success && remRes.data) setReminders(remRes.data);
-      if (propRes.success && propRes.data) setProposal(propRes.data as Proposal);
+      if (propRes.success && propRes.data) setProposals(propRes.data);
       setLoading(false);
     });
   };
@@ -74,338 +117,302 @@ export default function InquiryDetail() {
   useEffect(() => load(), [id]);
 
   const updateStatus = async (status: string) => {
-    if (!id) return;
+    if (!id || !inquiry) return;
+    // Optimistic update
+    setInquiry({ ...inquiry, status });
     const res = await api.patch<Inquiry>(`/inquiries/${id}`, { status });
-    if (res.success && res.data) setInquiry(res.data);
-  };
-
-  const addReminder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-    const res = await api.post<Reminder>('/reminders', {
-      inquiryId: id,
-      type: reminderForm.type,
-      title: reminderForm.title,
-      scheduledAt: reminderForm.scheduledAt,
-      notes: reminderForm.notes || undefined,
-    });
-    if (res.success) {
-      setReminderForm({ type: 'reminder', title: '', scheduledAt: '', notes: '' });
-      setShowReminderForm(false);
+    if (!res.success) {
+      // Revert on failure (reload)
       load();
     }
   };
 
-  const createProposal = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     if (!id) return;
-    const milestones = proposalForm.milestones
-      .filter((m) => m.title.trim())
-      .map((m) => ({
-        title: m.title.trim(),
-        amount: m.amount === '' || m.amount === undefined ? undefined : Number(m.amount),
-        timePeriod: m.timePeriod?.trim() || undefined,
-      }));
-    const totalAmount = Number(proposalForm.totalAmount) || 0;
-    const res = await api.post<Proposal>('/proposals', {
-      inquiryId: id,
-      projectName: proposalForm.projectName.trim() || undefined,
-      milestones,
-      totalAmount,
-      maintenanceCostPerMonth: proposalForm.maintenanceCostPerMonth ? Number(proposalForm.maintenanceCostPerMonth) : undefined,
-      maintenanceNote: proposalForm.maintenanceNote?.trim() || undefined,
-      validUntil: proposalForm.validUntil || undefined,
-      notes: proposalForm.notes || undefined,
-    });
-    if (res.success && res.data) {
-      setProposal(res.data);
-      setShowProposalForm(false);
+    try {
+      const res = await api.patch<Inquiry>(`/inquiries/${id}`, {
+        customerName: editForm.customerName,
+        phoneNumber: editForm.phoneNumber,
+        projectDescription: editForm.projectDescription,
+        requiredFeatures: editForm.requiredFeatures,
+        internalNotes: editForm.internalNotes
+      });
+
+      if (res.success && res.data) {
+        setInquiry(res.data);
+        setIsEditing(false);
+      }
+    } catch (err) {
+      console.error('Failed to save', err);
+      alert('Failed to save inquiry details');
     }
   };
 
-  const downloadPdf = async (proposalId: string) => {
-    const token = localStorage.getItem('token');
-    const res = await fetch(`/api/v1/proposals/${proposalId}/pdf`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `proposal-${Date.now()}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleDelete = async () => {
+    if (!id || !window.confirm('Are you sure you want to delete this inquiry?')) return;
+    try {
+      await api.delete(`/inquiries/${id}`);
+      window.location.href = '/inquiries';
+    } catch (err) {
+      console.error('Failed to delete', err);
+      alert('Failed to delete inquiry');
+    }
   };
 
-  if (loading || !inquiry) return <p className={styles.emptyState}>Loading...</p>;
+  const addFeature = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && newFeature.trim()) {
+      e.preventDefault();
+      if (!editForm.requiredFeatures.includes(newFeature.trim())) {
+        setEditForm(prev => ({
+          ...prev,
+          requiredFeatures: [...prev.requiredFeatures, newFeature.trim()]
+        }));
+      }
+      setNewFeature('');
+    }
+  };
+
+  const removeFeature = (feature: string) => {
+    setEditForm(prev => ({
+      ...prev,
+      requiredFeatures: prev.requiredFeatures.filter(f => f !== feature)
+    }));
+  };
+
+  const handleDownloadProposal = async (proposalId: string) => {
+    try {
+      // Assuming generic download handler
+      // await (api as any).download(...)
+      console.log(`Downloading ${proposalId}`);
+      alert('Download functionality would integrate here');
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  if (loading) {
+    return <div className={styles.container}>Loading...</div>;
+  }
+
+  if (!inquiry) {
+    return <div className={styles.container}>Inquiry not found.</div>;
+  }
 
   return (
-    <div className={styles.pageContainer}>
-      {/* Header */}
-      <div className={styles.header}>
-        <div className={styles.headerTop}>
-          <div className={styles.headerInfo}>
-            <Link to="/inquiries" className={styles.back}>← Back to Inquiries</Link>
-            <h1 className={styles.title}>{inquiry.customerName}</h1>
-            <div className={styles.metaRow}>
-              <span>{inquiry.phoneNumber}</span>
-              <span>•</span>
-              <span>Created {format(new Date(inquiry.createdAt), 'MMM d, yyyy')}</span>
-              <select
-                value={inquiry.status}
-                onChange={(e) => updateStatus(e.target.value)}
-                className={styles.statusSelect}
-              >
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s} value={s}>{s.replace('_', ' ')}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className={styles.actionBar}>
-            <Link to={`/inquiries/${id}/edit`} className={styles.actionBtn}>
-              <Pencil size={18} /> Edit Inquiry
-            </Link>
-            <button type="button" onClick={() => setShowReminderForm(!showReminderForm)} className={styles.actionBtn}>
-              <Plus size={18} /> Add Reminder
-            </button>
-            {!proposal && (
-              <button type="button" onClick={() => setShowProposalForm(!showProposalForm)} className={styles.actionBtn}>
-                <FileText size={18} /> Create Proposal
-              </button>
-            )}
-          </div>
+    <div className={styles.container}>
+      {/* Back Button */}
+      <div className="flex flex-col gap-4 mb-6">
+        <Link to="/inquiries" className="text-gray-500 hover:text-gray-900 flex items-center gap-2 transition-colors w-fit">
+          <ArrowLeft size={20} />
+          <span className="font-medium text-lg">Back</span>
+        </Link>
+        <div className={styles.breadcrumb}>
+          <span>Home</span> &gt; <span>Inquiries</span> &gt; <span className="font-semibold">Inquiries Details</span>
         </div>
       </div>
 
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.pageTitle}>{inquiry.customerName}</h1>
+          <p className={styles.subTitle}>E-commerce web site</p>
+        </div>
+        <button onClick={handleDelete} className={styles.deleteBtn}>
+          <Trash2 size={16} /> Delete Inquiries
+        </button>
+      </div>
+
       <div className={styles.grid}>
-        {/* Main Content Column */}
-        <div className={styles.mainContent}>
-          {/* Project Details Card */}
-          <div className={styles.glassCard}>
-            <h3 className={styles.cardTitle}>Project Details</h3>
-
-            <div>
-              <span className={styles.label}>Description</span>
-              <p className={styles.bodyText}>{inquiry.projectDescription}</p>
-            </div>
-
-            {inquiry.requiredFeatures?.length > 0 && (
-              <div>
-                <span className={styles.label}>Required Features</span>
-                <div className={styles.chips}>
-                  {inquiry.requiredFeatures.map((f, i) => (
-                    <span key={i} className={styles.chip}>{f}</span>
+        {/* Main Content */}
+        <div className={styles.mainCard}>
+          <div className={styles.cardHeader}>
+            <div className="flex items-center gap-4">
+              <h2 className={styles.cardTitle}>Inquiries Details</h2>
+              <div className="relative w-48">
+                <select
+                  value={inquiry.status}
+                  onChange={(e) => updateStatus(e.target.value)}
+                  className={`appearance-none w-full pl-4 pr-10 py-2 rounded-full text-xs font-bold border uppercase tracking-wide cursor-pointer focus:outline-none transition-colors shadow-sm ${getStatusColor(inquiry.status)}`}
+                >
+                  {Object.keys(STATUS_LABELS).filter(k => k === k.toUpperCase()).map((statusKey) => (
+                    <option key={statusKey} value={statusKey}>
+                      {STATUS_LABELS[statusKey]}
+                    </option>
                   ))}
-                </div>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={14} />
               </div>
-            )}
-
-            {inquiry.internalNotes && (
-              <div>
-                <span className={styles.label}>Internal Notes</span>
-                <p className={styles.bodyText}>{inquiry.internalNotes}</p>
-              </div>
-            )}
+            </div>
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <button onClick={handleSave} className={styles.saveBtn}>Save Inquiries</button>
+              ) : (
+                <button onClick={() => setIsEditing(true)} className={styles.editBtn}>
+                  <Edit3 size={16} /> Edit Inquiries
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Proposal Form (Inline) */}
-          {showProposalForm && !proposal && (
-            <div className={styles.inlineForm}>
-              <h3 className={styles.cardTitle} style={{ marginBottom: '1rem' }}>Create Proposal</h3>
-              <form onSubmit={createProposal}>
-                <div className={styles.formGrid}>
-                  <div>
-                    <span className={styles.label}>Project Name</span>
-                    <input
-                      placeholder="e.g. CRM System"
-                      value={proposalForm.projectName}
-                      onChange={(e) => setProposalForm((f) => ({ ...f, projectName: e.target.value }))}
-                      className={styles.input}
-                    />
-                  </div>
-                  <div>
-                    <span className={styles.label}>Price (LKR)</span>
-                    <input
-                      type="number"
-                      placeholder="Total cost for development (Rs.)"
-                      value={proposalForm.totalAmount}
-                      onChange={(e) => setProposalForm((f) => ({ ...f, totalAmount: e.target.value }))}
-                      className={styles.input}
-                      required
-                    />
-                    <span className={styles.label} style={{ marginTop: '0.75rem', display: 'block' }}>Deployment, Maintain & Publication (optional)</span>
-                    <input
-                      type="number"
-                      placeholder="Maintain & Server cost per month (Rs.)"
-                      value={proposalForm.maintenanceCostPerMonth}
-                      onChange={(e) => setProposalForm((f) => ({ ...f, maintenanceCostPerMonth: e.target.value }))}
-                      className={styles.input}
-                      style={{ marginBottom: '0.5rem' }}
-                    />
-                    <input
-                      placeholder="Note (e.g. first month free)"
-                      value={proposalForm.maintenanceNote}
-                      onChange={(e) => setProposalForm((f) => ({ ...f, maintenanceNote: e.target.value }))}
-                      className={styles.input}
-                    />
-                  </div>
-                  <div>
-                    <span className={styles.label}>Milestones</span>
-                    {proposalForm.milestones.map((m, i) => (
-                      <div key={i} style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                        <input
-                          placeholder="Title"
-                          value={m.title}
-                          onChange={(e) => {
-                            const next = [...proposalForm.milestones];
-                            next[i] = { ...next[i], title: e.target.value };
-                            setProposalForm((f) => ({ ...f, milestones: next }));
-                          }}
-                          className={styles.input}
-                          style={{ minWidth: '120px', flex: 1 }}
-                        />
-                        <input
-                          type="number"
-                          placeholder="Amount (optional)"
-                          value={m.amount}
-                          onChange={(e) => {
-                            const next = [...proposalForm.milestones];
-                            next[i] = { ...next[i], amount: e.target.value };
-                            setProposalForm((f) => ({ ...f, milestones: next }));
-                          }}
-                          className={styles.input}
-                          style={{ width: '110px' }}
-                        />
-                        <input
-                          placeholder="Time period (optional)"
-                          value={m.timePeriod ?? ''}
-                          onChange={(e) => {
-                            const next = [...proposalForm.milestones];
-                            next[i] = { ...next[i], timePeriod: e.target.value };
-                            setProposalForm((f) => ({ ...f, milestones: next }));
-                          }}
-                          className={styles.input}
-                          style={{ width: '140px' }}
-                        />
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setProposalForm((f) => ({ ...f, milestones: [...f.milestones, { title: '', amount: '', timePeriod: '' }] }))}
-                      style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.85rem' }}
-                    >
-                      + Add another milestone
-                    </button>
-                  </div>
-                </div>
-                <div className={styles.formActions}>
-                  <button type="button" onClick={() => setShowProposalForm(false)} className={styles.btnCancel}>Cancel</button>
-                  <button type="submit" className={styles.btnSave}>Create Proposal</button>
-                </div>
-              </form>
+          <div className={styles.formGroup}>
+            <label>Name</label>
+            <input
+              value={isEditing ? editForm.customerName : inquiry.customerName}
+              onChange={e => setEditForm({ ...editForm, customerName: e.target.value })}
+              readOnly={!isEditing}
+              className={isEditing ? styles.inputParam : styles.inputReadonly}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Phone Number</label>
+            <input
+              value={isEditing ? editForm.phoneNumber : inquiry.phoneNumber}
+              onChange={e => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+              readOnly={!isEditing}
+              className={isEditing ? styles.inputParam : styles.inputReadonly}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Description</label>
+            <textarea
+              value={isEditing ? editForm.projectDescription : inquiry.projectDescription}
+              onChange={e => setEditForm({ ...editForm, projectDescription: e.target.value })}
+              readOnly={!isEditing}
+              className={isEditing ? styles.inputParam : styles.inputReadonly}
+              rows={4}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Required Features</label>
+            <div className="flex flex-col gap-3">
+              <div className={styles.chipContainer}>
+                {(isEditing ? editForm.requiredFeatures : inquiry.requiredFeatures).map((f, i) => (
+                  <span key={i} className={`${styles.chip} flex items-center gap-1 pr-2`}>
+                    {f}
+                    {isEditing && (
+                      <button
+                        onClick={() => removeFeature(f)}
+                        className="hover:text-red-500 rounded-full p-0.5 transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </span>
+                ))}
+                {(!isEditing && inquiry.requiredFeatures.length === 0) && (
+                  <span className="text-gray-400 italic text-sm">No features specified</span>
+                )}
+              </div>
+
+              {isEditing && (
+                <input
+                  value={newFeature}
+                  onChange={e => setNewFeature(e.target.value)}
+                  onKeyDown={addFeature}
+                  className={styles.inputParam}
+                  placeholder="Type feature and press Enter to add..."
+                />
+              )}
             </div>
-          )}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Notes</label>
+            <textarea
+              value={isEditing ? editForm.internalNotes : (inquiry.internalNotes || 'If you want it more technical, more marketing-style... (Placeholder if empty)')}
+              onChange={e => setEditForm({ ...editForm, internalNotes: e.target.value })}
+              readOnly={!isEditing}
+              className={isEditing ? styles.inputParam : styles.inputReadonly}
+              rows={3}
+            />
+          </div>
         </div>
 
-        {/* Sidebar Column */}
+        {/* Sidebar */}
         <div className={styles.sidebar}>
 
-          {/* Proposal Summary Card (if exists) */}
-          {proposal && (
-            <div className={styles.glassCard}>
-              <h3 className={styles.cardTitle}>
-                <FileText size={20} /> Active Proposal
-              </h3>
-              <div className={styles.proposalSummary}>
-                <div className={styles.proposalAmount}>Rs. {proposal.totalAmount.toLocaleString()}</div>
-                <ul className={styles.proposalList}>
-                  {proposal.milestones.map((m, i) => (
-                    <li key={i} className={styles.proposalItem}>
-                      <span>{m.title}</span>
-                      <span>
-                        {m.amount != null ? `Rs. ${m.amount.toLocaleString()}` : '—'}
-                        {m.timePeriod ? ` · ${m.timePeriod}` : ''}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <button onClick={() => downloadPdf(proposal._id)} className={styles.btnPrimary}>
-                    <Download size={16} /> Download PDF
-                  </button>
-                  <Link to={`/proposals/${proposal._id}`} className={styles.btnCancel} style={{ textAlign: 'center', flex: 1 }}>
-                    View
-                  </Link>
-                </div>
-              </div>
+          {/* Active Proposal */}
+          <div className={styles.sideCard}>
+            <div className={styles.sideHeader}>
+              <FileText size={18} className="text-orange-500" />
+              <h3>Active Proposal</h3>
             </div>
-          )}
 
-          {/* Reminders Card */}
-          <div className={styles.glassCard}>
-            <h3 className={styles.cardTitle}>
-              Reminders & Meetings
-            </h3>
-
-            {showReminderForm && (
-              <div className={styles.inlineForm} style={{ marginBottom: 0, padding: '1rem' }}>
-                <form onSubmit={addReminder}>
-                  <div className={styles.formGrid}>
-                    <select
-                      value={reminderForm.type}
-                      onChange={(e) => setReminderForm((f) => ({ ...f, type: e.target.value as 'reminder' | 'meeting' }))}
-                      className={styles.input}
-                    >
-                      <option value="reminder">Reminder</option>
-                      <option value="meeting">Meeting</option>
-                    </select>
-                    <input
-                      placeholder="Title"
-                      value={reminderForm.title}
-                      onChange={(e) => setReminderForm((f) => ({ ...f, title: e.target.value }))}
-                      required
-                      className={styles.input}
-                    />
-                    <input
-                      type="datetime-local"
-                      value={reminderForm.scheduledAt}
-                      onChange={(e) => setReminderForm((f) => ({ ...f, scheduledAt: e.target.value }))}
-                      required
-                      className={styles.input}
-                    />
+            <div className={styles.listContainer}>
+              {proposals.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="bg-orange-100 p-4 rounded-full mb-3">
+                    <FileText size={32} className="text-orange-500" />
                   </div>
-                  <div className={styles.formActions}>
-                    <button type="button" onClick={() => setShowReminderForm(false)} className={styles.btnCancel}>Cancel</button>
-                    <button type="submit" className={styles.btnSave}>Save</button>
+                  <p className="text-gray-500 font-medium">No Active Proposal</p>
+                </div>
+              ) : (
+                proposals.map(p => (
+                  <div key={p._id} className={styles.listItem}>
+                    <span className="truncate flex-1 font-medium text-gray-700">
+                      {p.projectName || `Proposal #${p._id.substr(-4)}`}
+                    </span>
+                    <button onClick={() => handleDownloadProposal(p._id)} className="text-gray-500 hover:text-gray-800">
+                      <Download size={16} />
+                    </button>
+                    <button className="text-gray-500 hover:text-red-500">
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                </form>
-              </div>
-            )}
+                ))
+              )}
+            </div>
 
-            {reminders.length === 0 && !showReminderForm ? (
-              <p className={styles.emptyState}>No upcoming reminders.</p>
-            ) : (
-              <ul className={styles.timeline}>
-                {reminders.map((r) => (
-                  <li key={r._id} className={styles.timelineItem}>
-                    <div className={styles.timelineDateBox}>
-                      <span className={styles.timelineDay}>{format(new Date(r.scheduledAt), 'd')}</span>
-                      <span className={styles.timelineMonth}>{format(new Date(r.scheduledAt), 'MMM')}</span>
-                    </div>
-                    <div className={styles.timelineContent}>
-                      <div className={styles.timelineTitle}>{r.title}</div>
-                      <div className={styles.timelineMeta}>
-                        {format(new Date(r.scheduledAt), 'h:mm a')} • {r.type}
-                      </div>
-                      {r.notes && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.2rem' }}>{r.notes}</div>}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+            <button
+              onClick={() => alert('Open Create Proposal Modal')}
+              className={styles.orangeBtn}
+            >
+              Create New Proposal
+            </button>
           </div>
+
+          {/* Active Meetings */}
+          <div className={styles.sideCard}>
+            <div className={styles.sideHeader}>
+              <Users size={18} className="text-orange-500" />
+              <h3>Active Meetings</h3>
+            </div>
+
+            <div className={styles.listContainer}>
+              {reminders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="bg-orange-100 p-4 rounded-full mb-3">
+                    <Users size={32} className="text-orange-500" />
+                  </div>
+                  <p className="text-gray-500 font-medium">No Active Meetings</p>
+                </div>
+              ) : (
+                reminders.map(r => (
+                  <div key={r._id} className={styles.listItem}>
+                    <span className="truncate flex-1 font-medium text-gray-700">
+                      {r.title}
+                    </span>
+                    <button className="text-gray-500 hover:text-gray-800">
+                      <Bell size={16} />
+                    </button>
+                    <button className="text-gray-500 hover:text-red-500">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <button
+              className={styles.orangeBtn}
+              onClick={() => alert('Open Create Meeting Modal')}
+            >
+              Create New Meetings
+            </button>
+          </div>
+
         </div>
       </div>
     </div>

@@ -58,6 +58,11 @@ export class ProposalService {
     return doc ? (doc.toObject() as unknown as Proposal) : null;
   }
 
+  async findAllByInquiryId(inquiryId: string): Promise<Proposal[]> {
+    const docs = await ProposalModel.find({ inquiryId }).sort({ createdAt: -1 });
+    return docs.map(d => d.toObject() as unknown as Proposal);
+  }
+
   async findAll(): Promise<Proposal[]> {
     const docs = await ProposalModel.find().sort({ createdAt: -1 });
     return docs.map((d) => d.toObject() as unknown as Proposal);
