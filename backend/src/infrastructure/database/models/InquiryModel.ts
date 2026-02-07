@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 import { InquiryStatus } from '../../../domain/entities/Inquiry';
 
 export interface InquiryDocument extends Document {
+  customerId: string;
   customerName: string;
   phoneNumber: string;
   projectDescription: string;
@@ -20,6 +21,11 @@ export interface InquiryDocument extends Document {
 
 const inquirySchema = new Schema<InquiryDocument>(
   {
+    customerId: {
+      type: String,
+      unique: true,
+      index: true
+    },
     customerName: { type: String, required: true },
     phoneNumber: { type: String, required: true, index: true },
     projectDescription: { type: String, required: true },
@@ -41,5 +47,14 @@ const inquirySchema = new Schema<InquiryDocument>(
   },
   { timestamps: true }
 );
+
+// Auto-generate customerId before saving
+inquirySchema.pre('save', async function (next) {
+  if (!this.customerId) {
+    const count = await mongoose.model('Inquiry').countDocuments();
+    this.customerId = `INQ-${String(count + 1).padStart(5, '0')}`;
+  }
+  next();
+});
 
 export const InquiryModel = mongoose.model<InquiryDocument>('Inquiry', inquirySchema);

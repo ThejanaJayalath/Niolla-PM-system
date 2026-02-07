@@ -9,6 +9,7 @@ import styles from './Inquiries.module.css';
 
 interface Inquiry {
   _id: string;
+  customerId?: string;
   customerName: string;
   phoneNumber: string;
   projectDescription: string;
@@ -215,7 +216,7 @@ export default function Inquiries() {
                   className="hover:bg-gray-50 transition-colors group cursor-pointer"
                 >
                   <td className="px-6 py-4 font-medium text-gray-900">{inq.customerName}</td>
-                  <td className="px-6 py-4 text-gray-600">{inq.phoneNumber}</td>
+                  <td className="px-6 py-4 text-gray-600">{inq.customerId || 'N/A'}</td>
                   <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={inq.projectDescription}>
                     {inq.projectDescription}
                   </td>

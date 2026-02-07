@@ -1,5 +1,6 @@
 export interface Inquiry {
   _id?: string;
+  customerId?: string;
   customerName: string;
   phoneNumber: string;
   projectDescription: string;
