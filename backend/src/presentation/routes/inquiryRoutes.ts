@@ -37,8 +37,8 @@ router.post(
 
 // Status enum values (both casing supported)
 const STATUS_VALUES = [
-  'new', 'contacted', 'proposal_sent', 'negotiating', 'won', 'lost',
-  'NEW', 'CONTACTED', 'PROPOSAL_SENT', 'NEGOTIATING', 'WON', 'LOST'
+  'new', 'contacted', 'proposal_sent', 'negotiating', 'won', 'lost', 'confirmed',
+  'NEW', 'CONTACTED', 'PROPOSAL_SENT', 'NEGOTIATING', 'WON', 'LOST', 'CONFIRMED'
 ];
 
 router.get('/check-phone', [query('phoneNumber').notEmpty(), query('excludeId').optional().isMongoId()], validate, checkDuplicatePhone);

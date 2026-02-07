@@ -66,7 +66,7 @@ export class InquiryService {
   async update(id: string, data: UpdateInquiryInput): Promise<Inquiry | null> {
     const update: Record<string, unknown> = { ...data };
     if (data.phoneNumber) update.phoneNumber = this.normalizePhone(data.phoneNumber);
-    const doc = await InquiryModel.findByIdAndUpdate(id, update, { new: true });
+    const doc = await InquiryModel.findByIdAndUpdate(id, update, { new: true, runValidators: false });
     return doc ? (doc.toObject() as unknown as Inquiry) : null;
   }
 

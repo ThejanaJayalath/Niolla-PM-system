@@ -43,12 +43,29 @@ const getStatusColor = (status: string) => {
   if (s === 'new') return 'bg-white text-orange-500 border-orange-200 hover:border-orange-300';
   if (s === 'proposal_sent') return 'bg-[#d1d5db] text-gray-700 border-transparent'; // Proposal Sent (Gray pill)
   if (s === 'negotiating') return 'bg-[#f3e8ff] text-purple-600 border-transparent'; // Negotiating (Purple pill)
-  if (s === 'confirmed') return 'bg-[#dcfce7] text-green-600 border-transparent'; // Confirmed (Green pill)
+  if (s === 'confirmed' || s === 'won') return 'bg-[#dcfce7] text-green-600 border-transparent'; // Confirmed (Green pill)
   if (s === 'lost') return 'bg-[#fee2e2] text-red-600 border-transparent'; // Lost (Red pill)
   return 'bg-white text-gray-700 border-gray-200';
 };
 
+const getNormalizedStatus = (status: string) => {
+  if (!status) return 'new';
+  const s = status.toLowerCase();
+  if (s === 'won') return 'CONFIRMED';
+  return s.toUpperCase();
+};
+
 export default function Inquiries() {
+  // ... existing state ...
+  // ... load function ...
+  // ... useEffect ...
+  // ... handleCreateProposal ...
+  // ... handleDownloadProposal ...
+  // ... handleDelete ...
+  /* (Note: skipping function bodies for brevity, replace only `getStatusColor` and add `getNormalizedStatus` before export default, then locate the select usage) */
+  /* Wait, replace_file_content replaces a chunk. I will replace getStatusColor definition and add getNormalizedStatus there. Then initiate a 2nd replacement for the select usage. */
+  /* First replacement: Update getStatusColor and add getNormalizedStatus */
+
   const navigate = useNavigate();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,7 +201,8 @@ export default function Inquiries() {
               <th className="px-6 py-4 w-[20%] text-center">proposal</th>
             </tr>
           </thead>
-          <tbody className="divide-y-0"> {/* divide-y-0 because we use border-spacing */}
+          {/* divide-y-0 because we use border-spacing */}
+          <tbody className="divide-y-0">
             {loading ? (
               <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading...</td></tr>
             ) : filteredInquiries.length === 0 ? (
@@ -204,7 +222,7 @@ export default function Inquiries() {
                   <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                     <div className="relative w-40">
                       <select
-                        value={inq.status}
+                        value={getNormalizedStatus(inq.status)}
                         onChange={(e) => updateStatus(inq._id, e.target.value)}
                         className={`appearance-none w-full pl-4 pr-10 py-2 rounded-full text-xs font-bold border uppercase tracking-wide cursor-pointer focus:outline-none transition-colors shadow-sm ${getStatusColor(inq.status)}`}
                       >
@@ -260,7 +278,7 @@ export default function Inquiries() {
         </table>
 
         {/* Pagination placeholder (mock) */}
-        <div className="px-6 py-3 bg-[#eff6ff] border-t border-[#fed7aa] flex items-center justify-between text-xs text-gray-500">
+        <div className="px-6 py-3 bg-[#f9fafb] border-t border-[#fed7aa] flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center gap-2">
             <span>Rows Per Page:</span>
             <select className="bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-orange-300">
