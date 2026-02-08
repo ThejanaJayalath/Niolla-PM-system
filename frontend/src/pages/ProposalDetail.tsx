@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 interface Proposal {
   _id: string;
   inquiryId: string;
+  proposalId?: string;
   customerName: string;
   projectDescription: string;
   requiredFeatures: string[];
@@ -188,7 +189,9 @@ export default function ProposalDetail() {
             <h1 className="text-[2rem] font-extrabold text-gray-900 tracking-tight leading-tight">
               {proposal.customerName}
             </h1>
-            <p className="text-base text-gray-500 mt-1">Proposal Details</p>
+            <p className="text-base text-gray-500 mt-1">
+              {proposal.proposalId ? `${proposal.proposalId} • ` : ''}Proposal Details
+            </p>
           </div>
           <div className="flex gap-3">
             <button
