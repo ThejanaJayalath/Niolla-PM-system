@@ -5,14 +5,18 @@ export interface CreateReminderInput {
   inquiryId: string;
   type: 'reminder' | 'meeting';
   title: string;
+  description?: string;
   scheduledAt: Date;
   notes?: string;
+  status?: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
 }
 
 export interface UpdateReminderInput {
   title?: string;
+  description?: string;
   scheduledAt?: Date;
   notes?: string;
+  status?: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
   completed?: boolean;
 }
 
@@ -32,11 +36,15 @@ export class ReminderService {
     return docs.map((d) => d.toObject() as unknown as Reminder);
   }
 
-  async findUpcoming(limit = 20): Promise<Reminder[]> {
-    const docs = await ReminderModel.find({
+  async findUpcoming(limit = 20, type?: string): Promise<Reminder[]> {
+    const query: any = {
       scheduledAt: { $gte: new Date() },
       completed: { $ne: true },
-    })
+    };
+    if (type) {
+      query.type = type;
+    }
+    const docs = await ReminderModel.find(query)
       .sort({ scheduledAt: 1 })
       .limit(limit)
       .populate('inquiryId', 'customerName phoneNumber');

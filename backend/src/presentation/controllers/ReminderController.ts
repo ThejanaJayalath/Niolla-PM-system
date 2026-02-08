@@ -5,13 +5,15 @@ import { AuthenticatedRequest } from '../middleware/auth';
 const reminderService = new ReminderService();
 
 export async function createReminder(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { inquiryId, type, title, scheduledAt, notes } = req.body;
+  const { inquiryId, type, title, description, scheduledAt, notes, status } = req.body;
   const reminder = await reminderService.create({
     inquiryId,
     type,
     title,
+    description,
     scheduledAt: new Date(scheduledAt),
     notes,
+    status,
   });
   res.status(201).json({ success: true, data: reminder });
 }
@@ -32,13 +34,14 @@ export async function getRemindersByInquiry(req: AuthenticatedRequest, res: Resp
 
 export async function getUpcomingReminders(req: AuthenticatedRequest, res: Response): Promise<void> {
   const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 20;
-  const reminders = await reminderService.findUpcoming(limit);
+  const type = req.query.type as string | undefined;
+  const reminders = await reminderService.findUpcoming(limit, type);
   res.json({ success: true, data: reminders });
 }
 
 export async function updateReminder(req: AuthenticatedRequest, res: Response): Promise<void> {
   const { scheduledAt, ...rest } = req.body;
-  const update = { ...rest };
+  const update: any = { ...rest };
   if (scheduledAt) update.scheduledAt = new Date(scheduledAt);
   const reminder = await reminderService.update(req.params.id, update);
   if (!reminder) {

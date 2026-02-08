@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
+import CreateMeetingModal from '../components/CreateMeetingModal';
 import styles from './InquiryDetail.module.css';
 
 interface Inquiry {
@@ -98,6 +99,7 @@ export default function InquiryDetail() {
   const [showDeleteInquiry, setShowDeleteInquiry] = useState(false);
   const [proposalToDelete, setProposalToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [showCreateMeeting, setShowCreateMeeting] = useState(false);
 
   const load = () => {
     if (!id) return;
@@ -443,7 +445,7 @@ export default function InquiryDetail() {
 
             <button
               className={styles.orangeBtn}
-              onClick={() => alert('Open Create Meeting Modal')}
+              onClick={() => setShowCreateMeeting(true)}
             >
               Create New Meetings
             </button>
@@ -470,6 +472,20 @@ export default function InquiryDetail() {
         onConfirm={confirmDeleteProposal}
         onCancel={() => setProposalToDelete(null)}
         danger
+      />
+
+      <CreateMeetingModal
+        isOpen={showCreateMeeting}
+        onClose={() => setShowCreateMeeting(false)}
+        initialInquiryId={id}
+        onSuccess={() => {
+          // Reload reminders
+          if (id) {
+            api.get<Reminder[]>(`/reminders/inquiry/${id}`).then(remRes => {
+              if (remRes.success && remRes.data) setReminders(remRes.data);
+            });
+          }
+        }}
       />
     </div>
   );

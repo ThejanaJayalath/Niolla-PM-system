@@ -4,8 +4,10 @@ export interface ReminderDocument extends Document {
   inquiryId: mongoose.Types.ObjectId;
   type: 'reminder' | 'meeting';
   title: string;
+  description?: string;
   scheduledAt: Date;
   notes?: string;
+  status: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
   completed?: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -16,8 +18,14 @@ const reminderSchema = new Schema<ReminderDocument>(
     inquiryId: { type: Schema.Types.ObjectId, ref: 'Inquiry', required: true },
     type: { type: String, enum: ['reminder', 'meeting'], required: true },
     title: { type: String, required: true },
+    description: { type: String },
     scheduledAt: { type: Date, required: true },
     notes: { type: String },
+    status: {
+      type: String,
+      enum: ['schedule', 'overdue', 'done', 'cancel', 'postpone'],
+      default: 'schedule',
+    },
     completed: { type: Boolean, default: false },
   },
   { timestamps: true }
