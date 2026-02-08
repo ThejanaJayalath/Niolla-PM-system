@@ -7,11 +7,13 @@ const proposalService = new ProposalService();
 const pdfGenerator = new ProposalPdfGenerator();
 
 export async function createProposal(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { inquiryId, projectName, milestones, totalAmount, maintenanceCostPerMonth, maintenanceNote, validUntil, notes } = req.body;
+  const { inquiryId, projectName, milestones, advancePayment, projectCost, totalAmount, maintenanceCostPerMonth, maintenanceNote, validUntil, notes } = req.body;
   const proposal = await proposalService.create({
     inquiryId,
     projectName,
     milestones,
+    advancePayment,
+    projectCost,
     totalAmount,
     maintenanceCostPerMonth,
     maintenanceNote,
@@ -49,6 +51,23 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
   const buffer = await pdfGenerator.generate(proposal);
   const filename = `proposal-${proposal.customerName.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
   res.send(buffer);
+}
+export async function deleteProposal(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const success = await proposalService.delete(req.params.id);
+  if (!success) {
+    res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Proposal not found' } });
+    return;
+  }
+  res.json({ success: true, message: 'Proposal deleted successfully' });
+}
+
+export async function updateProposal(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const proposal = await proposalService.update(req.params.id, req.body);
+  if (!proposal) {
+    res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Proposal not found' } });
+    return;
+  }
+  res.json({ success: true, data: proposal });
 }

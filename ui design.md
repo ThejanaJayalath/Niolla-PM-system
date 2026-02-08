@@ -50,7 +50,7 @@ this is basically all Inquiries Tab.
 
 Then Proposal Tab.
 
-This tab have first Create New proposl button(This same button in Inquiries tab table if user not create propsal to new Inquiries this button show in that table and also in Inquiries table if we select one user and view there recrod it also show this same button) if we click it it open pop up screen , in that screen first fiel is 
+This tab have first Create New proposl button(This same button in Inquiries tab table if user not create propsal to new Inquiries, this button show in that table and also in Inquiries table if we select one user and view there recrod it also show this same button) if we click it it open pop up screen , in that screen first fiel is 
 select Inquiries - this field allows users to select Inquiries that we create in Inquiries tab(because all proposel linked with Inquiries).so it contain serchbar as well.
 Next Field is Project Name- we can give name to this project(This is normal text box),
 Milestones-you can add Milestones give it name and add time(optional) and Time(Optional) {Milstone have 3 Text box title,amount and time and have +mark that can add any milstone each have 3 text box like before},

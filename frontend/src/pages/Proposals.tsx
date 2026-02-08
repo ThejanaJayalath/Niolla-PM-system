@@ -1,26 +1,27 @@
-
 import { useState, useEffect } from 'react';
-import { Plus, Search, Download, Trash2 } from 'lucide-react';
-import { api } from '../api/client';
+import { useNavigate } from 'react-router-dom';
+import { Plus, Search, FileText, DownloadCloud, Trash2 } from 'lucide-react';
+import { api, getPdfDownloadUrl } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
-import NewProposalModal from '../components/NewProposalModal';
-import styles from './Inquiries.module.css'; // Reuse styles for consistency
+import styles from './Inquiries.module.css';
 
 interface Proposal {
   _id: string;
+  inquiryId?: string;
   customerName: string;
   projectName?: string;
   totalAmount: number;
   createdAt: string;
+  validUntil?: string;
 }
 
 export default function Proposals() {
+  const navigate = useNavigate();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [showNewModal, setShowNewModal] = useState(false);
 
   const load = async () => {
     try {
@@ -67,11 +68,11 @@ export default function Proposals() {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Proposals</h1>
         <button
-          onClick={() => setShowNewModal(true)}
+          onClick={() => navigate('/proposals/new')}
           className="bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2"
         >
           <Plus size={18} />
-          create Proposal
+          Add Proposal
         </button>
       </div>
 
@@ -92,53 +93,96 @@ export default function Proposals() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th className="px-6 py-4">Customer Name</th>
-              <th className="px-6 py-4">Price (LKR)</th>
-              <th className="px-6 py-4">Created Date</th>
-              <th className="px-6 py-4 text-center">Actions</th>
+              <th className="px-6 py-4 w-[20%] text-orange-600 font-bold uppercase text-xs tracking-wider">Customer Name</th>
+              <th className="px-6 py-4 w-[25%] text-orange-600 font-bold uppercase text-xs tracking-wider">Project Name</th>
+              <th className="px-6 py-4 w-[15%] text-orange-600 font-bold uppercase text-xs tracking-wider">Proposal Id</th>
+              <th className="px-6 py-4 w-[15%] text-orange-600 font-bold uppercase text-xs tracking-wider">Price</th>
+              <th className="px-6 py-4 w-[15%] text-orange-600 font-bold uppercase text-xs tracking-wider">Create Date</th>
+              <th className="px-6 py-4 w-[10%] text-orange-600 font-bold uppercase text-xs tracking-wider text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y-0">
             {loading ? (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">Loading...</td></tr>
-            ) : filteredProposals.length === 0 ? (
-              <tr><td colSpan={4} className="px-6 py-8 text-center text-gray-500">No proposals found.</td></tr>
+              <tr><td colSpan={6} className="px-6 py-8 text-center text-gray-500">Loading...</td></tr>
             ) : (
-              filteredProposals.map((p) => (
-                <tr key={p._id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-900">
-                    {p.customerName}
-                    {p.projectName && <div className="text-xs text-gray-500 font-normal">{p.projectName}</div>}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    Rs. {p.totalAmount.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {new Date(p.createdAt).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-center items-center gap-2">
-                      <button
-                        onClick={() => handleDownload(p._id, p.customerName)}
-                        className="p-2 text-gray-500 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors"
-                        title="Download PDF"
-                      >
-                        <Download size={18} />
-                      </button>
-                      <button
-                        onClick={() => setDeleteId(p._id)}
-                        className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
+              <>
+                {/* Render actual proposals */}
+                {filteredProposals.map((p) => (
+                  <tr
+                    key={p._id}
+                    onClick={() => navigate(`/proposals/${p._id}`)}
+                    className="h-[75px] hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    <td className="px-6 py-4 font-medium text-gray-900">{p.customerName}</td>
+                    <td className="px-6 py-4 text-gray-600">{p.projectName || 'N/A'}</td>
+                    <td className="px-6 py-4 font-bold text-gray-900">
+                      Proposal_num{(filteredProposals.indexOf(p) + 1).toString().padStart(2, '0')}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">Rs. {p.totalAmount.toLocaleString()}</td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {new Date(p.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </td>
+                    <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-center items-center gap-4">
+                        <button
+                          onClick={() => window.open(getPdfDownloadUrl(p._id), '_blank')}
+                          className="text-gray-900 hover:text-primary transition-colors"
+                          title="View PDF"
+                        >
+                          <FileText size={20} />
+                        </button>
+                        <button
+                          onClick={() => handleDownload(p._id, p.customerName)}
+                          className="text-gray-900 hover:text-primary transition-colors"
+                          title="Download PDF"
+                        >
+                          <DownloadCloud size={20} />
+                        </button>
+                        <button
+                          onClick={() => setDeleteId(p._id)}
+                          className="text-gray-900 hover:text-red-600 transition-colors"
+                          title="Delete"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Fill remaining rows to always show 8 total */}
+                {Array.from({ length: Math.max(0, 8 - filteredProposals.length) }).map((_, idx) => (
+                  <tr key={`empty-${idx}`} className="h-[75px]">
+                    <td className="px-6 py-4">&nbsp;</td>
+                    <td className="px-6 py-4">&nbsp;</td>
+                    <td className="px-6 py-4">&nbsp;</td>
+                    <td className="px-6 py-4">&nbsp;</td>
+                    <td className="px-6 py-4">&nbsp;</td>
+                    <td className="px-6 py-4">&nbsp;</td>
+                  </tr>
+                ))}
+              </>
             )}
           </tbody>
         </table>
+
+        {/* Pagination footer */}
+        <div className="px-6 py-3 bg-[#f9fafb] border-t border-[#fed7aa] flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center gap-2">
+            <span>Rows Per Page:</span>
+            <select className="bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-orange-300">
+              <option>8</option>
+              <option>16</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <span>1-{Math.min(8, filteredProposals.length)} of {filteredProposals.length}</span>
+            <div className="flex gap-1">
+              <button className="px-2 py-1 border border-gray-300 rounded hover:bg-white disabled:opacity-50" disabled>&lt;</button>
+              <button className="px-2 py-1 border border-gray-300 rounded hover:bg-white">&gt;</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <ConfirmDialog
@@ -151,13 +195,6 @@ export default function Proposals() {
         onConfirm={handleDelete}
         onCancel={() => !deleting && setDeleteId(null)}
       />
-
-      {/* 
-        We use a placeholder here until NewProposalModal is implemented. 
-        Usually I'd import it, but I haven't created it yet. 
-        I'll create it in the next step.
-      */}
-      {showNewModal && <NewProposalModal open={showNewModal} onClose={() => setShowNewModal(false)} onSuccess={load} />}
     </div>
   );
 }

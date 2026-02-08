@@ -102,23 +102,8 @@ export default function Inquiries() {
     return () => clearTimeout(timer);
   }, [filter, search]);
 
-  const handleCreateProposal = async (id: string) => {
-    try {
-      const res = await api.post('/proposals', {
-        inquiryId: id,
-        totalAmount: 0,
-        milestones: [{ title: 'Initial Draft', amount: 0 }],
-        notes: 'Auto-generated draft'
-      });
-
-      if (res.success) {
-        load();
-      } else {
-        console.error('Failed to create proposal', res.error);
-      }
-    } catch (err) {
-      console.error(err);
-    }
+  const handleCreateProposal = (id: string) => {
+    navigate('/proposals/new', { state: { inquiryId: id } });
   };
 
   const handleDownloadProposal = async (proposalId: string) => {
@@ -206,74 +191,89 @@ export default function Inquiries() {
           <tbody className="divide-y-0">
             {loading ? (
               <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading...</td></tr>
-            ) : filteredInquiries.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">No inquiries found.</td></tr>
             ) : (
-              filteredInquiries.map((inq) => (
-                <tr
-                  key={inq._id}
-                  onClick={() => navigate(`/inquiries/${inq._id}`)}
-                  className="hover:bg-gray-50 transition-colors group cursor-pointer"
-                >
-                  <td className="px-6 py-4 font-medium text-gray-900">{inq.customerName}</td>
-                  <td className="px-6 py-4 text-gray-600">{inq.customerId || 'N/A'}</td>
-                  <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={inq.projectDescription}>
-                    {inq.projectDescription}
-                  </td>
-                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                    <div className="relative w-40">
-                      <select
-                        value={getNormalizedStatus(inq.status)}
-                        onChange={(e) => updateStatus(inq._id, e.target.value)}
-                        className={`appearance-none w-full pl-4 pr-10 py-2 rounded-full text-xs font-bold border uppercase tracking-wide cursor-pointer focus:outline-none transition-colors shadow-sm ${getStatusColor(inq.status)}`}
-                      >
-                        {Object.keys(STATUS_LABELS).filter(k => k === k.toUpperCase()).map((statusKey) => (
-                          <option key={statusKey} value={statusKey}>
-                            {STATUS_LABELS[statusKey]}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={14} />
-                    </div>
-                  </td>
-                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex justify-center items-center w-full max-w-[200px] mx-auto">
-                      {/* Proposal Logic */}
-                      {(!inq.proposals || inq.proposals.length === 0) ? (
-                        <button
-                          onClick={() => handleCreateProposal(inq._id)}
-                          className="w-full flex items-center justify-between border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm"
+              <>
+                {/* Render actual inquiries */}
+                {filteredInquiries.map((inq) => (
+                  <tr
+                    key={inq._id}
+                    onClick={() => navigate(`/inquiries/${inq._id}`)}
+                    className="hover:bg-gray-50 transition-colors group cursor-pointer"
+                  >
+                    <td className="px-6 py-4 font-medium text-gray-900">{inq.customerName}</td>
+                    <td className="px-6 py-4 text-gray-600">{inq.customerId || 'N/A'}</td>
+                    <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={inq.projectDescription}>
+                      {inq.projectDescription}
+                    </td>
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="relative w-40">
+                        <select
+                          value={getNormalizedStatus(inq.status)}
+                          onChange={(e) => updateStatus(inq._id, e.target.value)}
+                          className={`appearance-none w-full pl-4 pr-10 py-2 rounded-full text-xs font-bold border uppercase tracking-wide cursor-pointer focus:outline-none transition-colors shadow-sm ${getStatusColor(inq.status)}`}
                         >
-                          <span>Create Proposal</span>
-                          <Plus size={16} />
-                        </button>
-                      ) : inq.proposals.length === 1 ? (
-                        <div className="flex w-full gap-2">
-                          <button className="flex-1 border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
-                            <span>Download Proposal</span>
-                            <Download size={16} />
+                          {Object.keys(STATUS_LABELS).filter(k => k === k.toUpperCase()).map((statusKey) => (
+                            <option key={statusKey} value={statusKey}>
+                              {STATUS_LABELS[statusKey]}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={14} />
+                      </div>
+                    </td>
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-center items-center w-full max-w-[200px] mx-auto">
+                        {/* Proposal Logic */}
+                        {(!inq.proposals || inq.proposals.length === 0) ? (
+                          <button
+                            onClick={() => handleCreateProposal(inq._id)}
+                            className="w-full flex items-center justify-between border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm"
+                          >
+                            <span>Create Proposal</span>
+                            <Plus size={16} />
                           </button>
-                        </div>
-                      ) : (
-                        <div className="relative w-full group">
-                          <button className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
-                            <span>Proposal List</span>
-                            <ChevronDown size={16} />
-                          </button>
-                          {/* Simple dropdown mock */}
-                          <div className="absolute top-right-0 w-full bg-white border border-gray-100 shadow-lg rounded-lg mt-1 hidden group-hover:block z-20">
-                            {inq.proposals.map((_, i) => (
-                              <div key={i} className="px-4 py-2 hover:bg-gray-50 text-sm cursor-pointer border-b border-gray-50 last:border-0">
-                                Proposal #{i + 1}
-                              </div>
-                            ))}
+                        ) : inq.proposals.length === 1 ? (
+                          <div className="flex w-full gap-2">
+                            <button
+                              onClick={() => handleDownloadProposal(inq.proposals![0]._id)}
+                              className="flex-1 border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm"
+                            >
+                              <span>Download Proposal</span>
+                              <Download size={16} />
+                            </button>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                        ) : (
+                          <div className="relative w-full group">
+                            <button className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
+                              <span>Proposal List</span>
+                              <ChevronDown size={16} />
+                            </button>
+                            {/* Simple dropdown mock */}
+                            <div className="absolute top-right-0 w-full bg-white border border-gray-100 shadow-lg rounded-lg mt-1 hidden group-hover:block z-20">
+                              {inq.proposals.map((_, i) => (
+                                <div key={i} className="px-4 py-2 hover:bg-gray-50 text-sm cursor-pointer border-b border-gray-50 last:border-0">
+                                  Proposal #{i + 1}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {/* Fill remaining rows to always show 8 total */}
+                {Array.from({ length: Math.max(0, 8 - filteredInquiries.length) }).map((_, idx) => (
+                  <tr key={`empty-${idx}`} className="h-[60px]">
+                    <td className="px-6 py-4">&nbsp;</td>
+                    <td className="px-6 py-4">&nbsp;</td>
+                    <td className="px-6 py-4">&nbsp;</td>
+                    <td className="px-6 py-4">&nbsp;</td>
+                    <td className="px-6 py-4">&nbsp;</td>
+                  </tr>
+                ))}
+              </>
             )}
           </tbody>
         </table>
@@ -283,8 +283,8 @@ export default function Inquiries() {
           <div className="flex items-center gap-2">
             <span>Rows Per Page:</span>
             <select className="bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-orange-300">
-              <option>10</option>
-              <option>20</option>
+              <option>8</option>
+              <option>16</option>
             </select>
           </div>
           <div className="flex items-center gap-2">

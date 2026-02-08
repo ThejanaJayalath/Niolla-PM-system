@@ -15,11 +15,19 @@ export interface AuthenticatedRequest extends Request {
 
 export function authMiddleware(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
+  let token: string | undefined;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    token = authHeader.slice(7);
+  } else if (req.query.token) {
+    token = req.query.token as string;
+  }
+
+  if (!token) {
     res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Missing or invalid token' } });
     return;
   }
-  const token = authHeader.slice(7);
+
   const payload = authService.verifyToken(token);
   if (!payload) {
     res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid or expired token' } });

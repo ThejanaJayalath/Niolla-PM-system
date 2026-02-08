@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 
 import {
   ArrowLeft,
@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react';
 import { api } from '../api/client';
+import ConfirmDialog from '../components/ConfirmDialog';
 import styles from './InquiryDetail.module.css';
 
 interface Inquiry {
@@ -75,6 +76,7 @@ const getStatusColor = (status: string) => {
 
 export default function InquiryDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   const [inquiry, setInquiry] = useState<Inquiry | null>(null);
   const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -91,6 +93,11 @@ export default function InquiryDetail() {
     internalNotes: ''
   });
   const [newFeature, setNewFeature] = useState('');
+
+  // Confirmation State
+  const [showDeleteInquiry, setShowDeleteInquiry] = useState(false);
+  const [proposalToDelete, setProposalToDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = () => {
     if (!id) return;
@@ -149,14 +156,21 @@ export default function InquiryDetail() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!id || !window.confirm('Are you sure you want to delete this inquiry?')) return;
+  const handleDelete = () => {
+    setShowDeleteInquiry(true);
+  };
+
+  const confirmDeleteInquiry = async () => {
+    if (!id) return;
+    setDeleting(true);
     try {
       await api.delete(`/inquiries/${id}`);
       window.location.href = '/inquiries';
     } catch (err) {
       console.error('Failed to delete', err);
       alert('Failed to delete inquiry');
+      setDeleting(false);
+      setShowDeleteInquiry(false);
     }
   };
 
@@ -182,12 +196,30 @@ export default function InquiryDetail() {
 
   const handleDownloadProposal = async (proposalId: string) => {
     try {
-      // Assuming generic download handler
-      // await (api as any).download(...)
-      console.log(`Downloading ${proposalId}`);
-      alert('Download functionality would integrate here');
+      await api.download(`/proposals/${proposalId}/pdf`, `proposal-${proposalId}.pdf`);
     } catch (err) {
       console.error(err);
+      alert('Failed to download proposal');
+    }
+  };
+
+  const handleProposalDelete = (proposalId: string) => {
+    setProposalToDelete(proposalId);
+  };
+
+  const confirmDeleteProposal = async () => {
+    if (!proposalToDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/proposals/${proposalToDelete}`);
+      // Refresh proposals
+      const propRes = await api.get<Proposal[]>(`/proposals/inquiry/${id}`);
+      if (propRes.success && propRes.data) setProposals(propRes.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeleting(false);
+      setProposalToDelete(null);
     }
   };
 
@@ -358,7 +390,10 @@ export default function InquiryDetail() {
                     <button onClick={() => handleDownloadProposal(p._id)} className="text-gray-500 hover:text-gray-800">
                       <Download size={16} />
                     </button>
-                    <button className="text-gray-500 hover:text-red-500">
+                    <button
+                      onClick={() => handleProposalDelete(p._id)}
+                      className="text-gray-500 hover:text-red-500"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -367,7 +402,7 @@ export default function InquiryDetail() {
             </div>
 
             <button
-              onClick={() => alert('Open Create Proposal Modal')}
+              onClick={() => navigate('/proposals/new', { state: { inquiryId: id } })}
               className={styles.orangeBtn}
             >
               Create New Proposal
@@ -416,6 +451,26 @@ export default function InquiryDetail() {
 
         </div>
       </div>
+
+      <ConfirmDialog
+        open={showDeleteInquiry}
+        title="Delete Inquiry"
+        message="Are you sure you want to delete this inquiry? This action cannot be undone."
+        confirmLabel={deleting ? 'Deleting...' : 'Delete'}
+        onConfirm={confirmDeleteInquiry}
+        onCancel={() => setShowDeleteInquiry(false)}
+        danger
+      />
+
+      <ConfirmDialog
+        open={!!proposalToDelete}
+        title="Delete Proposal"
+        message="Are you sure you want to delete this proposal? This action cannot be undone."
+        confirmLabel={deleting ? 'Deleting...' : 'Delete'}
+        onConfirm={confirmDeleteProposal}
+        onCancel={() => setProposalToDelete(null)}
+        danger
+      />
     </div>
   );
 }

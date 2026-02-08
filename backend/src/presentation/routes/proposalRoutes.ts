@@ -7,6 +7,8 @@ import {
   getProposal,
   getProposalsByInquiry,
   downloadProposalPdf,
+  deleteProposal,
+  updateProposal,
 } from '../controllers/ProposalController';
 
 const router = Router();
@@ -32,6 +34,8 @@ router.post(
     body('milestones.*.timePeriod').optional().trim(),
     body('milestones.*.description').optional().trim(),
     body('milestones.*.dueDate').optional().trim(),
+    body('advancePayment').optional().isNumeric().withMessage('Advance payment must be a number'),
+    body('projectCost').optional().isNumeric().withMessage('Project cost must be a number'),
     body('totalAmount').isNumeric().withMessage('Total cost for development (price) in LKR is required'),
     body('maintenanceCostPerMonth').optional().isNumeric(),
     body('maintenanceNote').optional().trim(),
@@ -46,5 +50,22 @@ router.get('/', listProposals);
 router.get('/inquiry/:inquiryId', [param('inquiryId').isMongoId()], validate, getProposalsByInquiry);
 router.get('/:id/pdf', [param('id').isMongoId()], validate, downloadProposalPdf);
 router.get('/:id', [param('id').isMongoId()], validate, getProposal);
+router.delete('/:id', [param('id').isMongoId()], validate, deleteProposal);
+router.patch(
+  '/:id',
+  [
+    param('id').isMongoId(),
+    body('projectName').optional().trim(),
+    body('milestones').optional().isArray({ min: 1 }),
+    body('milestones.*.title').optional().trim().notEmpty(),
+    body('milestones.*.amount').optional().isNumeric(),
+    body('milestones.*.timePeriod').optional().trim(),
+    body('advancePayment').optional().isNumeric(),
+    body('projectCost').optional().isNumeric(),
+    body('totalAmount').optional().isNumeric(),
+  ],
+  validate,
+  updateProposal
+);
 
 export default router;

@@ -6,6 +6,8 @@ export interface CreateProposalInput {
   inquiryId: string;
   projectName?: string;
   milestones: ProposalMilestone[];
+  advancePayment?: number;
+  projectCost?: number;
   totalAmount: number;
   maintenanceCostPerMonth?: number;
   maintenanceNote?: string;
@@ -25,6 +27,8 @@ export class ProposalService {
       projectDescription: inquiry.projectDescription,
       requiredFeatures: inquiry.requiredFeatures || [],
       milestones: data.milestones,
+      advancePayment: data.advancePayment,
+      projectCost: data.projectCost,
       totalAmount: data.totalAmount,
       maintenanceCostPerMonth: data.maintenanceCostPerMonth,
       maintenanceNote: data.maintenanceNote,
@@ -66,5 +70,38 @@ export class ProposalService {
   async findAll(): Promise<Proposal[]> {
     const docs = await ProposalModel.find().sort({ createdAt: -1 });
     return docs.map((d) => d.toObject() as unknown as Proposal);
+  }
+  async delete(id: string): Promise<boolean> {
+    const proposal = await ProposalModel.findById(id);
+    if (!proposal) return false;
+
+    // Remove from Inquiry
+    await InquiryModel.findByIdAndUpdate(proposal.inquiryId, {
+      $pull: { proposals: { _id: proposal._id } }
+    });
+
+    await ProposalModel.findByIdAndDelete(id);
+    return true;
+  }
+
+  async update(id: string, data: Partial<CreateProposalInput>): Promise<Proposal | null> {
+    const proposal = await ProposalModel.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          projectName: data.projectName,
+          milestones: data.milestones,
+          advancePayment: data.advancePayment,
+          projectCost: data.projectCost,
+          totalAmount: data.totalAmount,
+          maintenanceCostPerMonth: data.maintenanceCostPerMonth,
+          maintenanceNote: data.maintenanceNote,
+          validUntil: data.validUntil,
+          notes: data.notes,
+        }
+      },
+      { new: true }
+    );
+    return proposal ? (proposal.toObject() as unknown as Proposal) : null;
   }
 }

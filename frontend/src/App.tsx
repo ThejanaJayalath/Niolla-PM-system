@@ -8,6 +8,7 @@ import InquiryForm from './pages/InquiryForm';
 import InquiryDetail from './pages/InquiryDetail';
 import Reminders from './pages/Reminders';
 import Proposals from './pages/Proposals';
+import CreateProposal from './pages/CreateProposal';
 import ProposalDetail from './pages/ProposalDetail';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="inquiries/:id/edit" element={<InquiryForm />} />
         <Route path="reminders" element={<Reminders />} />
         <Route path="proposals" element={<Proposals />} />
+        <Route path="proposals/new" element={<CreateProposal />} />
         <Route path="proposals/:id" element={<ProposalDetail />} />
         <Route path="settings" element={<Settings />} />
         <Route path="profile" element={<Profile />} />

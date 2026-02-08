@@ -14,6 +14,8 @@ export interface Proposal {
   projectDescription: string;
   requiredFeatures: string[];
   milestones: ProposalMilestone[];
+  advancePayment?: number;
+  projectCost?: number;
   totalAmount: number;
   maintenanceCostPerMonth?: number;
   maintenanceNote?: string;

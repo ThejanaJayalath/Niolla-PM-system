@@ -191,7 +191,7 @@ export class ProposalPdfGenerator {
           doc.font('Helvetica').text(m.description, MARGIN + 15, doc.y, { width: CONTENT_WIDTH - 15 });
           doc.y += 8;
         }
-        const amountStr = m.amount != null ? `Amount: Rs. ${m.amount.toLocaleString()}` : '';
+        const amountStr = m.amount != null ? `Amount: LKR ${m.amount.toLocaleString()}` : '';
         const timeStr = m.timePeriod ? (amountStr ? '  |  ' : '') + `Time: ${m.timePeriod}` : '';
         const dueStr = m.dueDate ? (amountStr || timeStr ? '  |  ' : '') + `Due: ${m.dueDate}` : '';
         if (amountStr || timeStr || dueStr) {
@@ -206,10 +206,21 @@ export class ProposalPdfGenerator {
       doc.y += 18;
       doc.fontSize(10).font('Helvetica-Bold').text('4.1 Project Costs', MARGIN, doc.y);
       doc.y += 12;
-      doc.font('Helvetica').text(`Total cost for development: Rs. ${proposal.totalAmount.toLocaleString()}`, MARGIN + 15, doc.y);
+
+      // Add Advance Payment and Project Cost if available
+      if (proposal.advancePayment != null) {
+        doc.font('Helvetica').text(`Advance Payment: LKR ${proposal.advancePayment.toLocaleString()}`, MARGIN + 15, doc.y);
+        doc.y += 12;
+      }
+      if (proposal.projectCost != null) {
+        doc.font('Helvetica').text(`Project Cost: LKR ${proposal.projectCost.toLocaleString()}`, MARGIN + 15, doc.y);
+        doc.y += 12;
+      }
+
+      doc.font('Helvetica-Bold').text(`Total cost for development: LKR ${proposal.totalAmount.toLocaleString()}`, MARGIN + 15, doc.y);
       doc.y += 12;
       if (proposal.validUntil) {
-        doc.text(`Valid until: ${proposal.validUntil}`, MARGIN + 15, doc.y);
+        doc.font('Helvetica').text(`Valid until: ${proposal.validUntil}`, MARGIN + 15, doc.y);
         doc.y += 12;
       }
       doc.y += 10;
@@ -219,7 +230,7 @@ export class ProposalPdfGenerator {
       if (proposal.maintenanceCostPerMonth != null || proposal.maintenanceNote) {
         const maintLine =
           proposal.maintenanceCostPerMonth != null
-            ? `Maintain & Server cost per month Rs. ${proposal.maintenanceCostPerMonth.toLocaleString()}`
+            ? `Maintain & Server cost per month LKR ${proposal.maintenanceCostPerMonth.toLocaleString()}`
             : '';
         const notePart = proposal.maintenanceNote ? (maintLine ? ` (${proposal.maintenanceNote})` : proposal.maintenanceNote) : '';
         doc.text(`• ${maintLine}${notePart}`, MARGIN, doc.y, { width: CONTENT_WIDTH });

@@ -8,6 +8,8 @@ export interface ProposalDocument extends Document {
   projectDescription: string;
   requiredFeatures: string[];
   milestones: ProposalMilestone[];
+  advancePayment?: number;
+  projectCost?: number;
   totalAmount: number;
   maintenanceCostPerMonth?: number;
   maintenanceNote?: string;
@@ -36,6 +38,8 @@ const proposalSchema = new Schema<ProposalDocument>(
     projectDescription: { type: String, required: true },
     requiredFeatures: [{ type: String }],
     milestones: [milestoneSchema],
+    advancePayment: { type: Number },
+    projectCost: { type: Number },
     totalAmount: { type: Number, required: true },
     maintenanceCostPerMonth: { type: Number },
     maintenanceNote: { type: String },
