@@ -3,6 +3,7 @@ import { ProposalMilestone } from '../../../domain/entities/Proposal';
 
 export interface ProposalDocument extends Document {
   inquiryId: mongoose.Types.ObjectId;
+  proposalId: string;
   projectName?: string;
   customerName: string;
   projectDescription: string;
@@ -33,6 +34,7 @@ const milestoneSchema = new Schema<ProposalMilestone>(
 const proposalSchema = new Schema<ProposalDocument>(
   {
     inquiryId: { type: Schema.Types.ObjectId, ref: 'Inquiry', required: true },
+    proposalId: { type: String, unique: true },
     projectName: { type: String },
     customerName: { type: String, required: true },
     projectDescription: { type: String, required: true },

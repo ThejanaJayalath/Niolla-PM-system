@@ -33,19 +33,17 @@ const Sidebar = () => {
 
     return (
         <div className="w-64 h-screen bg-sidebar border-r border-orange-100 flex flex-col font-sans">
-            <div className="p-6">
+            <div className="px-6 pt-6 pb-2">
                 <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 flex items-center justify-center bg-gray-900 rounded-sm">
-                        <div className="w-4 h-4 border-2 border-primary rotate-45 transform"></div>
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight text-gray-900 leading-none">NIOLLA</h1>
-                        <p className="text-xs font-bold text-primary tracking-widest leading-none">DESK</p>
-                    </div>
+                    <img
+                        src="/login/Niollanexa.png"
+                        alt="Niolla Desk"
+                        className="h-16 w-auto object-contain"
+                    />
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto py-4 no-scrollbar">
+            <div className="flex-1 overflow-y-auto pt-2 pb-4 no-scrollbar">
                 <nav className="px-4 space-y-1">
                     {navItems.map((item) => (
                         <NavLink

@@ -20,8 +20,20 @@ export class ProposalService {
     const inquiry = await InquiryModel.findById(data.inquiryId);
     if (!inquiry) throw new Error('Inquiry not found');
 
+    // Generate Proposal ID
+    const lastProposal = await ProposalModel.findOne().sort({ createdAt: -1 });
+    let nextIdNumber = 1;
+    if (lastProposal && lastProposal.proposalId) {
+      const match = lastProposal.proposalId.match(/Proposal_num(\d+)/);
+      if (match && match[1]) {
+        nextIdNumber = parseInt(match[1], 10) + 1;
+      }
+    }
+    const newProposalId = `Proposal_num${nextIdNumber.toString().padStart(2, '0')}`;
+
     const proposal = await ProposalModel.create({
       inquiryId: data.inquiryId,
+      proposalId: newProposalId,
       projectName: data.projectName,
       customerName: inquiry.customerName,
       projectDescription: inquiry.projectDescription,

@@ -8,6 +8,7 @@ import styles from './Inquiries.module.css';
 interface Proposal {
   _id: string;
   inquiryId?: string;
+  proposalId?: string;
   customerName: string;
   projectName?: string;
   totalAmount: number;
@@ -116,7 +117,7 @@ export default function Proposals() {
                     <td className="px-6 py-4 font-medium text-gray-900">{p.customerName}</td>
                     <td className="px-6 py-4 text-gray-600">{p.projectName || 'N/A'}</td>
                     <td className="px-6 py-4 font-bold text-gray-900">
-                      Proposal_num{(filteredProposals.indexOf(p) + 1).toString().padStart(2, '0')}
+                      {p.proposalId || `Proposal_num${(proposals.length - filteredProposals.indexOf(p)).toString().padStart(2, '0')}`}
                     </td>
                     <td className="px-6 py-4 text-gray-600">Rs. {p.totalAmount.toLocaleString()}</td>
                     <td className="px-6 py-4 text-gray-600">
