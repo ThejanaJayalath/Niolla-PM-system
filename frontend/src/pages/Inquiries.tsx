@@ -75,6 +75,8 @@ export default function Inquiries() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
+  // Track selected proposal for each inquiry (inquiryId -> proposalId)
+  const [selectedProposals, setSelectedProposals] = useState<Record<string, string>>({});
 
   const load = async () => {
     try {
@@ -113,6 +115,13 @@ export default function Inquiries() {
       console.error(err);
       alert('Failed to download proposal');
     }
+  };
+
+  const handleSelectProposal = (inquiryId: string, proposalId: string) => {
+    setSelectedProposals(prev => ({
+      ...prev,
+      [inquiryId]: proposalId
+    }));
   };
 
   const handleDelete = async () => {
@@ -244,18 +253,35 @@ export default function Inquiries() {
                           </div>
                         ) : (
                           <div className="relative w-full group">
-                            <button className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
-                              <span>Proposal List</span>
-                              <ChevronDown size={16} />
-                            </button>
-                            {/* Simple dropdown mock */}
-                            <div className="absolute top-right-0 w-full bg-white border border-gray-100 shadow-lg rounded-lg mt-1 hidden group-hover:block z-20">
-                              {inq.proposals.map((_, i) => (
-                                <div key={i} className="px-4 py-2 hover:bg-gray-50 text-sm cursor-pointer border-b border-gray-50 last:border-0">
-                                  Proposal #{i + 1}
+                            {/* Show Download button if a proposal is selected, otherwise show Proposal List */}
+                            {selectedProposals[inq._id] ? (
+                              <button
+                                onClick={() => handleDownloadProposal(selectedProposals[inq._id])}
+                                className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm"
+                              >
+                                <span>Download Proposal</span>
+                                <Download size={16} />
+                              </button>
+                            ) : (
+                              <>
+                                <button className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
+                                  <span>Proposal List</span>
+                                  <ChevronDown size={16} />
+                                </button>
+                                {/* Dropdown menu */}
+                                <div className="absolute top-full left-0 w-full bg-white border border-gray-100 shadow-lg rounded-lg mt-1 hidden group-hover:block z-20">
+                                  {inq.proposals.map((proposal, i) => (
+                                    <div
+                                      key={proposal._id}
+                                      onClick={() => handleSelectProposal(inq._id, proposal._id)}
+                                      className="px-4 py-2 hover:bg-gray-50 text-sm cursor-pointer border-b border-gray-50 last:border-0"
+                                    >
+                                      Proposal #{i + 1}
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>

@@ -9,8 +9,9 @@ export class UserService {
   constructor(private authService: AuthService) {}
 
   async listUsers(requesterRole: string): Promise<PublicUser[]> {
-    if (requesterRole !== 'owner') {
-      throw new Error('Only owner can list all users');
+    // Allow PMs to list users too, but with limited permissions
+    if (requesterRole !== 'owner' && requesterRole !== 'pm') {
+      throw new Error('Only owner or PM can list all users');
     }
     const docs = await UserModel.find().sort({ createdAt: -1 });
     return docs.map((d) => {
@@ -25,14 +26,74 @@ export class UserService {
     password: string,
     name: string,
     role: 'pm' | 'employee',
-    requesterRole: string
+    requesterRole: string,
+    phone?: string,
+    address?: string
   ): Promise<PublicUser> {
-    if (requesterRole !== 'owner') {
-      throw new Error('Only owner can add users');
+    // Allow PMs to add users too
+    if (requesterRole !== 'owner' && requesterRole !== 'pm') {
+      throw new Error('Only owner or PM can add users');
     }
     const user = await this.authService.register(email, password, name, role);
-    const { passwordHash, ...rest } = user;
-    return rest;
+    
+    // Update with additional fields
+    const userDoc = await UserModel.findById(user._id);
+    if (userDoc) {
+      if (phone) userDoc.phone = phone;
+      if (address) userDoc.address = address;
+      await userDoc.save();
+    }
+    
+    const { passwordHash, ...rest } = (userDoc?.toObject() || user);
+    return {
+      ...rest,
+      _id: (rest._id as any).toString(),
+    } as unknown as PublicUser;
+  }
+
+  async updateUser(
+    targetUserId: string,
+    updates: Partial<Omit<User, 'passwordHash' | '_id'>>,
+    requesterRole: string,
+    requesterUserId: string
+  ): Promise<PublicUser> {
+    // Check permissions
+    if (requesterRole !== 'owner' && requesterRole !== 'pm') {
+      throw new Error('Only owner or PM can update users');
+    }
+    
+    // Check if updating role to owner
+    if (updates.role === 'owner' && requesterRole !== 'owner') {
+      throw new Error('Only owner can set owner role');
+    }
+    
+    // Cannot update own role to non-owner if you're the only owner
+    if (updates.role && updates.role !== 'owner' && requesterRole === 'owner' && requesterUserId === targetUserId) {
+      const ownerCount = await UserModel.countDocuments({ role: 'owner' });
+      if (ownerCount === 1) {
+        throw new Error('Cannot remove the last owner');
+      }
+    }
+
+    const doc = await UserModel.findById(targetUserId);
+    if (!doc) throw new Error('User not found');
+
+    // Apply updates
+    if (updates.name) doc.name = updates.name;
+    if (updates.role && (requesterRole === 'owner' || (requesterRole === 'pm' && updates.role !== 'owner'))) {
+      doc.role = updates.role;
+    }
+    if (updates.status) doc.status = updates.status;
+    if (updates.phone) doc.phone = updates.phone;
+    if (updates.address) doc.address = updates.address;
+
+    await doc.save();
+
+    const { passwordHash, ...rest } = doc.toObject();
+    return {
+      ...rest,
+      _id: (rest._id as any).toString(),
+    } as unknown as PublicUser;
   }
 
   async removeUser(targetUserId: string, requesterUserId: string, requesterRole: string): Promise<void> {
@@ -42,6 +103,16 @@ export class UserService {
     if (targetUserId === requesterUserId) {
       throw new Error('Cannot remove yourself');
     }
+    
+    // Check if removing the last owner
+    const userDoc = await UserModel.findById(targetUserId);
+    if (userDoc?.role === 'owner') {
+      const ownerCount = await UserModel.countDocuments({ role: 'owner' });
+      if (ownerCount === 1) {
+        throw new Error('Cannot remove the last owner');
+      }
+    }
+
     const doc = await UserModel.findByIdAndDelete(targetUserId);
     if (!doc) throw new Error('User not found');
   }
@@ -60,5 +131,15 @@ export class UserService {
     const passwordHash = await bcrypt.hash(newPassword, 10);
     doc.passwordHash = passwordHash;
     await doc.save();
+  }
+
+  async getUserById(userId: string): Promise<PublicUser | null> {
+    const doc = await UserModel.findById(userId);
+    if (!doc) return null;
+    const { passwordHash, ...rest } = doc.toObject();
+    return {
+      ...rest,
+      _id: (rest._id as any).toString(),
+    } as unknown as PublicUser;
   }
 }

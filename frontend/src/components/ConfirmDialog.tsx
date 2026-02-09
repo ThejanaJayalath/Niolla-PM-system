@@ -11,6 +11,7 @@ interface ConfirmDialogProps {
   danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
 export default function ConfirmDialog({
@@ -22,6 +23,7 @@ export default function ConfirmDialog({
   danger = true,
   onConfirm,
   onCancel,
+  isLoading = false,
 }: ConfirmDialogProps) {
   useEffect(() => {
     if (open) {
@@ -42,15 +44,16 @@ export default function ConfirmDialog({
         <h3 className={styles.title}>{title}</h3>
         <p className={styles.message}>{message}</p>
         <div className={styles.actions}>
-          <button type="button" className={styles.cancelBtn} onClick={onCancel}>
+          <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={isLoading}>
             {cancelLabel}
           </button>
           <button
             type="button"
             className={danger ? styles.dangerBtn : styles.confirmBtn}
             onClick={onConfirm}
+            disabled={isLoading}
           >
-            {confirmLabel}
+            {isLoading ? 'Processing...' : confirmLabel}
           </button>
         </div>
       </div>

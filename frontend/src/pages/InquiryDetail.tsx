@@ -98,6 +98,7 @@ export default function InquiryDetail() {
   // Confirmation State
   const [showDeleteInquiry, setShowDeleteInquiry] = useState(false);
   const [proposalToDelete, setProposalToDelete] = useState<string | null>(null);
+  const [reminderToDelete, setReminderToDelete] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [showCreateMeeting, setShowCreateMeeting] = useState(false);
 
@@ -222,6 +223,26 @@ export default function InquiryDetail() {
     } finally {
       setDeleting(false);
       setProposalToDelete(null);
+    }
+  };
+
+  const handleReminderDelete = (reminderId: string) => {
+    setReminderToDelete(reminderId);
+  };
+
+  const confirmDeleteReminder = async () => {
+    if (!reminderToDelete) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/reminders/${reminderToDelete}`);
+      // Refresh reminders
+      const remRes = await api.get<Reminder[]>(`/reminders/inquiry/${id}`);
+      if (remRes.success && remRes.data) setReminders(remRes.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setDeleting(false);
+      setReminderToDelete(null);
     }
   };
 
@@ -435,7 +456,10 @@ export default function InquiryDetail() {
                     <button className="text-gray-500 hover:text-gray-800">
                       <Bell size={16} />
                     </button>
-                    <button className="text-gray-500 hover:text-red-500">
+                    <button
+                      onClick={() => handleReminderDelete(r._id)}
+                      className="text-gray-500 hover:text-red-500"
+                    >
                       <Trash2 size={16} />
                     </button>
                   </div>
@@ -471,6 +495,16 @@ export default function InquiryDetail() {
         confirmLabel={deleting ? 'Deleting...' : 'Delete'}
         onConfirm={confirmDeleteProposal}
         onCancel={() => setProposalToDelete(null)}
+        danger
+      />
+
+      <ConfirmDialog
+        open={!!reminderToDelete}
+        title="Delete Meeting"
+        message="Are you sure you want to delete this meeting? This action cannot be undone."
+        confirmLabel={deleting ? 'Deleting...' : 'Delete'}
+        onConfirm={confirmDeleteReminder}
+        onCancel={() => setReminderToDelete(null)}
         danger
       />
 

@@ -14,6 +14,8 @@ import Meetings from './pages/Meetings';
 import MeetingDetail from './pages/MeetingDetail';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
+import TeamManagement from './pages/TeamManagement';
+import EmployeeDetail from './pages/EmployeeDetail';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -48,6 +50,9 @@ export default function App() {
         <Route path="meetings/:id" element={<MeetingDetail />} />
         <Route path="settings" element={<Settings />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="team" element={<TeamManagement />} />
+        <Route path="team/:id" element={<EmployeeDetail />} />
+        <Route path="team/:id/edit" element={<EmployeeDetail />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
