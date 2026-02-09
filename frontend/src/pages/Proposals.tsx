@@ -59,10 +59,22 @@ export default function Proposals() {
     }
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(8);
+
   const filteredProposals = proposals.filter(p =>
     p.customerName.toLowerCase().includes(search.toLowerCase()) ||
     (p.projectName && p.projectName.toLowerCase().includes(search.toLowerCase()))
   );
+
+  const totalPages = Math.ceil(filteredProposals.length / rowsPerPage);
+  const paginatedProposals = filteredProposals.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+    }
+  };
 
   return (
     <div className="space-y-6 font-sans">
@@ -108,11 +120,11 @@ export default function Proposals() {
             ) : (
               <>
                 {/* Render actual proposals */}
-                {filteredProposals.map((p) => (
+                {paginatedProposals.map((p) => (
                   <tr
                     key={p._id}
                     onClick={() => navigate(`/proposals/${p._id}`)}
-                    className="h-[75px] hover:bg-gray-50 transition-colors cursor-pointer"
+                    className="h-[60px] hover:bg-gray-50 transition-colors cursor-pointer"
                   >
                     <td className="px-6 py-4 font-medium text-gray-900">{p.customerName}</td>
                     <td className="px-6 py-4 text-gray-600">{p.projectName || 'N/A'}</td>
@@ -151,9 +163,9 @@ export default function Proposals() {
                   </tr>
                 ))}
 
-                {/* Fill remaining rows to always show 8 total */}
-                {Array.from({ length: Math.max(0, 8 - filteredProposals.length) }).map((_, idx) => (
-                  <tr key={`empty-${idx}`} className="h-[75px]">
+                {/* Fill remaining rows to always show rowsPerPage total */}
+                {Array.from({ length: Math.max(0, rowsPerPage - paginatedProposals.length) }).map((_, idx) => (
+                  <tr key={`empty-${idx}`} className="h-[60px]">
                     <td className="px-6 py-4">&nbsp;</td>
                     <td className="px-6 py-4">&nbsp;</td>
                     <td className="px-6 py-4">&nbsp;</td>
@@ -171,16 +183,37 @@ export default function Proposals() {
         <div className="px-6 py-3 bg-[#f9fafb] border-t border-[#fed7aa] flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center gap-2">
             <span>Rows Per Page:</span>
-            <select className="bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-orange-300">
-              <option>8</option>
-              <option>16</option>
+            <select
+              value={rowsPerPage}
+              onChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-orange-300"
+            >
+              <option value={8}>8</option>
+              <option value={16}>16</option>
             </select>
           </div>
           <div className="flex items-center gap-2">
-            <span>1-{Math.min(8, filteredProposals.length)} of {filteredProposals.length}</span>
+            <span>
+              {filteredProposals.length === 0 ? '0-0 of 0' : `${(currentPage - 1) * rowsPerPage + 1}-${Math.min(currentPage * rowsPerPage, filteredProposals.length)} of ${filteredProposals.length}`}
+            </span>
             <div className="flex gap-1">
-              <button className="px-2 py-1 border border-gray-300 rounded hover:bg-white disabled:opacity-50" disabled>&lt;</button>
-              <button className="px-2 py-1 border border-gray-300 rounded hover:bg-white">&gt;</button>
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="px-2 py-1 border border-gray-300 rounded hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &lt;
+              </button>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages || totalPages === 0}
+                className="px-2 py-1 border border-gray-300 rounded hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                &gt;
+              </button>
             </div>
           </div>
         </div>

@@ -2,18 +2,22 @@ import { Reminder } from '../../domain/entities/Reminder';
 import { ReminderModel } from '../../infrastructure/database/models/ReminderModel';
 
 export interface CreateReminderInput {
-  inquiryId: string;
+  inquiryId?: string;
+  customerName?: string;
   type: 'reminder' | 'meeting';
   title: string;
   description?: string;
+  meetingLink?: string;
   scheduledAt: Date;
   notes?: string;
   status?: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
 }
 
 export interface UpdateReminderInput {
+  customerName?: string;
   title?: string;
   description?: string;
+  meetingLink?: string;
   scheduledAt?: Date;
   notes?: string;
   status?: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';

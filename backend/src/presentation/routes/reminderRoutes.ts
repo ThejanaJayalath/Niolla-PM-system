@@ -25,7 +25,7 @@ const validate = (req: import('express').Request, res: import('express').Respons
 router.post(
   '/',
   [
-    body('inquiryId').isMongoId().withMessage('Valid inquiry ID is required'),
+    body('inquiryId').optional().isMongoId().withMessage('Valid inquiry ID is required'),
     body('type').isIn(['reminder', 'meeting']).withMessage('Type must be reminder or meeting'),
     body('title').trim().notEmpty().withMessage('Title is required'),
     body('scheduledAt').isISO8601().withMessage('Valid scheduled date is required'),

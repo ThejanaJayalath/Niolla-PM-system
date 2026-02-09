@@ -1,10 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ReminderDocument extends Document {
-  inquiryId: mongoose.Types.ObjectId;
+  inquiryId?: mongoose.Types.ObjectId;
+  customerName?: string;
   type: 'reminder' | 'meeting';
   title: string;
   description?: string;
+  meetingLink?: string;
   scheduledAt: Date;
   notes?: string;
   status: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
@@ -15,10 +17,12 @@ export interface ReminderDocument extends Document {
 
 const reminderSchema = new Schema<ReminderDocument>(
   {
-    inquiryId: { type: Schema.Types.ObjectId, ref: 'Inquiry', required: true },
+    inquiryId: { type: Schema.Types.ObjectId, ref: 'Inquiry' },
+    customerName: { type: String },
     type: { type: String, enum: ['reminder', 'meeting'], required: true },
     title: { type: String, required: true },
     description: { type: String },
+    meetingLink: { type: String },
     scheduledAt: { type: Date, required: true },
     notes: { type: String },
     status: {

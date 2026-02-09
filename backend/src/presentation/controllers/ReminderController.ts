@@ -5,12 +5,14 @@ import { AuthenticatedRequest } from '../middleware/auth';
 const reminderService = new ReminderService();
 
 export async function createReminder(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { inquiryId, type, title, description, scheduledAt, notes, status } = req.body;
+  const { inquiryId, customerName, type, title, description, meetingLink, scheduledAt, notes, status } = req.body;
   const reminder = await reminderService.create({
     inquiryId,
+    customerName,
     type,
     title,
     description,
+    meetingLink,
     scheduledAt: new Date(scheduledAt),
     notes,
     status,

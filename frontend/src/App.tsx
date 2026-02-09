@@ -11,6 +11,7 @@ import Proposals from './pages/Proposals';
 import CreateProposal from './pages/CreateProposal';
 import ProposalDetail from './pages/ProposalDetail';
 import Meetings from './pages/Meetings';
+import MeetingDetail from './pages/MeetingDetail';
 import Settings from './pages/Settings';
 import Profile from './pages/Profile';
 
@@ -44,6 +45,7 @@ export default function App() {
         <Route path="proposals/new" element={<CreateProposal />} />
         <Route path="proposals/:id" element={<ProposalDetail />} />
         <Route path="meetings" element={<Meetings />} />
+        <Route path="meetings/:id" element={<MeetingDetail />} />
         <Route path="settings" element={<Settings />} />
         <Route path="profile" element={<Profile />} />
       </Route>
