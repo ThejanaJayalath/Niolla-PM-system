@@ -46,6 +46,12 @@ export class AuthService {
     return doc.toObject() as unknown as User;
   }
 
+  async getCurrentUser(userId: string): Promise<User | null> {
+    const doc = await UserModel.findById(userId);
+    if (!doc) return null;
+    return doc.toObject() as unknown as User;
+  }
+
   async changeOwnPassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
     const doc = await UserModel.findById(userId);
     if (!doc) throw new Error('User not found');

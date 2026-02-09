@@ -27,6 +27,26 @@ export async function register(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function getCurrentUser(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const userId = req.user?.userId;
+  if (!userId) {
+    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
+    return;
+  }
+  try {
+    const user = await authService.getCurrentUser(userId);
+    if (!user) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+      return;
+    }
+    const { passwordHash, ...userWithoutPassword } = user;
+    res.json({ success: true, data: userWithoutPassword });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to get user profile';
+    res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message } });
+  }
+}
+
 export async function changeOwnPassword(req: AuthenticatedRequest, res: Response): Promise<void> {
   const { currentPassword, newPassword } = req.body;
   const userId = req.user?.userId;

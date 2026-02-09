@@ -58,8 +58,10 @@ export class UserService {
     requesterUserId: string
   ): Promise<PublicUser> {
     // Check permissions
-    if (requesterRole !== 'owner' && requesterRole !== 'pm') {
-      throw new Error('Only owner or PM can update users');
+    const isOwnProfile = requesterUserId === targetUserId;
+    
+    if (!isOwnProfile && requesterRole !== 'owner' && requesterRole !== 'pm') {
+      throw new Error('Only owner or PM can update other users');
     }
     
     // Check if updating role to owner
@@ -79,13 +81,18 @@ export class UserService {
     if (!doc) throw new Error('User not found');
 
     // Apply updates
+    // Users can only update certain fields on their own profile
     if (updates.name) doc.name = updates.name;
-    if (updates.role && (requesterRole === 'owner' || (requesterRole === 'pm' && updates.role !== 'owner'))) {
-      doc.role = updates.role;
-    }
-    if (updates.status) doc.status = updates.status;
     if (updates.phone) doc.phone = updates.phone;
     if (updates.address) doc.address = updates.address;
+    
+    // Only owners and PMs can update role and status
+    if (requesterRole === 'owner' || requesterRole === 'pm') {
+      if (updates.role && (requesterRole === 'owner' || (requesterRole === 'pm' && updates.role !== 'owner'))) {
+        doc.role = updates.role;
+      }
+      if (updates.status) doc.status = updates.status;
+    }
 
     await doc.save();
 

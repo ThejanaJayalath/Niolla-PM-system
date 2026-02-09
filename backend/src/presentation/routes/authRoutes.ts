@@ -1,9 +1,11 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
-import { login, register, changeOwnPassword } from '../controllers/AuthController';
+import { login, register, changeOwnPassword, getCurrentUser } from '../controllers/AuthController';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
+
+router.get('/me', authMiddleware, getCurrentUser);
 
 router.post(
   '/login',
