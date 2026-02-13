@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, User, Phone, FileText } from 'lucide-react';
+import { X, FileText } from 'lucide-react';
 import { api } from '../api/client';
+import styles from './NewInquiryModal.module.css';
 
 interface FormState {
   customerName: string;
@@ -122,55 +123,52 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && <div className="text-red-500 text-sm">{error}</div>}
+        <form onSubmit={handleSubmit} className={styles.form}>
+          {error && <div className={styles.error}>{error}</div>}
           {duplicateAlert && <div className="text-amber-600 text-sm bg-amber-50 p-2 rounded">Phone number already exists. Inquiry created successfully. Redirecting...</div>}
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700 block">Name</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                name="customerName"
-                value={form.customerName}
-                onChange={handleChange}
-                required
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400"
-                placeholder="Enter Customer Name"
-              />
-            </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="customerName">Name</label>
+            <input
+              id="customerName"
+              name="customerName"
+              value={form.customerName}
+              onChange={handleChange}
+              required
+              className={styles.input}
+              placeholder="Enter Customer Name"
+            />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700 block">Phone Number</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                name="phoneNumber"
-                value={form.phoneNumber}
-                onChange={handleChange}
-                required
-                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400"
-                placeholder="Enter Serial Number" // Matching the image placeholder exactly, though it says Phone Number
-              />
-            </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="phoneNumber">Phone Number</label>
+            <input
+              id="phoneNumber"
+              name="phoneNumber"
+              value={form.phoneNumber}
+              onChange={handleChange}
+              required
+              className={styles.input}
+              placeholder="Enter Serial Number"
+            />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700 block">Description</label>
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="projectDescription">Description</label>
             <textarea
+              id="projectDescription"
               name="projectDescription"
               value={form.projectDescription}
               onChange={handleChange}
               required
-              rows={3}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400 resize-none"
+              rows={4}
+              className={styles.textarea}
               placeholder="Add Description"
             />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FileText size={16} className="text-primary" /> Features
             </label>
             <div className="flex gap-2">
@@ -179,13 +177,13 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
                 value={featureInput}
                 onChange={(e) => setFeatureInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400"
+                className={`${styles.input} flex-1`}
                 placeholder="Add required features"
               />
               <button
                 type="button"
                 onClick={addFeature}
-                className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-hover transition-colors"
+                className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-hover transition-colors"
               >
                 Add
               </button>
@@ -193,7 +191,7 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
             {form.requiredFeatures.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {form.requiredFeatures.map((f, i) => (
-                  <span key={i} className="bg-orange-50 text-orange-700 px-2 py-1 rounded text-xs flex items-center gap-1 border border-orange-100">
+                  <span key={i} className="bg-orange-50 text-orange-700 px-2 py-1 rounded-lg text-xs flex items-center gap-1 border border-orange-100">
                     {f}
                     <button type="button" onClick={() => removeFeature(i)} className="hover:text-orange-900"><X size={12} /></button>
                   </span>
@@ -202,16 +200,17 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
             )}
           </div>
 
-          <div className="space-y-1">
-            <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} htmlFor="internalNotes">
               <FileText size={16} className="text-primary" /> Internal Notes
             </label>
             <textarea
+              id="internalNotes"
               name="internalNotes"
               value={form.internalNotes}
               onChange={handleChange}
-              rows={2}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400 resize-none"
+              rows={3}
+              className={styles.textarea}
               placeholder="Add internal notes..."
             />
           </div>
@@ -222,7 +221,7 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
               disabled={submitting}
               className="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-orange-200 transition-all active:scale-[0.98]"
             >
-              {submitting ? 'Creating...' : 'Crete Inquiries'}
+              {submitting ? 'Creating...' : 'Create Inquiries'}
             </button>
           </div>
 
