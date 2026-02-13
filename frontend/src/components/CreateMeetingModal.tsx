@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Calendar } from 'lucide-react';
+import { X, Plus, Calendar, User, FileText, Link2, StickyNote } from 'lucide-react';
 import { api } from '../api/client';
+import styles from './CreateMeetingModal.module.css';
 
 interface CreateMeetingModalProps {
     isOpen: boolean;
@@ -34,7 +35,6 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
     useEffect(() => {
         if (isOpen) {
             loadInquiries();
-            // Reset form
             setFormData({
                 inquiryId: initialInquiryId || '',
                 customerName: '',
@@ -88,10 +88,10 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
             const scheduledAt = new Date(`${formData.date}T${formData.time}`);
 
             const payload = {
-                inquiryId: formData.inquiryId || undefined, // Optional
+                inquiryId: formData.inquiryId || undefined,
                 customerName: formData.customerName,
                 type: 'meeting',
-                title: `${formData.customerName} Meeting`, // Backend requires title
+                title: `${formData.customerName} Meeting`,
                 description: formData.description,
                 meetingLink: formData.meetingLink,
                 scheduledAt: scheduledAt.toISOString(),
@@ -123,45 +123,34 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div
-                className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
-                onClick={(e) => e.stopPropagation()}
-            >
-                {/* Header */}
-                <div className="bg-primary px-6 py-4 flex items-center justify-between">
-                    <h2 className="text-white text-lg font-semibold">Add Meetings</h2>
-                    <button
-                        onClick={onClose}
-                        className="text-white/80 hover:text-white transition-colors"
-                    >
-                        <X size={20} />
+        <div className={styles.overlay} onClick={onClose}>
+            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+                <div className={styles.header}>
+                    <h2 className={styles.title}>Add Meeting</h2>
+                    <button type="button" onClick={onClose} className={styles.closeBtn} aria-label="Close">
+                        <X size={22} />
                     </button>
                 </div>
 
-                {/* Body */}
-                <div className="p-6">
-                    {/* Add Customer Button (Top Right relative to form area) */}
-                    <div className="flex justify-end mb-4 relative">
+                <div className={styles.formWrap}>
+                    <div className={styles.addCustomerWrap}>
                         <button
                             type="button"
                             onClick={() => setShowCustomerDropdown(!showCustomerDropdown)}
-                            className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2"
+                            className={styles.addCustomerBtn}
                         >
                             <Plus size={16} />
                             Add Customer
                         </button>
 
-                        {/* Dropdown */}
                         {showCustomerDropdown && (
-                            <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl z-20 w-72 max-h-60 overflow-y-auto">
-                                <div className="p-2 border-b border-gray-100 sticky top-0 bg-white">
+                            <div className={styles.dropdown}>
+                                <div className={styles.dropdownSearch}>
                                     <input
                                         type="text"
                                         placeholder="Search customers..."
                                         value={searchInquiry}
                                         onChange={(e) => setSearchInquiry(e.target.value)}
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:border-primary"
                                         autoFocus
                                     />
                                 </div>
@@ -169,108 +158,116 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                                     filteredInquiries.map((inq) => (
                                         <button
                                             key={inq._id}
+                                            type="button"
                                             onClick={() => handleSelectInquiry(inq)}
-                                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                                            className={styles.dropdownItem}
                                         >
-                                            <div className="font-medium text-gray-900 text-sm">{inq.customerName}</div>
-                                            {inq.customerId && <div className="text-xs text-gray-500">{inq.customerId}</div>}
+                                            <div className={styles.dropdownItemName}>{inq.customerName}</div>
+                                            {inq.customerId && <div className={styles.dropdownItemMeta}>{inq.customerId}</div>}
                                         </button>
                                     ))
                                 ) : (
-                                    <div className="px-4 py-3 text-sm text-gray-500 text-center">No customers found</div>
+                                    <div className={styles.dropdownEmpty}>No customers found</div>
                                 )}
                             </div>
                         )}
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-5">
-
-                        {/* Name (Customer Name) */}
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700 block ml-0.5">Name</label>
+                    <form onSubmit={handleSubmit} className={styles.form}>
+                        <div className={styles.formGroup}>
+                            <label htmlFor="customerName">
+                                <User size={18} />
+                                Name
+                            </label>
                             <input
+                                id="customerName"
                                 type="text"
                                 placeholder="Enter Customer Name"
                                 value={formData.customerName}
                                 onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400"
+                                className={styles.input}
+                                required
                             />
                         </div>
 
-                        {/* Description */}
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700 block ml-0.5">Description</label>
+                        <div className={styles.formGroup}>
+                            <label htmlFor="description">
+                                <FileText size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+                                Description
+                            </label>
                             <textarea
+                                id="description"
                                 placeholder="Add Description"
                                 value={formData.description}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                                 rows={4}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400 resize-none"
+                                className={styles.textarea}
                             />
                         </div>
 
-                        {/* Date and Time */}
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700 block ml-0.5">Date and Time</label>
-                            <div className="flex gap-3">
-                                <div className="relative flex-1">
-                                    <input
-                                        type="date"
-                                        value={formData.date}
-                                        onChange={e => setFormData({ ...formData, date: e.target.value })}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-gray-600 appearance-none"
-                                        placeholder="Add Date"
-                                    />
-                                </div>
-                                <div className="relative flex-1">
-                                    <input
-                                        type="time"
-                                        value={formData.time}
-                                        onChange={e => setFormData({ ...formData, time: e.target.value })}
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors text-gray-600 appearance-none"
-                                        placeholder="Add Time"
-                                    />
-                                    {/* Mock Add button/icon if needed, but native inputs have pickers */}
-                                </div>
-                                <button type="button" className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 px-4 rounded-xl flex items-center justify-center font-bold text-sm h-[46px] mt-0.5 shadow-sm transition-colors">
-                                    <Calendar size={18} className="mr-2" />
+                        <div className={styles.formGroup}>
+                            <label>
+                                <Calendar size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+                                Date and Time
+                            </label>
+                            <div className={styles.dateTimeRow}>
+                                <input
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={e => setFormData({ ...formData, date: e.target.value })}
+                                    className={styles.input}
+                                    required
+                                />
+                                <input
+                                    type="time"
+                                    value={formData.time}
+                                    onChange={e => setFormData({ ...formData, time: e.target.value })}
+                                    className={styles.input}
+                                    required
+                                />
+                                <button type="button" className={styles.dateTimeAddBtn}>
+                                    <Calendar size={18} />
                                     Add
                                 </button>
                             </div>
                         </div>
 
-                        {/* Meeting Link */}
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700 block ml-0.5">Meeting Link</label>
+                        <div className={styles.formGroup}>
+                            <label htmlFor="meetingLink">
+                                <Link2 size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+                                Meeting Link
+                            </label>
                             <input
+                                id="meetingLink"
                                 type="text"
-                                placeholder="Add meetings link"
+                                placeholder="Add meeting link"
                                 value={formData.meetingLink}
                                 onChange={e => setFormData({ ...formData, meetingLink: e.target.value })}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400"
+                                className={styles.input}
                             />
                         </div>
 
-                        {/* Notes */}
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700 block ml-0.5">Notes</label>
+                        <div className={styles.formGroup}>
+                            <label htmlFor="notes">
+                                <StickyNote size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+                                Notes
+                            </label>
                             <input
+                                id="notes"
                                 type="text"
-                                placeholder="pick a date"
+                                placeholder="Add notes"
                                 value={formData.notes}
                                 onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors placeholder-gray-400"
+                                className={styles.input}
                             />
                         </div>
 
-                        {/* Submit */}
-                        <div className="pt-2">
-                            <button
-                                type="submit"
-                                disabled={loading}
-                                className="w-full bg-primary hover:bg-primary-hover text-white py-3.5 rounded-xl font-bold text-sm shadow-lg shadow-orange-200 transition-all active:scale-[0.98]"
-                            >
+                        <div className={styles.actions}>
+                            <button type="submit" disabled={loading} className={styles.submitBtn}>
                                 {loading ? 'Creating...' : 'Create Meeting'}
+                            </button>
+                            <button type="button" onClick={onClose} disabled={loading} className={styles.cancelBtn}>
+                                Cancel
                             </button>
                         </div>
                     </form>
