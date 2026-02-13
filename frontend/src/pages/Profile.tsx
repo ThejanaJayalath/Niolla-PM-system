@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
-import { User, Shield, Briefcase, Edit, Save, X } from 'lucide-react';
+import { User, Shield, Briefcase, Edit, Save, X, LogOut } from 'lucide-react';
 import styles from './Profile.module.css';
 
 interface UserProfile {
@@ -18,7 +18,7 @@ interface UserProfile {
 }
 
 export default function Profile() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -78,7 +78,7 @@ export default function Profile() {
 
   const handleSaveProfile = async () => {
     if (!profile) return;
-    
+
     setUpdating(true);
     try {
       const res = await api.patch<UserProfile>(`/users/${profile._id}`, editForm);
@@ -232,7 +232,7 @@ export default function Profile() {
               <User size={18} className={styles.sectionIcon} />
               Personal Information
             </div>
-            
+
             <div className={styles.formGrid}>
               <div className={styles.formGroup}>
                 <label className={styles.label}>Full Name</label>
@@ -335,8 +335,10 @@ export default function Profile() {
 
               <div className={styles.workItem}>
                 <label className={styles.label}>Account Status</label>
-                <div className={`${styles.statusBadge} ${styles[`status${profile.status.charAt(0).toUpperCase() + profile.status.slice(1)}`]}`}>
-                  {profile.status}
+                <div className={styles.readOnlyValue}>
+                  <div className={`${styles.statusBadge} ${styles[`status${profile.status.charAt(0).toUpperCase() + profile.status.slice(1)}`]}`}>
+                    {profile.status}
+                  </div>
                 </div>
               </div>
 
@@ -345,6 +347,17 @@ export default function Profile() {
                 <div className={styles.readOnlyValue}>{formatDate(profile.createdAt)}</div>
               </div>
             </div>
+          </div>
+
+          {/* Logout Card */}
+          <div className={styles.sidebarCard}>
+            <button
+              onClick={logout}
+              className={styles.logoutButton}
+            >
+              <LogOut size={16} />
+              Sign Out
+            </button>
           </div>
         </div>
       </div>

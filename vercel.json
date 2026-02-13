@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "buildCommand": "cd backend && npm ci && npm run build && cd ../frontend && npm ci && npm run build",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "cd backend && npm install && cd ../frontend && npm install",
+  "framework": null,
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
