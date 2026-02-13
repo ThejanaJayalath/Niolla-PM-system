@@ -146,8 +146,8 @@ export default function Inquiries() {
   );
 
   return (
-    <div className="space-y-6 font-sans">
-      <div className="flex justify-between items-center">
+    <div className={`${styles.page} font-sans`}>
+      <div className={styles.headerRow}>
         <h1 className="text-2xl font-bold text-gray-900">Inquiries</h1>
         <button
           onClick={() => setShowNewModal(true)}
@@ -158,7 +158,7 @@ export default function Inquiries() {
         </button>
       </div>
 
-      <div className="flex gap-4 items-center">
+      <div className={styles.filtersRow}>
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input

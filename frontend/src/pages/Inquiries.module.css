@@ -1,3 +1,22 @@
+/* Page layout: clear space between title, filters, and table */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filtersRow {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+}
+
 /* Toolbar Section */
 .toolbar {
   display: flex;
