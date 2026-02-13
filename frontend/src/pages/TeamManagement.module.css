@@ -1,3 +1,22 @@
+/* Page layout: space between title, search, and table (match Inquiries/Proposals/Meetings) */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.headerRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.filtersRow {
+  display: flex;
+  gap: 1.25rem;
+  align-items: center;
+}
+
 /* Table Container - Standard Table Look */
 .tableWrap {
   background: white;

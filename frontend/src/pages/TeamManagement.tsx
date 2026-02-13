@@ -119,9 +119,8 @@ export default function TeamManagement() {
   };
 
   return (
-    <div className="space-y-6 font-sans">
-      {/* Header */}
-      <div className="flex justify-between items-center">
+    <div className={`${styles.page} font-sans`}>
+      <div className={styles.headerRow}>
         <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
         <button
           onClick={() => setShowAddModal(true)}
@@ -132,8 +131,7 @@ export default function TeamManagement() {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="flex gap-4 items-center">
+      <div className={styles.filtersRow}>
         <div className="relative w-64">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
@@ -146,7 +144,6 @@ export default function TeamManagement() {
         </div>
       </div>
 
-      {/* Table */}
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
