@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { X, User, Mail, Phone, MapPin, Briefcase, Lock } from 'lucide-react';
 import { api } from '../api/client';
+import styles from './AddEmployeeModal.module.css';
 
 interface AddEmployeeModalProps {
   isOpen: boolean;
@@ -78,162 +79,142 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Add New Employee</h2>
-          <button
-            onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X size={24} />
+    <div className={styles.overlay}>
+      <div className={styles.modal}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>Add New Employee</h2>
+          <button type="button" onClick={handleClose} className={styles.closeBtn} aria-label="Close">
+            <X size={22} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className={styles.form}>
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-600">{error}</p>
+            <div className={styles.errorBox}>
+              <p>{error}</p>
             </div>
           )}
 
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <User size={18} />
-                Full Name
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Enter Full Name"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Mail size={18} />
-                Email
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Enter Email Address"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Phone size={18} />
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Enter Phone Number"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <MapPin size={18} />
-                Address
-              </label>
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Enter Address"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                <Briefcase size={18} />
-                Position
-              </label>
-              <select
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value as 'pm' | 'employee' })}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                required
-              >
-                <option value="employee">Software Engineer</option>
-                <option value="pm">Project Manager</option>
-              </select>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <input
-                  type="radio"
-                  id="autoGenerate"
-                  name="passwordOption"
-                  checked={formData.autoGenerate}
-                  onChange={() => setFormData({ ...formData, autoGenerate: true })}
-                  className="text-orange-600 focus:ring-orange-500"
-                />
-                <label htmlFor="autoGenerate" className="text-sm text-gray-700">
-                  Auto-generate password
-                </label>
-              </div>
-              <div className="flex items-center gap-3">
-                <input
-                  type="radio"
-                  id="manualPassword"
-                  name="passwordOption"
-                  checked={!formData.autoGenerate}
-                  onChange={() => setFormData({ ...formData, autoGenerate: false })}
-                  className="text-orange-600 focus:ring-orange-500"
-                />
-                <label htmlFor="manualPassword" className="text-sm text-gray-700">
-                  Send invitation email with account setup instructions
-                </label>
-              </div>
-            </div>
-
-            {!formData.autoGenerate && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                  <Lock size={18} />
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="Enter Password"
-                  required
-                  minLength={6}
-                />
-              </div>
-            )}
+          <div className={styles.formGroup}>
+            <label>
+              <User size={18} />
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className={styles.input}
+              placeholder="Enter Full Name"
+              required
+            />
           </div>
 
-          <div className="flex gap-3 pt-4 border-t border-gray-200">
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+          <div className={styles.formGroup}>
+            <label>
+              <Mail size={18} />
+              Email
+            </label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className={styles.input}
+              placeholder="Enter Email Address"
+              required
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>
+              <Phone size={18} />
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className={styles.input}
+              placeholder="Enter Phone Number"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>
+              <MapPin size={18} />
+              Address
+            </label>
+            <input
+              type="text"
+              value={formData.address}
+              onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+              className={styles.input}
+              placeholder="Enter Address"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>
+              <Briefcase size={18} />
+              Position
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value as 'pm' | 'employee' })}
+              className={styles.input}
+              required
             >
+              <option value="employee">Software Engineer</option>
+              <option value="pm">Project Manager</option>
+            </select>
+          </div>
+
+          <div className={styles.radioGroup}>
+            <div className={styles.radioRow}>
+              <input
+                type="radio"
+                id="autoGenerate"
+                name="passwordOption"
+                checked={formData.autoGenerate}
+                onChange={() => setFormData({ ...formData, autoGenerate: true })}
+              />
+              <label htmlFor="autoGenerate">Auto-generate password</label>
+            </div>
+            <div className={styles.radioRow}>
+              <input
+                type="radio"
+                id="manualPassword"
+                name="passwordOption"
+                checked={!formData.autoGenerate}
+                onChange={() => setFormData({ ...formData, autoGenerate: false })}
+              />
+              <label htmlFor="manualPassword">Send invitation email with account setup instructions</label>
+            </div>
+          </div>
+
+          {!formData.autoGenerate && (
+            <div className={styles.formGroup}>
+              <label>
+                <Lock size={18} />
+                Password
+              </label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className={styles.input}
+                placeholder="Enter Password"
+                required
+                minLength={6}
+              />
+            </div>
+          )}
+
+          <div className={styles.actions}>
+            <button type="submit" disabled={loading} className={styles.submitBtn}>
               {loading ? 'Creating...' : 'Create Employee'}
             </button>
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={loading}
-              className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
-            >
+            <button type="button" onClick={handleClose} disabled={loading} className={styles.cancelBtn}>
               Cancel
             </button>
           </div>
