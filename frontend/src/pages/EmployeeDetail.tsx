@@ -14,6 +14,7 @@ interface UserType {
   status: 'active' | 'suspended';
   phone?: string;
   address?: string;
+  profilePhoto?: string;
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
@@ -246,7 +247,11 @@ export default function EmployeeDetail() {
           <div className={styles.profileHeader}>
             <div className={styles.avatarWrapper}>
               <div className={styles.avatar}>
-                <User size={48} className={styles.avatarIcon} />
+                {user.profilePhoto ? (
+                  <img src={user.profilePhoto} alt="" className={styles.avatarImage} />
+                ) : (
+                  <User size={48} className={styles.avatarIcon} />
+                )}
               </div>
             </div>
             <div className={styles.profileInfo}>
