@@ -34,6 +34,7 @@
   border-radius: 1rem;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid #e5e7eb;
 }
 
 @keyframes scaleIn {
@@ -52,7 +53,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  background: var(--primary);
+  background: var(--color-primary, #FB8C19);
   flex-shrink: 0;
 }
 
@@ -83,9 +84,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
-  overflow-y: auto;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
 }
 
 .formGroup label {
@@ -95,36 +96,36 @@
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: #374151;
 }
 
 .input {
   width: 100%;
   padding: 0.625rem 0.875rem;
-  background: var(--slate-50);
-  border: 1px solid var(--border-subtle);
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
   border-radius: 10px;
   font-size: 0.9375rem;
-  color: var(--text-primary);
+  color: #111827;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  border-color: var(--color-primary, #FB8C19);
+  box-shadow: 0 0 0 3px rgba(251, 140, 25, 0.2);
 }
 
 .input::placeholder {
-  color: var(--text-tertiary);
+  color: #9ca3af;
 }
 
 .errorBox {
   padding: 0.75rem 1rem;
-  background: var(--danger-bg);
+  background: #fef2f2;
   border: 1px solid #fecdd3;
   border-radius: 10px;
-  color: var(--danger);
+  color: #dc2626;
   font-size: 0.875rem;
 }
 
@@ -142,35 +143,40 @@
 
 .radioRow label {
   font-size: 0.875rem;
-  color: var(--text-secondary);
+  color: #374151;
   font-weight: 400;
 }
 
 .actions {
   display: flex;
   gap: 0.75rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border-subtle);
-  margin-top: 0.25rem;
+  padding: 1rem 0 0;
+  margin-top: auto;
+  border-top: 1px solid #e5e7eb;
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+  flex-shrink: 0;
 }
 
 .submitBtn {
   flex: 1;
   padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-700) 100%);
+  background: var(--color-primary, #FB8C19);
+  color: #fff;
   border: none;
   border-radius: 12px;
-  color: white;
   font-weight: 600;
   font-size: 0.9375rem;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 4px rgba(251, 140, 25, 0.3);
 }
 
 .submitBtn:hover:not(:disabled) {
+  background: var(--color-primary-hover, #E67E0F);
   transform: translateY(-1px);
-  box-shadow: 0 6px 12px -1px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 8px rgba(251, 140, 25, 0.35);
 }
 
 .submitBtn:disabled {
@@ -181,10 +187,10 @@
 .cancelBtn {
   flex: 1;
   padding: 0.75rem 1.25rem;
-  background: var(--slate-100);
-  border: 1px solid var(--border-subtle);
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
-  color: var(--text-secondary);
+  color: #4b5563;
   font-weight: 600;
   font-size: 0.9375rem;
   cursor: pointer;
@@ -192,8 +198,8 @@
 }
 
 .cancelBtn:hover:not(:disabled) {
-  background: var(--slate-200);
-  color: var(--text-primary);
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .cancelBtn:disabled {
