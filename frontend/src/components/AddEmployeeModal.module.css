@@ -1,8 +1,8 @@
-/* Match NewInquiryModal / ConfirmDialog: same overlay and modal treatment */
+/* Match NewInquiryModal: same overlay (dark + blur) and primary header bar */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.4);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -27,16 +27,13 @@
   width: 100%;
   max-width: 32rem;
   max-height: 90vh;
-  overflow-y: auto;
-  background: var(--bg-surface);
-  border-radius: 24px;
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.6),
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 8px 10px -6px rgba(0, 0, 0, 0.05),
-    0 0 40px rgba(79, 70, 229, 0.12);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid var(--border-subtle);
 }
 
 @keyframes scaleIn {
@@ -54,17 +51,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid var(--border-subtle);
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
+  padding: 1rem 1.5rem;
+  background: var(--primary);
+  flex-shrink: 0;
 }
 
 .title {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #fff;
 }
 
 .closeBtn {
@@ -72,14 +68,14 @@
   align-items: center;
   justify-content: center;
   padding: 0.5rem;
-  color: var(--text-tertiary);
-  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
   transition: color 0.2s, background 0.2s;
 }
 
 .closeBtn:hover {
-  color: var(--text-primary);
-  background: var(--slate-100);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .form {
@@ -87,6 +83,9 @@
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .formGroup label {
