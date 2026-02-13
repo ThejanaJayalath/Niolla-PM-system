@@ -18,7 +18,8 @@ app.use((_req: Request, _res: Response, next: NextFunction) => {
 });
 
 app.use(cors());
-app.use(express.json());
+// Allow larger payloads for profile photo upload (base64); default is 100kb
+app.use(express.json({ limit: '4mb' }));
 
 app.get('/health', (_req, res) => {
   res.json({ success: true, message: 'Niolla PM API is running' });
