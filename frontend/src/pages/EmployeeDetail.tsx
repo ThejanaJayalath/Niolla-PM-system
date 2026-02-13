@@ -311,9 +311,35 @@ export default function EmployeeDetail() {
               </div>
             </div>
           </div>
+
+          {/* Actions: under Personal Information to use empty space */}
+          <div className={styles.section} style={{ marginTop: '2rem' }}>
+            <div className={styles.sectionTitle}>Actions</div>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => setSuspendDialogOpen(true)}
+                className={`w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
+                  user.status === 'active'
+                    ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'
+                }`}
+              >
+                {user.status === 'active' ? 'Suspend Account' : 'Reactivate Account'}
+              </button>
+              {isOwner && (
+                <button
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="w-full px-4 py-2.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm flex items-center justify-center gap-2"
+                >
+                  <Trash2 size={18} />
+                  Delete User
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Sidebar: Account Security + Work Information + Actions */}
+        {/* Sidebar: Account Security + Work Information */}
         <div className={styles.sidebar}>
           <div className={styles.sidebarCard}>
             <div className={styles.sectionTitle}>
@@ -394,32 +420,6 @@ export default function EmployeeDetail() {
                   {user.lastLogin ? formatDateTime(user.lastLogin) : 'Never'}
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Actions: Suspend / Delete (owner only for delete) */}
-          <div className={styles.sidebarCard}>
-            <div className={styles.sectionTitle}>Actions</div>
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => setSuspendDialogOpen(true)}
-                className={`w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-colors ${
-                  user.status === 'active'
-                    ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                    : 'bg-green-100 text-green-700 hover:bg-green-200'
-                }`}
-              >
-                {user.status === 'active' ? 'Suspend Account' : 'Reactivate Account'}
-              </button>
-              {isOwner && (
-                <button
-                  onClick={() => setDeleteDialogOpen(true)}
-                  className="w-full px-4 py-2.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium text-sm flex items-center justify-center gap-2"
-                >
-                  <Trash2 size={18} />
-                  Delete User
-                </button>
-              )}
             </div>
           </div>
         </div>
