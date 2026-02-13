@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, FileText } from 'lucide-react';
+import { X, User, Phone, FileText } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './NewInquiryModal.module.css';
 
@@ -94,7 +94,6 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
     // @ts-ignore
     if (res.meta?.duplicatePhone) {
       setDuplicateAlert(true);
-      // Wait 3 seconds then close
       setTimeout(() => {
         onSuccess();
         onClose();
@@ -105,30 +104,41 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
     onClose();
   };
 
+  const handleClose = () => {
+    setError('');
+    setDuplicateAlert(false);
+    onClose();
+  };
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div
-        className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="bg-primary px-6 py-4 flex items-center justify-between">
-          <h2 className="text-white text-lg font-semibold">Add Inquiries</h2>
-          <button
-            onClick={onClose}
-            className="text-white/80 hover:text-white transition-colors"
-          >
-            <X size={20} />
+    <div className={styles.overlay} onClick={handleClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.header}>
+          <h2 className={styles.title}>Add New Inquiry</h2>
+          <button type="button" onClick={handleClose} className={styles.closeBtn} aria-label="Close">
+            <X size={22} />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
-          {error && <div className={styles.error}>{error}</div>}
-          {duplicateAlert && <div className="text-amber-600 text-sm bg-amber-50 p-2 rounded">Phone number already exists. Inquiry created successfully. Redirecting...</div>}
+          {error && (
+            <div className={styles.errorBox}>
+              <p>{error}</p>
+            </div>
+          )}
+          {duplicateAlert && (
+            <div className={styles.duplicateAlert}>
+              Phone number already exists. Inquiry created successfully. Redirecting...
+            </div>
+          )}
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="customerName">Name</label>
+          <div className={styles.formGroup}>
+            <label htmlFor="customerName">
+              <User size={18} />
+              Name
+            </label>
             <input
               id="customerName"
               name="customerName"
@@ -140,8 +150,11 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
             />
           </div>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="phoneNumber">Phone Number</label>
+          <div className={styles.formGroup}>
+            <label htmlFor="phoneNumber">
+              <Phone size={18} />
+              Phone Number
+            </label>
             <input
               id="phoneNumber"
               name="phoneNumber"
@@ -149,12 +162,12 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
               onChange={handleChange}
               required
               className={styles.input}
-              placeholder="Enter Serial Number"
+              placeholder="Enter Phone Number"
             />
           </div>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="projectDescription">Description</label>
+          <div className={styles.formGroup}>
+            <label htmlFor="projectDescription">Description</label>
             <textarea
               id="projectDescription"
               name="projectDescription"
@@ -167,42 +180,42 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
             />
           </div>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FileText size={16} className="text-primary" /> Features
+          <div className={styles.formGroup}>
+            <label>
+              <FileText size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+              Features
             </label>
-            <div className="flex gap-2">
+            <div className={styles.addFeatureRow}>
               <input
                 ref={featureInputRef}
                 value={featureInput}
                 onChange={(e) => setFeatureInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className={`${styles.input} flex-1`}
+                className={styles.input}
                 placeholder="Add required features"
               />
-              <button
-                type="button"
-                onClick={addFeature}
-                className="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-hover transition-colors"
-              >
+              <button type="button" onClick={addFeature} className={styles.addBtn}>
                 Add
               </button>
             </div>
             {form.requiredFeatures.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className={styles.tagList}>
                 {form.requiredFeatures.map((f, i) => (
-                  <span key={i} className="bg-orange-50 text-orange-700 px-2 py-1 rounded-lg text-xs flex items-center gap-1 border border-orange-100">
+                  <span key={i} className={styles.tag}>
                     {f}
-                    <button type="button" onClick={() => removeFeature(i)} className="hover:text-orange-900"><X size={12} /></button>
+                    <button type="button" onClick={() => removeFeature(i)} className={styles.tagRemove} aria-label="Remove">
+                      <X size={12} />
+                    </button>
                   </span>
                 ))}
               </div>
             )}
           </div>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} htmlFor="internalNotes">
-              <FileText size={16} className="text-primary" /> Internal Notes
+          <div className={styles.formGroup}>
+            <label htmlFor="internalNotes">
+              <FileText size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+              Internal Notes
             </label>
             <textarea
               id="internalNotes"
@@ -215,16 +228,14 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
             />
           </div>
 
-          <div className="pt-4">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-xl font-bold text-sm shadow-lg shadow-orange-200 transition-all active:scale-[0.98]"
-            >
-              {submitting ? 'Creating...' : 'Create Inquiries'}
+          <div className={styles.actions}>
+            <button type="submit" disabled={submitting} className={styles.submitBtn}>
+              {submitting ? 'Creating...' : 'Create Inquiry'}
+            </button>
+            <button type="button" onClick={handleClose} disabled={submitting} className={styles.cancelBtn}>
+              Cancel
             </button>
           </div>
-
         </form>
       </div>
     </div>
