@@ -18,7 +18,7 @@ interface UserProfile {
 }
 
 export default function Profile() {
-  const { user: currentUser, logout } = useAuth();
+  const { logout } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);

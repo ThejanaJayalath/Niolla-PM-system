@@ -1,5 +1,3 @@
-
-import React from 'react';
 import { Search, Bell, Menu, Moon } from 'lucide-react';
 
 const Header = () => {

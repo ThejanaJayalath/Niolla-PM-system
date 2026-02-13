@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Edit2, Save, X, Eye, Pencil, Trash2, Lock } from 'lucide-react';
+import { Edit2, Save, X, Trash2 } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 
@@ -21,19 +21,6 @@ const ROLE_LABELS: Record<string, string> = {
   owner: 'Owner',
   pm: 'Project Manager',
   employee: 'Software Engineer',
-};
-
-const getRoleColor = (role: string) => {
-  switch (role) {
-    case 'owner':
-      return 'bg-orange-100 text-orange-700';
-    case 'pm':
-      return 'bg-blue-100 text-blue-700';
-    case 'employee':
-      return 'bg-green-100 text-green-700';
-    default:
-      return 'bg-gray-100 text-gray-700';
-  }
 };
 
 const getStatusColor = (status: string) => {

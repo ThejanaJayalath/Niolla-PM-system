@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, FileText, Info, Flag, DollarSign, Trash2, Edit3, Plus, Download } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { format } from 'date-fns';
 
 interface Proposal {
   _id: string;
