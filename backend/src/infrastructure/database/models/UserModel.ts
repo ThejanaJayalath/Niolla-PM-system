@@ -9,6 +9,7 @@ export interface UserDocument extends Document {
   status: 'active' | 'suspended';
   phone?: string;
   address?: string;
+  profilePhoto?: string;
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;
@@ -23,6 +24,7 @@ const userSchema = new Schema<UserDocument>(
     status: { type: String, enum: ['active', 'suspended'], default: 'active' },
     phone: { type: String },
     address: { type: String },
+    profilePhoto: { type: String },
     lastLogin: { type: Date },
   },
   { timestamps: true }

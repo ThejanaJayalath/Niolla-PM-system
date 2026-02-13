@@ -62,3 +62,24 @@ export async function changeOwnPassword(req: AuthenticatedRequest, res: Response
     res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message } });
   }
 }
+
+export async function updateProfilePhoto(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const userId = req.user?.userId;
+  if (!userId) {
+    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
+    return;
+  }
+  const photo = req.body.photo !== undefined ? req.body.photo : null;
+  try {
+    const user = await authService.updateProfilePhoto(userId, photo);
+    if (!user) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'User not found' } });
+      return;
+    }
+    const { passwordHash, ...userWithoutPassword } = user;
+    res.json({ success: true, data: userWithoutPassword });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to update profile photo';
+    res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message } });
+  }
+}

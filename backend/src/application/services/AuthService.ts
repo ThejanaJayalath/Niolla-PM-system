@@ -62,6 +62,26 @@ export class AuthService {
     await doc.save();
   }
 
+  private static readonly MAX_PHOTO_BASE64_LENGTH = 3 * 1024 * 1024; // ~2MB image as base64
+
+  async updateProfilePhoto(userId: string, photoBase64: string | null): Promise<User | null> {
+    const doc = await UserModel.findById(userId);
+    if (!doc) return null;
+    if (photoBase64 !== null) {
+      if (typeof photoBase64 !== 'string' || !photoBase64.startsWith('data:image/')) {
+        throw new Error('Invalid image: must be a data URL (data:image/...)');
+      }
+      if (photoBase64.length > AuthService.MAX_PHOTO_BASE64_LENGTH) {
+        throw new Error('Image too large. Please use an image under 2MB.');
+      }
+      doc.profilePhoto = photoBase64;
+    } else {
+      doc.profilePhoto = undefined;
+    }
+    await doc.save();
+    return doc.toObject() as unknown as User;
+  }
+
   verifyToken(token: string): { userId: string; email: string; role: string } | null {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string; role: string };

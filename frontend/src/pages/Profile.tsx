@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
-import { User, Shield, Briefcase, Edit, Save, X, LogOut } from 'lucide-react';
+import { User, Shield, Briefcase, Edit, Save, X, LogOut, Camera, Trash2 } from 'lucide-react';
 import styles from './Profile.module.css';
 
 interface UserProfile {
@@ -12,6 +12,7 @@ interface UserProfile {
   status: 'active' | 'suspended';
   phone?: string;
   address?: string;
+  profilePhoto?: string;
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
@@ -37,6 +38,9 @@ export default function Profile() {
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [updating, setUpdating] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -153,6 +157,59 @@ export default function Profile() {
     });
   };
 
+  const MAX_PHOTO_SIZE_MB = 2;
+  const MAX_PHOTO_BYTES = MAX_PHOTO_SIZE_MB * 1024 * 1024;
+
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    setPhotoError('');
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setPhotoError('Please select an image file (JPEG, PNG, or GIF).');
+      return;
+    }
+    if (file.size > MAX_PHOTO_BYTES) {
+      setPhotoError(`Image must be under ${MAX_PHOTO_SIZE_MB}MB.`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      setUploadingPhoto(true);
+      try {
+        const res = await api.patch<UserProfile>('/auth/me/photo', { photo: dataUrl });
+        if (res.success && res.data) {
+          setProfile(res.data);
+        } else {
+          setPhotoError(res.error?.message || 'Failed to update photo');
+        }
+      } catch {
+        setPhotoError('Failed to upload photo');
+      } finally {
+        setUploadingPhoto(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = async () => {
+    setPhotoError('');
+    setUploadingPhoto(true);
+    try {
+      const res = await api.patch<UserProfile>('/auth/me/photo', { photo: null });
+      if (res.success && res.data) {
+        setProfile(res.data);
+      } else {
+        setPhotoError(res.error?.message || 'Failed to remove photo');
+      }
+    } catch {
+      setPhotoError('Failed to remove photo');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -216,9 +273,46 @@ export default function Profile() {
           {/* Profile Header */}
           <div className={styles.profileHeader}>
             <div className={styles.avatarWrapper}>
-              <div className={styles.avatar}>
-                <User size={48} className={styles.avatarIcon} />
-              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={handlePhotoSelect}
+                className={styles.photoInput}
+                aria-label="Upload profile photo"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className={styles.avatarButton}
+                title="Change profile photo"
+              >
+                <div className={styles.avatar}>
+                  {profile.profilePhoto ? (
+                    <img src={profile.profilePhoto} alt="" className={styles.avatarImage} />
+                  ) : (
+                    <User size={48} className={styles.avatarIcon} />
+                  )}
+                </div>
+                <span className={styles.avatarOverlay}>
+                  <Camera size={24} />
+                  {uploadingPhoto ? 'Uploading...' : 'Change photo'}
+                </span>
+              </button>
+              {profile.profilePhoto && (
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  disabled={uploadingPhoto}
+                  className={styles.removePhotoButton}
+                  title="Remove photo"
+                >
+                  <Trash2 size={14} />
+                  Remove
+                </button>
+              )}
+              {photoError && <p className={styles.photoError}>{photoError}</p>}
             </div>
             <div className={styles.profileInfo}>
               <h2 className={styles.name}>{isEditing ? editForm.name : profile.name}</h2>

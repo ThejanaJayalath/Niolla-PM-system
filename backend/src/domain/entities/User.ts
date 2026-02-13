@@ -7,6 +7,7 @@ export interface User {
   status: 'active' | 'suspended';
   phone?: string;
   address?: string;
+  profilePhoto?: string;
   createdAt: Date;
   updatedAt: Date;
   lastLogin?: Date;

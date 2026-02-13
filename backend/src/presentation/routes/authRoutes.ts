@@ -1,11 +1,13 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { body, validationResult } from 'express-validator';
-import { login, register, changeOwnPassword, getCurrentUser } from '../controllers/AuthController';
+import { login, register, changeOwnPassword, getCurrentUser, updateProfilePhoto } from '../controllers/AuthController';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
 
 router.get('/me', authMiddleware, getCurrentUser);
+
+router.patch('/me/photo', authMiddleware, updateProfilePhoto);
 
 router.post(
   '/login',
