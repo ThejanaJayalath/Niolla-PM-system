@@ -112,7 +112,7 @@ export default function Meetings() {
     }
 
     return (
-        <div className="space-y-6 font-sans">
+        <div className={`${styles.page} font-sans`}>
             {notification && (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg z-50 flex items-center gap-2 animate-fade-in-down">
                     {notification.type === 'success' ? (
@@ -124,7 +124,7 @@ export default function Meetings() {
                 </div>
             )}
 
-            <div className="flex justify-between items-center">
+            <div className={styles.headerRow}>
                 <h1 className="text-2xl font-bold text-gray-900">Meetings</h1>
                 <button
                     onClick={() => setIsModalOpen(true)}
@@ -135,7 +135,7 @@ export default function Meetings() {
                 </button>
             </div>
 
-            <div className="flex gap-4 items-center">
+            <div className={styles.filtersRow}>
                 <div className="relative w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                     <input
