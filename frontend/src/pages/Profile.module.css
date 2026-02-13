@@ -350,6 +350,18 @@
   justify-content: center;
 }
 
+.statusActive {
+  background: #ea580c !important;
+  color: white !important;
+  border-color: #ea580c !important;
+}
+
+.statusSuspended {
+  background: #fed7aa !important;
+  color: #9a3412 !important;
+  border-color: #ea580c !important;
+}
+
 /* Modal styles remain mostly the same but cleaner */
 .modalOverlay {
   position: fixed;
