@@ -23,7 +23,9 @@ async function request<T>(
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  const json = await res.json().catch(() => ({}));
+  const contentType = res.headers.get('content-type');
+  const isJson = contentType?.includes('application/json');
+  const json = isJson ? await res.json().catch(() => ({})) : {};
 
   if (!res.ok) {
     if (res.status === 401) {
@@ -31,7 +33,14 @@ async function request<T>(
       localStorage.removeItem('user');
       window.location.href = '/login';
     }
-    return { success: false, error: json.error || { code: 'UNKNOWN', message: 'Request failed' } };
+    const message =
+      json?.error?.message ||
+      (res.status === 502 || res.status === 503
+        ? 'Server unavailable. Check backend and env (MONGODB_URI, JWT_SECRET).'
+        : res.status === 404
+          ? 'API not found. Check deployment (e.g. /api/v1 route).'
+          : `Request failed (${res.status})`);
+    return { success: false, error: { code: json?.error?.code || 'UNKNOWN', message } };
   }
 
   return json as ApiResponse<T>;

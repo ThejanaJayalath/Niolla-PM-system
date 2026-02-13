@@ -19,14 +19,16 @@ Ensure the repo includes the root `vercel.json`, the `api/` folder, and both `fr
 2. **Add New** → **Project** and import your repository.
 3. Leave **Root Directory** as the repo root (do not set it to `frontend`).
 
-### 3. Set environment variables
+### 3. Set environment variables (required for sign-in)
+
+**If these are missing, login will show "Request failed" or 502/503.**
 
 In the Vercel project: **Settings** → **Environment Variables**. Add:
 
 | Name           | Value                    | Notes                          |
 |----------------|--------------------------|--------------------------------|
-| `MONGODB_URI`  | `mongodb+srv://...`      | From MongoDB Atlas (e.g. Connect → Drivers) |
-| `JWT_SECRET`   | A long random string     | Use a strong secret for production |
+| `MONGODB_URI`  | `mongodb+srv://...`      | From MongoDB Atlas (e.g. Connect → Drivers). **Required.** |
+| `JWT_SECRET`   | A long random string     | Use a strong secret for production. **Required.** |
 
 Optional (for seeding an owner later, or for backend-only env):
 
