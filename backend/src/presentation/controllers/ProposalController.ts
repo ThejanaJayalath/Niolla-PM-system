@@ -1,12 +1,10 @@
 import { Response } from 'express';
 import { ProposalService } from '../../application/services/ProposalService';
-import { ProposalPdfGenerator } from '../../infrastructure/pdf/ProposalPdfGenerator';
 import { fillProposalTemplate } from '../../infrastructure/pdf/ProposalDocxGenerator';
 import { ProposalTemplateModel } from '../../infrastructure/database/models/ProposalTemplateModel';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 const proposalService = new ProposalService();
-const pdfGenerator = new ProposalPdfGenerator();
 
 export async function createProposal(req: AuthenticatedRequest, res: Response): Promise<void> {
   const { inquiryId, projectName, milestones, advancePayment, projectCost, totalAmount, maintenanceCostPerMonth, maintenanceNote, validUntil, notes } = req.body;
@@ -52,18 +50,20 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
   }
   const safeName = proposal.customerName.replace(/\s+/g, '-');
   const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).lean();
-  if (templateDoc?.templateDocx && Buffer.isBuffer(templateDoc.templateDocx)) {
-    const buffer = fillProposalTemplate(templateDoc.templateDocx as Buffer, proposal);
-    const filename = `proposal-${safeName}-${Date.now()}.docx`;
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    res.send(buffer);
+  if (!templateDoc?.templateDocx || !Buffer.isBuffer(templateDoc.templateDocx)) {
+    res.status(400).json({
+      success: false,
+      error: {
+        code: 'NO_TEMPLATE',
+        message: 'No proposal template uploaded. Please upload a Word template (.docx) from the Create Proposal page first.',
+      },
+    });
     return;
   }
-  const buffer = await pdfGenerator.generate(proposal);
-  const filename = `proposal-${safeName}-${Date.now()}.pdf`;
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+  const buffer = fillProposalTemplate(templateDoc.templateDocx as Buffer, proposal);
+  const filename = `proposal-${safeName}-${Date.now()}.docx`;
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
   res.send(buffer);
 }
 
