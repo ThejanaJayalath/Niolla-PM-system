@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Info, Flag, DollarSign, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Info, Flag, DollarSign, Trash2, Upload } from 'lucide-react';
 import { api } from '../api/client';
 
 interface Inquiry {
@@ -29,12 +29,47 @@ export default function CreateProposal() {
     const [advancePayment, setAdvancePayment] = useState('');
     const [projectCost, setProjectCost] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [templateInfo, setTemplateInfo] = useState<{ hasTemplate: boolean; fileName?: string }>({ hasTemplate: false });
+    const [templateUploading, setTemplateUploading] = useState(false);
+    const [templateError, setTemplateError] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const location = useLocation();
 
     useEffect(() => {
         loadInquiries();
+        loadTemplateInfo();
     }, []);
+
+    const loadTemplateInfo = async () => {
+        const res = await api.getProposalTemplateInfo();
+        if (res.success && res.data) {
+            setTemplateInfo({
+                hasTemplate: res.data.hasTemplate,
+                fileName: res.data.fileName,
+            });
+        }
+    };
+
+    const handleUploadTemplate = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const ext = file.name.toLowerCase();
+        if (!ext.endsWith('.docx')) {
+            setTemplateError('Only .docx (Word) files are allowed.');
+            return;
+        }
+        setTemplateError(null);
+        setTemplateUploading(true);
+        const res = await api.uploadTemplate(file);
+        setTemplateUploading(false);
+        if (res.success) {
+            await loadTemplateInfo();
+        } else {
+            setTemplateError(res.error?.message || 'Upload failed');
+        }
+        e.target.value = '';
+    };
 
     const loadInquiries = async () => {
         try {
@@ -153,13 +188,39 @@ export default function CreateProposal() {
                         <h1 className="text-[2rem] font-extrabold text-gray-900 tracking-tight leading-tight">Create Proposal</h1>
                         <p className="text-base text-gray-500 mt-1">Create a new proposal for your customer</p>
                     </div>
-                    <button
-                        className="bg-white border border-red-100 text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
-                    >
-                        <Trash2 size={16} />
-                        Delete Inquiries
-                    </button>
+                    <div className="flex items-center gap-3">
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".docx"
+                            className="hidden"
+                            onChange={handleUploadTemplate}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={templateUploading}
+                            className="bg-white border border-primary text-primary hover:bg-primary/5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
+                        >
+                            <Upload size={16} />
+                            {templateUploading ? 'Uploading...' : 'Upload Template'}
+                        </button>
+                        {templateInfo.hasTemplate && templateInfo.fileName && (
+                            <span className="text-sm text-gray-500">Template: {templateInfo.fileName}</span>
+                        )}
+                        <button
+                            className="bg-white border border-red-100 text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
+                        >
+                            <Trash2 size={16} />
+                            Delete Inquiries
+                        </button>
+                    </div>
                 </div>
+                {templateError && (
+                    <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
+                        {templateError}
+                    </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-8">
                     {/* Left Column */}

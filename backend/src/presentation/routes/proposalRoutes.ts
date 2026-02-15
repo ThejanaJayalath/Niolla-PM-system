@@ -1,3 +1,4 @@
+import multer from 'multer';
 import { Router } from 'express';
 import { body, param, validationResult } from 'express-validator';
 import { authMiddleware, requireRole } from '../middleware/auth';
@@ -9,7 +10,14 @@ import {
   downloadProposalPdf,
   deleteProposal,
   updateProposal,
+  uploadProposalTemplate,
+  getProposalTemplateInfo,
 } from '../controllers/ProposalController';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+});
 
 const router = Router();
 router.use(authMiddleware);
@@ -47,6 +55,8 @@ router.post(
 );
 
 router.get('/', listProposals);
+router.get('/template', getProposalTemplateInfo);
+router.post('/template', upload.single('template'), uploadProposalTemplate);
 router.get('/inquiry/:inquiryId', [param('inquiryId').isMongoId()], validate, getProposalsByInquiry);
 router.get('/:id/pdf', [param('id').isMongoId()], validate, downloadProposalPdf);
 router.get('/:id', [param('id').isMongoId()], validate, getProposal);

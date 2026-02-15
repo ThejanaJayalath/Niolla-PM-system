@@ -51,6 +51,30 @@ export const api = {
   post: <T>(path: string, body: unknown) => request<T>(path, { method: 'POST', body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown) => request<T>(path, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: (path: string) => request<unknown>(path, { method: 'DELETE' }),
+  uploadTemplate: async (file: File): Promise<ApiResponse<{ fileName: string; message: string }>> => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('template', file);
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/proposals/template`, {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        success: false,
+        error: {
+          code: json?.error?.code || 'UPLOAD_FAILED',
+          message: json?.error?.message || 'Template upload failed',
+        },
+      };
+    }
+    return json as ApiResponse<{ fileName: string; message: string }>;
+  },
+  getProposalTemplateInfo: () => request<{ hasTemplate: boolean; fileName?: string; uploadedAt?: string }>('/proposals/template'),
   download: async (path: string, filename: string): Promise<void> => {
     const token = getToken();
     const headers: Record<string, string> = {};
@@ -60,10 +84,13 @@ export const api = {
     if (!res.ok) throw new Error('Download failed');
 
     const blob = await res.blob();
+    const disposition = res.headers.get('Content-Disposition');
+    const serverFilename = disposition?.match(/filename="?([^";]+)"?/)?.[1]?.trim();
+    const downloadFilename = serverFilename || filename;
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename;
+    a.download = downloadFilename;
     document.body.appendChild(a);
     a.click();
     window.URL.revokeObjectURL(url);
