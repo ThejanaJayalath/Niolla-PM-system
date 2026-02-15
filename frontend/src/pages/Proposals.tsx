@@ -55,7 +55,7 @@ export default function Proposals() {
       await (api as any).download(`/proposals/${id}/pdf`, `proposal-${customerName.replace(/\s+/g, '-')}.pdf`);
     } catch (err) {
       console.error(err);
-      alert('Failed to download proposal');
+      alert(err instanceof Error ? err.message : 'Failed to download proposal');
     }
   };
 

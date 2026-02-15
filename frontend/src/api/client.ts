@@ -81,7 +81,13 @@ export const api = {
     if (token) headers['Authorization'] = `Bearer ${token}`;
 
     const res = await fetch(`${API_BASE}${path}`, { headers });
-    if (!res.ok) throw new Error('Download failed');
+    if (!res.ok) {
+      const contentType = res.headers.get('content-type');
+      const isJson = contentType?.includes('application/json');
+      const json = isJson ? await res.json().catch(() => ({})) : {};
+      const message = json?.error?.message || `Download failed (${res.status})`;
+      throw new Error(message);
+    }
 
     const blob = await res.blob();
     const disposition = res.headers.get('Content-Disposition');

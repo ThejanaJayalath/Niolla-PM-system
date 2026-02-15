@@ -113,7 +113,7 @@ export default function Inquiries() {
       await (api as any).download(`/proposals/${proposalId}/pdf`, `proposal-${proposalId}.pdf`);
     } catch (err) {
       console.error(err);
-      alert('Failed to download proposal');
+      alert(err instanceof Error ? err.message : 'Failed to download proposal');
     }
   };
 

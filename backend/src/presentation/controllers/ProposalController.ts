@@ -50,7 +50,9 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
   }
   const safeName = proposal.customerName.replace(/\s+/g, '-');
   const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).lean();
-  if (!templateDoc?.templateDocx || !Buffer.isBuffer(templateDoc.templateDocx)) {
+  const rawTemplate = templateDoc?.templateDocx;
+  const hasData = rawTemplate && (Buffer.isBuffer(rawTemplate) ? rawTemplate.length > 0 : (rawTemplate as Uint8Array).length > 0);
+  if (!hasData) {
     res.status(400).json({
       success: false,
       error: {
@@ -60,7 +62,8 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     });
     return;
   }
-  const buffer = fillProposalTemplate(templateDoc.templateDocx as Buffer, proposal);
+  const templateBuffer = Buffer.isBuffer(rawTemplate) ? rawTemplate : Buffer.from(rawTemplate as ArrayBuffer | ArrayLike<number>);
+  const buffer = fillProposalTemplate(templateBuffer, proposal);
   const filename = `proposal-${safeName}-${Date.now()}.docx`;
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
