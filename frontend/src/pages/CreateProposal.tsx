@@ -25,7 +25,7 @@ export default function CreateProposal() {
     const [showInquiryDropdown, setShowInquiryDropdown] = useState(false);
 
     const [projectTitle, setProjectTitle] = useState('');
-    const [milestones, setMilestones] = useState<Milestone[]>([{ title: '', amount: '', time: '' }]);
+    const [milestones, setMilestones] = useState<Milestone[]>([]);
     const [advancePayment, setAdvancePayment] = useState('');
     const [projectCost, setProjectCost] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -124,16 +124,16 @@ export default function CreateProposal() {
             return;
         }
 
+        const mappedMilestones = milestones
+            .filter(m => m.title.trim())
+            .map(m => ({
+                title: m.title.trim(),
+                amount: m.amount ? parseFloat(m.amount) : undefined,
+                timePeriod: m.time?.trim() || undefined
+            }));
+
         setSubmitting(true);
         try {
-            const mappedMilestones = milestones
-                .filter(m => m.title.trim())
-                .map(m => ({
-                    title: m.title,
-                    amount: m.amount ? parseFloat(m.amount) : undefined,
-                    timePeriod: m.time
-                }));
-
             const res = await api.post('/proposals', {
                 inquiryId: selectedInquiry._id,
                 projectName: projectTitle,
@@ -146,7 +146,7 @@ export default function CreateProposal() {
             if (res.success) {
                 navigate('/proposals');
             } else {
-                alert('Failed to create proposal');
+                alert(res.error?.message || 'Failed to create proposal');
             }
         } catch (err) {
             console.error(err);
@@ -348,11 +348,13 @@ export default function CreateProposal() {
                             </div>
 
                             <div className="space-y-3">
-                                <div className="grid grid-cols-3 gap-3 text-sm font-medium text-gray-700">
-                                    <div>Title</div>
-                                    <div>Amount</div>
-                                    <div>Time</div>
-                                </div>
+                                {milestones.length > 0 && (
+                                    <div className="grid grid-cols-3 gap-3 text-sm font-medium text-gray-700">
+                                        <div>Title</div>
+                                        <div>Amount</div>
+                                        <div>Time</div>
+                                    </div>
+                                )}
 
                                 {milestones.map((milestone, index) => (
                                     <div key={index} className="grid grid-cols-3 gap-3">
@@ -381,11 +383,12 @@ export default function CreateProposal() {
                                 ))}
 
                                 <button
+                                    type="button"
                                     onClick={addMilestone}
                                     className="text-primary hover:text-primary-hover font-medium text-sm flex items-center gap-1"
                                 >
                                     <Plus size={16} />
-                                    Add another Milestones
+                                    {milestones.length === 0 ? 'Add Milestone' : 'Add another Milestone'}
                                 </button>
                             </div>
                         </div>

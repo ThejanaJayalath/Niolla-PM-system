@@ -36,7 +36,7 @@ router.post(
   [
     body('inquiryId').isMongoId().withMessage('Valid inquiry ID is required'),
     body('projectName').optional().trim(),
-    body('milestones').isArray({ min: 1 }).withMessage('At least one milestone is required'),
+    body('milestones').isArray().withMessage('Milestones must be an array'),
     body('milestones.*.title').trim().notEmpty().withMessage('Milestone title is required'),
     body('milestones.*.amount').optional().isNumeric().withMessage('Milestone amount must be a number when provided'),
     body('milestones.*.timePeriod').optional().trim(),
