@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { ProposalService } from '../../application/services/ProposalService';
 import { fillProposalTemplate } from '../../infrastructure/pdf/ProposalDocxGenerator';
+import { convertDocxToPdf } from '../../infrastructure/pdf/convertDocxToPdf';
 import { ProposalTemplateModel } from '../../infrastructure/database/models/ProposalTemplateModel';
 import { AuthenticatedRequest } from '../middleware/auth';
 
@@ -75,11 +76,18 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     });
     return;
   }
-  const buffer = fillProposalTemplate(templateBuffer, proposal);
-  const filename = `proposal-${safeName}-${Date.now()}.docx`;
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  res.send(buffer);
+  const docxBuffer = fillProposalTemplate(templateBuffer, proposal);
+  const pdfBuffer = await convertDocxToPdf(docxBuffer);
+  const timestamp = Date.now();
+  if (pdfBuffer && pdfBuffer.length > 0) {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
+    res.send(pdfBuffer);
+  } else {
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
+    res.send(docxBuffer);
+  }
 }
 
 export async function uploadProposalTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
