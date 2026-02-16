@@ -2,6 +2,43 @@ import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { Proposal } from '../../domain/entities/Proposal';
 
+const DOCUMENT_XML_PATH = 'word/document.xml';
+
+/**
+ * Merge all text runs inside each paragraph so that placeholders like {{PROJECT_NAME}}
+ * are in a single run. Word often splits them across runs, which prevents docxtemplater
+ * from recognizing the tag.
+ */
+function mergeParagraphRuns(xmlStr: string): string {
+  const paragraphRegex = /<w:p(\s[^>]*)?>([\s\S]*?)<\/w:p>/gi;
+  return xmlStr.replace(paragraphRegex, (match, attrs, inner) => {
+    const pPrMatch = inner.match(/<w:pPr[\s\S]*?<\/w:pPr>/i);
+    const pPr = pPrMatch ? pPrMatch[0] : '';
+    const textParts: string[] = [];
+    const runRegex = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/gi;
+    let runMatch;
+    while ((runMatch = runRegex.exec(inner)) !== null) {
+      textParts.push(runMatch[1]);
+    }
+    const fullText = textParts.join('');
+    const escaped = fullText
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+    const runBlock = `<w:r><w:t xml:space="preserve">${escaped}</w:t></w:r>`;
+    return `<w:p${attrs || ''}>${pPr}${runBlock}</w:p>`;
+  });
+}
+
+function preprocessDocxZip(zip: PizZip): void {
+  const docFile = zip.file(DOCUMENT_XML_PATH);
+  if (!docFile) return;
+  const xmlStr = docFile.asText();
+  const merged = mergeParagraphRuns(xmlStr);
+  zip.file(DOCUMENT_XML_PATH, merged);
+}
+
 /** Format number as LKR currency string for template */
 function formatLkr(value: number): string {
   return `LKR ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -71,6 +108,7 @@ export function getTemplateData(proposal: Proposal): Record<string, string> {
 
 export function fillProposalTemplate(templateBuffer: Buffer, proposal: Proposal): Buffer {
   const zip = new PizZip(templateBuffer);
+  preprocessDocxZip(zip);
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
