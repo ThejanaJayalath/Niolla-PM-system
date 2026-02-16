@@ -2,6 +2,52 @@ import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { Proposal } from '../../domain/entities/Proposal';
 
+const DOCUMENT_XML_PATH = 'word/document.xml';
+
+/** Remove control characters that are invalid in XML 1.0 */
+function sanitizeForXml(text: string): string {
+  return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ');
+}
+
+/** Escape for use inside an XML text node */
+function escapeXmlText(text: string): string {
+  return sanitizeForXml(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+/**
+ * Merge all text runs inside each paragraph that contains {{ so placeholders
+ * are in a single run and docxtemplater can replace them. Leaves other paragraphs unchanged.
+ */
+function mergeParagraphRuns(xmlStr: string): string {
+  const paragraphRegex = /<w:p(\s[^>]*)?>([\s\S]*?)<\/w:p>/g;
+  return xmlStr.replace(paragraphRegex, (match, attrs, inner) => {
+    if (!inner.includes('{{')) return match;
+    const pPrMatch = inner.match(/<w:pPr[\s\S]*?<\/w:pPr>/i);
+    const pPr = pPrMatch ? pPrMatch[0] : '';
+    const textParts: string[] = [];
+    const runRegex = /<w:t(?:\s[^>]*)?>([\s\S]*?)<\/w:t>/g;
+    let runMatch;
+    while ((runMatch = runRegex.exec(inner)) !== null) {
+      textParts.push(runMatch[1]);
+    }
+    const fullText = textParts.join('');
+    const escaped = escapeXmlText(fullText);
+    const runBlock = `<w:r><w:t xml:space="preserve">${escaped}</w:t></w:r>`;
+    return `<w:p${attrs || ''}>${pPr}${runBlock}</w:p>`;
+  });
+}
+
+function preprocessDocxZip(zip: PizZip): void {
+  const docFile = zip.file(DOCUMENT_XML_PATH);
+  if (!docFile) return;
+  const xmlStr = docFile.asText();
+  zip.file(DOCUMENT_XML_PATH, mergeParagraphRuns(xmlStr));
+}
+
 /** Format number as LKR currency string for template */
 function formatLkr(value: number): string {
   return `LKR ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -71,6 +117,7 @@ export function getTemplateData(proposal: Proposal): Record<string, string> {
 
 export function fillProposalTemplate(templateBuffer: Buffer, proposal: Proposal): Buffer {
   const zip = new PizZip(templateBuffer);
+  preprocessDocxZip(zip);
   const doc = new Docxtemplater(zip, {
     paragraphLoop: true,
     linebreaks: true,
