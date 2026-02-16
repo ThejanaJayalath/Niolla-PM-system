@@ -4,6 +4,15 @@ import { Proposal } from '../../domain/entities/Proposal';
 
 const DOCUMENT_XML_PATH = 'word/document.xml';
 
+/**
+ * Checklist vs common docxtemplater issues:
+ * ✅ PROBLEM 1 (Word split placeholder): We merge runs in paragraphs containing "{{" so tags are in one run.
+ * ✅ PROBLEM 2 (Wrong syntax): We use custom delimiters { start: '{{', end: '}}' } so {{PROJECT_NAME}} is correct.
+ * ✅ PROBLEM 3 (Forgot render): We call doc.render(data).
+ * ✅ PROBLEM 4 (Wrong keys): getTemplateData() returns PROJECT_NAME, DATE, etc. (matches {{PROJECT_NAME}}).
+ * ✅ PROBLEM 5 (Template path): Template is loaded from DB buffer, not file path — controller passes it correctly.
+ */
+
 /** Remove control characters that are invalid in XML 1.0 */
 function sanitizeForXml(text: string): string {
   return text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ');
@@ -118,13 +127,33 @@ export function getTemplateData(proposal: Proposal): Record<string, string> {
 export function fillProposalTemplate(templateBuffer: Buffer, proposal: Proposal): Buffer {
   const zip = new PizZip(templateBuffer);
   preprocessDocxZip(zip);
-  const doc = new Docxtemplater(zip, {
+
+  let inspectModule: { getAllTags?: () => Record<string, unknown> } | null = null;
+  const opts: Record<string, unknown> = {
     paragraphLoop: true,
     linebreaks: true,
     delimiters: { start: '{{', end: '}}' },
-  });
+  };
+
+  if (process.env.DEBUG_PROPOSAL_TAGS === '1') {
+    const InspectModule = require('docxtemplater/js/inspect-module.js').default;
+    inspectModule = new InspectModule();
+    opts.modules = [inspectModule];
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const doc = new Docxtemplater(zip, opts as any);
   const data = getTemplateData(proposal);
   doc.render(data);
+
+  if (inspectModule?.getAllTags) {
+    const tags = inspectModule.getAllTags();
+    console.log('[ProposalDocxGenerator] Detected template tags:', Object.keys(tags));
+    if (Object.keys(tags).length === 0) {
+      console.warn('[ProposalDocxGenerator] No tags detected — Word may have split placeholders. Re-type each {{PLACEHOLDER}} in one go in the template.');
+    }
+  }
+
   const out = doc.getZip().generate({
     type: 'nodebuffer',
     compression: 'DEFLATE',
