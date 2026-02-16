@@ -62,8 +62,9 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     return;
   }
   const raw = templateDoc.templateDocx;
-  const templateBuffer =
-    Buffer.isBuffer(raw) ? raw : Buffer.from(raw as ArrayBuffer | ArrayLike<number>);
+  const templateBuffer: Buffer = Buffer.isBuffer(raw)
+    ? raw
+    : Buffer.from(raw as ArrayLike<number>);
   if (!templateBuffer || templateBuffer.length === 0) {
     res.status(400).json({
       success: false,
