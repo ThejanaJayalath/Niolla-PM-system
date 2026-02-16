@@ -49,10 +49,9 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     return;
   }
   const safeName = proposal.customerName.replace(/\s+/g, '-');
-  const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).lean();
-  const rawTemplate = templateDoc?.templateDocx;
-  const hasData = rawTemplate && (Buffer.isBuffer(rawTemplate) ? rawTemplate.length > 0 : (rawTemplate as Uint8Array).length > 0);
-  if (!hasData) {
+  // Fetch without .lean() so Mongoose returns Buffer correctly (lean can change binary type in some environments)
+  const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).select('templateDocx');
+  if (!templateDoc?.templateDocx) {
     res.status(400).json({
       success: false,
       error: {
@@ -62,7 +61,19 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     });
     return;
   }
-  const templateBuffer = Buffer.isBuffer(rawTemplate) ? rawTemplate : Buffer.from(rawTemplate as ArrayBuffer | ArrayLike<number>);
+  const raw = templateDoc.templateDocx;
+  const templateBuffer =
+    Buffer.isBuffer(raw) ? raw : Buffer.from(raw as ArrayBuffer | ArrayLike<number>);
+  if (!templateBuffer || templateBuffer.length === 0) {
+    res.status(400).json({
+      success: false,
+      error: {
+        code: 'NO_TEMPLATE',
+        message: 'No proposal template uploaded. Please upload a Word template (.docx) from the Create Proposal page first.',
+      },
+    });
+    return;
+  }
   const buffer = fillProposalTemplate(templateBuffer, proposal);
   const filename = `proposal-${safeName}-${Date.now()}.docx`;
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
