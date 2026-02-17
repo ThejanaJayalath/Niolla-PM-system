@@ -83,10 +83,14 @@ export const api = {
 
     const res = await fetch(`${API_BASE}${path}`, { headers });
     if (!res.ok) {
-      const contentType = res.headers.get('content-type');
-      const isJson = contentType?.includes('application/json');
-      const json = isJson ? await res.json().catch(() => ({})) : {};
-      const message = json?.error?.message || `Download failed (${res.status})`;
+      const text = await res.text();
+      let message = `Download failed (${res.status})`;
+      try {
+        const json = JSON.parse(text);
+        if (json?.error?.message) message = json.error.message;
+      } catch {
+        /* use default message */
+      }
       throw new Error(message);
     }
 

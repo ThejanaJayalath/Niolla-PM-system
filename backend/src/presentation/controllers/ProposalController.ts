@@ -45,6 +45,21 @@ export async function getProposalsByInquiry(req: AuthenticatedRequest, res: Resp
   res.json({ success: true, data: proposals });
 }
 
+function toBuffer(raw: unknown): Buffer | null {
+  if (!raw) return null;
+  if (Buffer.isBuffer(raw)) return raw.length > 0 ? raw : null;
+  if (typeof (raw as { buffer?: Uint8Array }).buffer !== 'undefined') {
+    const b = (raw as { buffer: Uint8Array }).buffer;
+    return b && b.length > 0 ? Buffer.from(b) : null;
+  }
+  try {
+    const b = Buffer.from(raw as ArrayLike<number>);
+    return b.length > 0 ? b : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function downloadProposalPdf(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const proposal = await proposalService.findById(req.params.id);
@@ -52,19 +67,21 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
       res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Proposal not found' } });
       return;
     }
-    const safeName = proposal.customerName.replace(/\s+/g, '-');
+    const safeName = (proposal.customerName || 'proposal').toString().replace(/\s+/g, '-');
     const timestamp = Date.now();
 
     let docxBuffer: Buffer;
+    let usedTemplate = false;
     const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).select('templateDocx');
     const raw = templateDoc?.templateDocx;
-    const hasTemplate = raw && (Buffer.isBuffer(raw) ? raw.length > 0 : true);
+    const templateBuffer = toBuffer(raw);
 
-    if (hasTemplate && raw) {
-      const templateBuffer = Buffer.isBuffer(raw) ? raw : Buffer.from(raw as ArrayLike<number>);
-      if (templateBuffer.length > 0) {
+    if (templateBuffer && templateBuffer.length > 0) {
+      try {
         docxBuffer = fillProposalTemplate(templateBuffer, proposal);
-      } else {
+        usedTemplate = true;
+      } catch (templateErr) {
+        console.warn('Template fill failed, using built docx:', (templateErr as Error)?.message);
         docxBuffer = await buildProposalDocx(proposal);
       }
     } else {
@@ -88,7 +105,7 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     }
 
     // Conversion failed. If we used the user's template, send the filled DOCX so they can open in Word and Save as PDF.
-    if (hasTemplate && raw) {
+    if (usedTemplate) {
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
       res.setHeader('X-Message', 'Template could not be converted to PDF on this server. You received your filled template as Word — open it and use File → Save As → PDF for a PDF that matches your design.');
@@ -96,20 +113,28 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    // No template: use generated PDF.
-    const generatedPdf = await buildProposalPdf(proposal);
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
-    res.send(generatedPdf);
+    // No template (or template failed): use generated PDF.
+    try {
+      const generatedPdf = await buildProposalPdf(proposal);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
+      res.send(generatedPdf);
+    } catch (pdfErr) {
+      console.warn('Generated PDF failed, sending docx:', (pdfErr as Error)?.message);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
+      res.send(docxBuffer);
+    }
   } catch (err) {
     console.error('Download proposal error:', err);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: 'DOWNLOAD_FAILED',
-        message: err instanceof Error ? err.message : 'Failed to generate proposal document',
-      },
-    });
+    const message = err instanceof Error ? err.message : 'Failed to generate proposal document';
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'application/json');
+      res.status(500).json({
+        success: false,
+        error: { code: 'DOWNLOAD_FAILED', message },
+      });
+    }
   }
 }
 
