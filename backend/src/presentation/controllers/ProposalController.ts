@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { ProposalService } from '../../application/services/ProposalService';
-import { fillProposalTemplate } from '../../infrastructure/pdf/ProposalDocxGenerator';
+import { buildProposalDocx } from '../../infrastructure/pdf/ProposalDocxBuilder';
 import { convertDocxToPdf } from '../../infrastructure/pdf/convertDocxToPdf';
 import { ProposalTemplateModel } from '../../infrastructure/database/models/ProposalTemplateModel';
 import { AuthenticatedRequest } from '../middleware/auth';
@@ -50,35 +50,10 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     return;
   }
   const safeName = proposal.customerName.replace(/\s+/g, '-');
-  // Fetch without .lean() so Mongoose returns Buffer correctly (lean can change binary type in some environments)
-  const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).select('templateDocx');
-  if (!templateDoc?.templateDocx) {
-    res.status(400).json({
-      success: false,
-      error: {
-        code: 'NO_TEMPLATE',
-        message: 'No proposal template uploaded. Please upload a Word template (.docx) from the Create Proposal page first.',
-      },
-    });
-    return;
-  }
-  const raw = templateDoc.templateDocx;
-  const templateBuffer: Buffer = Buffer.isBuffer(raw)
-    ? raw
-    : Buffer.from(raw as ArrayLike<number>);
-  if (!templateBuffer || templateBuffer.length === 0) {
-    res.status(400).json({
-      success: false,
-      error: {
-        code: 'NO_TEMPLATE',
-        message: 'No proposal template uploaded. Please upload a Word template (.docx) from the Create Proposal page first.',
-      },
-    });
-    return;
-  }
-  const docxBuffer = fillProposalTemplate(templateBuffer, proposal);
-  const pdfBuffer = await convertDocxToPdf(docxBuffer);
   const timestamp = Date.now();
+  // Build document from proposal data (no Word template — always valid .docx)
+  const docxBuffer = await buildProposalDocx(proposal);
+  const pdfBuffer = await convertDocxToPdf(docxBuffer);
   if (pdfBuffer && pdfBuffer.length > 0) {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
