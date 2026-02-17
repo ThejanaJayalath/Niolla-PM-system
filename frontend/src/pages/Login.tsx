@@ -33,7 +33,7 @@ export default function Login() {
     <div className={styles.page}>
       <header className={styles.brand}>
         <img
-          src="/logo/logo.png"
+          src="/logo/logo.gif"
           alt="Niolla"
           className={styles.logoImage}
         />
