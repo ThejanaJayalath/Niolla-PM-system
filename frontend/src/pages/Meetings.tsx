@@ -68,7 +68,11 @@ export default function Meetings() {
         const res = await api.delete(`/reminders/${deleteId}`);
         setDeleting(false);
         setDeleteId(null);
-        if (res?.success !== false) load();
+        if (res && res.success === false) {
+            showNotification(res.error?.message || 'Failed to delete meeting', 'error');
+        } else {
+            load();
+        }
     };
 
     const handleStatusChange = async (id: string, newStatus: string) => {

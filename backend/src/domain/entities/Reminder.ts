@@ -6,6 +6,7 @@ export interface Reminder {
   title: string;
   description?: string;
   meetingLink?: string;
+  googleEventId?: string;
   scheduledAt: Date;
   notes?: string;
   completed?: boolean;

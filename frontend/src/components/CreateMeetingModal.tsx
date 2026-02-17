@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Calendar, User, FileText, Link2, StickyNote } from 'lucide-react';
+import { X, Plus, Calendar, User, FileText, StickyNote, Mail, Repeat } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './CreateMeetingModal.module.css';
 
@@ -16,8 +16,16 @@ interface Inquiry {
     customerId?: string;
 }
 
+const RECURRENCE_OPTIONS: { value: '' | string; label: string; rrule?: string }[] = [
+    { value: '', label: 'None' },
+    { value: 'daily5', label: 'Daily (5 times)', rrule: 'RRULE:FREQ=DAILY;COUNT=5' },
+    { value: 'weekly5', label: 'Weekly (5 times)', rrule: 'RRULE:FREQ=WEEKLY;COUNT=5' },
+    { value: 'monthly3', label: 'Monthly (3 times)', rrule: 'RRULE:FREQ=MONTHLY;COUNT=3' },
+];
+
 export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initialInquiryId }: CreateMeetingModalProps) {
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [inquiries, setInquiries] = useState<Inquiry[]>([]);
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [searchInquiry, setSearchInquiry] = useState('');
@@ -28,8 +36,11 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
         description: '',
         date: '',
         time: '',
-        meetingLink: '',
-        notes: ''
+        durationMinutes: 60,
+        notes: '',
+        attendeesText: '',
+        sendInvites: true,
+        recurrence: '',
     });
 
     useEffect(() => {
@@ -41,9 +52,13 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                 description: '',
                 date: '',
                 time: '',
-                meetingLink: '',
-                notes: ''
+                durationMinutes: 60,
+                notes: '',
+                attendeesText: '',
+                sendInvites: true,
+                recurrence: '',
             });
+            setError(null);
             setSearchInquiry('');
             setShowCustomerDropdown(false);
         }
@@ -76,16 +91,27 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
         setSearchInquiry('');
     };
 
+    const parseAttendees = (text: string): string[] => {
+        return text
+            .split(/[\n,;]+/)
+            .map(e => e.trim().toLowerCase())
+            .filter(e => e && e.includes('@'));
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.customerName || !formData.date || !formData.time) {
-            alert('Please fill in required fields (Name, Date, Time)');
+            setError('Please fill in required fields (Name, Date, Time)');
             return;
         }
 
         setLoading(true);
+        setError(null);
         try {
             const scheduledAt = new Date(`${formData.date}T${formData.time}`);
+            const attendees = parseAttendees(formData.attendeesText);
+            const recurrenceOption = RECURRENCE_OPTIONS.find(o => o.value === formData.recurrence);
+            const recurrence = recurrenceOption?.rrule ? [recurrenceOption.rrule] : undefined;
 
             const payload = {
                 inquiryId: formData.inquiryId || undefined,
@@ -93,10 +119,13 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                 type: 'meeting',
                 title: `${formData.customerName} Meeting`,
                 description: formData.description,
-                meetingLink: formData.meetingLink,
                 scheduledAt: scheduledAt.toISOString(),
                 notes: formData.notes,
-                status: 'schedule'
+                status: 'schedule',
+                meetingDurationMinutes: formData.durationMinutes,
+                attendees: attendees.length > 0 ? attendees : undefined,
+                sendInvites: formData.sendInvites && attendees.length > 0,
+                recurrence,
             };
 
             const res = await api.post('/reminders', payload);
@@ -105,11 +134,11 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                 onSuccess();
                 onClose();
             } else {
-                alert('Failed to create meeting');
+                setError(res.error?.message || 'Failed to create meeting');
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to create meeting');
+            setError('Failed to create meeting. Check your connection and try again.');
         } finally {
             setLoading(false);
         }
@@ -124,7 +153,7 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
 
     return (
         <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modal} onClick={e => e.stopPropagation()}>
                 <div className={styles.header}>
                     <h2 className={styles.title}>Add Meeting</h2>
                     <button type="button" onClick={onClose} className={styles.closeBtn} aria-label="Close">
@@ -150,12 +179,12 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                                         type="text"
                                         placeholder="Search customers..."
                                         value={searchInquiry}
-                                        onChange={(e) => setSearchInquiry(e.target.value)}
+                                        onChange={e => setSearchInquiry(e.target.value)}
                                         autoFocus
                                     />
                                 </div>
                                 {filteredInquiries.length > 0 ? (
-                                    filteredInquiries.map((inq) => (
+                                    filteredInquiries.map(inq => (
                                         <button
                                             key={inq._id}
                                             type="button"
@@ -174,6 +203,12 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                     </div>
 
                     <form onSubmit={handleSubmit} className={styles.form}>
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
+                                {error}
+                            </div>
+                        )}
+
                         <div className={styles.formGroup}>
                             <label htmlFor="customerName">
                                 <User size={18} />
@@ -200,7 +235,7 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                                 placeholder="Add Description"
                                 value={formData.description}
                                 onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                rows={4}
+                                rows={3}
                                 className={styles.textarea}
                             />
                         </div>
@@ -225,26 +260,62 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                                     className={styles.input}
                                     required
                                 />
-                                <button type="button" className={styles.dateTimeAddBtn}>
-                                    <Calendar size={18} />
-                                    Add
-                                </button>
+                                <select
+                                    value={formData.durationMinutes}
+                                    onChange={e => setFormData({ ...formData, durationMinutes: Number(e.target.value) })}
+                                    className={styles.input}
+                                    title="Duration"
+                                >
+                                    <option value={30}>30 min</option>
+                                    <option value={60}>1 hr</option>
+                                    <option value={90}>1.5 hr</option>
+                                    <option value={120}>2 hr</option>
+                                </select>
                             </div>
                         </div>
 
                         <div className={styles.formGroup}>
-                            <label htmlFor="meetingLink">
-                                <Link2 size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
-                                Meeting Link
+                            <label htmlFor="attendees">
+                                <Mail size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+                                Attendees (emails)
                             </label>
-                            <input
-                                id="meetingLink"
-                                type="text"
-                                placeholder="Add meeting link"
-                                value={formData.meetingLink}
-                                onChange={e => setFormData({ ...formData, meetingLink: e.target.value })}
-                                className={styles.input}
+                            <textarea
+                                id="attendees"
+                                placeholder="One email per line or comma-separated"
+                                value={formData.attendeesText}
+                                onChange={e => setFormData({ ...formData, attendeesText: e.target.value })}
+                                rows={2}
+                                className={styles.textarea}
                             />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.sendInvites}
+                                    onChange={e => setFormData({ ...formData, sendInvites: e.target.checked })}
+                                    className="rounded border-gray-300"
+                                />
+                                <span>Send email invitations to attendees</span>
+                            </label>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label htmlFor="recurrence">
+                                <Repeat size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+                                Recurrence
+                            </label>
+                            <select
+                                id="recurrence"
+                                value={formData.recurrence}
+                                onChange={e => setFormData({ ...formData, recurrence: e.target.value })}
+                                className={styles.input}
+                            >
+                                {RECURRENCE_OPTIONS.map(opt => (
+                                    <option key={opt.value || 'none'} value={opt.value}>{opt.label}</option>
+                                ))}
+                            </select>
                         </div>
 
                         <div className={styles.formGroup}>
@@ -261,6 +332,10 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                                 className={styles.input}
                             />
                         </div>
+
+                        <p className="text-xs text-gray-500 mb-4">
+                            A Google Meet link will be created automatically.
+                        </p>
 
                         <div className={styles.actions}>
                             <button type="submit" disabled={loading} className={styles.submitBtn}>

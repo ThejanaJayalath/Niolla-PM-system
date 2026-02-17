@@ -30,6 +30,11 @@ router.post(
     body('title').trim().notEmpty().withMessage('Title is required'),
     body('scheduledAt').isISO8601().withMessage('Valid scheduled date is required'),
     body('notes').optional().trim(),
+    body('meetingDurationMinutes').optional().isInt({ min: 15, max: 480 }).withMessage('Duration must be 15–480 minutes'),
+    body('attendees').optional().isArray().withMessage('attendees must be an array'),
+    body('attendees.*').optional().isEmail().withMessage('Each attendee must be a valid email'),
+    body('sendInvites').optional().isBoolean().withMessage('sendInvites must be boolean'),
+    body('recurrence').optional().isArray().withMessage('recurrence must be an array of RRULE strings'),
   ],
   validate,
   createReminder

@@ -127,19 +127,18 @@ export default function MeetingDetail() {
         }
     };
 
+    const [saveError, setSaveError] = useState<string | null>(null);
+
     const handleSave = async () => {
         if (!id) return;
+        setSaveError(null);
         try {
             const scheduledAt = new Date(`${editForm.date}T${editForm.time}`);
 
             const payload = {
                 customerName: editForm.customerName,
                 description: editForm.description,
-                title: editForm.description ? `${editForm.customerName} Meeting` : undefined, // Optional title update? Backend might need title.
-                // Actually title is required in backend, let's keep it sync with description or just generic
-                // But if I change description, should title change?
-                // "title" for meetings is usually "X Meeting" or the description itself. 
-                // Let's set title to description if present, else "Meeting"
+                title: meeting?.title || `${editForm.customerName} Meeting`,
                 meetingLink: editForm.meetingLink,
                 scheduledAt: scheduledAt.toISOString(),
                 notes: editForm.notes
@@ -149,24 +148,34 @@ export default function MeetingDetail() {
             if (res.success && res.data) {
                 setMeeting(res.data);
                 setIsEditing(false);
+            } else {
+                setSaveError(res.error?.message || 'Failed to save. Reschedule may have failed on Google Calendar.');
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to save meeting details');
+            setSaveError('Failed to save meeting details. Check your connection.');
         }
     };
 
     const handleDelete = () => setShowDelete(true);
 
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+
     const confirmDelete = async () => {
         if (!id) return;
         setDeleting(true);
+        setDeleteError(null);
         try {
-            await api.delete(`/reminders/${id}`);
-            navigate('/meetings');
+            const res = await api.delete(`/reminders/${id}`);
+            if (res && res.success === false) {
+                setDeleteError(res.error?.message || 'Failed to delete meeting.');
+            } else {
+                navigate('/meetings');
+            }
         } catch (err) {
             console.error(err);
-            alert('Failed to delete meeting');
+            setDeleteError('Failed to delete meeting. Check your connection.');
+        } finally {
             setDeleting(false);
             setShowDelete(false);
         }
@@ -230,6 +239,14 @@ export default function MeetingDetail() {
                     </div>
 
                     <form className="space-y-6">
+                        {saveError && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm">
+                                {saveError}
+                            </div>
+                        )}
+                        {isEditing && meeting?.googleEventId && (
+                            <p className="text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded">Changing date or time will reschedule the meeting on Google Calendar and notify attendees.</p>
+                        )}
                         <div className={styles.formGroup}>
                             <label>Customer Name</label>
                             <div className="relative">
@@ -322,12 +339,17 @@ export default function MeetingDetail() {
             <ConfirmDialog
                 open={showDelete}
                 title="Delete Meeting"
-                message="Are you sure you want to delete this meeting? This action cannot be undone."
+                message="Are you sure you want to delete this meeting? It will be cancelled on Google Calendar and attendees will be notified. This cannot be undone."
                 confirmLabel={deleting ? 'Deleting...' : 'Delete'}
                 onConfirm={confirmDelete}
-                onCancel={() => setShowDelete(false)}
+                onCancel={() => { setShowDelete(false); setDeleteError(null); }}
                 danger
             />
+            {deleteError && (
+                <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-red-100 border border-red-300 text-red-800 px-4 py-2 rounded-lg shadow z-50">
+                    {deleteError}
+                </div>
+            )}
         </div>
     );
 }

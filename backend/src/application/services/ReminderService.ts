@@ -8,6 +8,7 @@ export interface CreateReminderInput {
   title: string;
   description?: string;
   meetingLink?: string;
+  googleEventId?: string;
   scheduledAt: Date;
   notes?: string;
   status?: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';

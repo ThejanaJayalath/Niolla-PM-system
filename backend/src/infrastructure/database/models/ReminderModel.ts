@@ -7,6 +7,7 @@ export interface ReminderDocument extends Document {
   title: string;
   description?: string;
   meetingLink?: string;
+  googleEventId?: string;
   scheduledAt: Date;
   notes?: string;
   status: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
@@ -23,6 +24,7 @@ const reminderSchema = new Schema<ReminderDocument>(
     title: { type: String, required: true },
     description: { type: String },
     meetingLink: { type: String },
+    googleEventId: { type: String },
     scheduledAt: { type: Date, required: true },
     notes: { type: String },
     status: {

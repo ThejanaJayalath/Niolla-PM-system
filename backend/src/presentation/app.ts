@@ -5,6 +5,7 @@ import userRoutes from './routes/userRoutes';
 import inquiryRoutes from './routes/inquiryRoutes';
 import reminderRoutes from './routes/reminderRoutes';
 import proposalRoutes from './routes/proposalRoutes';
+import { getOAuthStartRouter, handleOAuthCallback } from './routes/googleOAuthRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { connectDatabase } from '../infrastructure/database/mongo';
 
@@ -30,5 +31,7 @@ app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/inquiries', inquiryRoutes);
 app.use('/api/v1/reminders', reminderRoutes);
 app.use('/api/v1/proposals', proposalRoutes);
+app.use('/api/v1/google-oauth', getOAuthStartRouter());
+app.get('/oauth2callback', handleOAuthCallback);
 
 app.use(errorHandler);
