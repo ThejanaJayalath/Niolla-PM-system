@@ -59,14 +59,6 @@ export default function Proposals() {
     }
   };
 
-  const handleDownloadWord = async (id: string, customerName: string) => {
-    try {
-      await api.download(`/proposals/${id}/pdf?format=docx`, `proposal-${customerName.replace(/\s+/g, '-')}.docx`);
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : 'Failed to download proposal');
-    }
-  };
 
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(8);
@@ -150,13 +142,6 @@ export default function Proposals() {
                           onClick={() => window.open(getPdfDownloadUrl(p._id), '_blank')}
                           className="text-gray-900 hover:text-primary transition-colors"
                           title="View PDF"
-                        >
-                          <FileText size={20} />
-                        </button>
-                        <button
-                          onClick={() => handleDownloadWord(p._id, p.customerName)}
-                          className="text-gray-900 hover:text-primary transition-colors"
-                          title="Download as Word (uses template)"
                         >
                           <FileText size={20} />
                         </button>

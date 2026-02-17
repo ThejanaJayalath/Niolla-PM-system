@@ -206,7 +206,7 @@ export default function CreateProposal() {
                             {templateUploading ? 'Uploading...' : 'Upload Template'}
                         </button>
                         {templateInfo.hasTemplate && templateInfo.fileName && (
-                            <span className="text-sm text-gray-500">Template: {templateInfo.fileName} — proposal downloads (Word/PDF) will use this template.</span>
+                            <span className="text-sm text-gray-500">Template: {templateInfo.fileName} — proposal PDF downloads will use this template.</span>
                         )}
                         <button
                             className="bg-white border border-red-100 text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
