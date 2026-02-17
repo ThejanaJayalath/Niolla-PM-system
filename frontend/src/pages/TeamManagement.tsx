@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Eye, Pencil, Trash2, ChevronDown } from 'lucide-react';
+import { Plus, Search, Eye, Pencil, Trash2, ChevronDown, User } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AddEmployeeModal from '../components/AddEmployeeModal';
@@ -14,6 +14,7 @@ interface User {
   status: 'active' | 'suspended';
   phone?: string;
   address?: string;
+  profilePhoto?: string;
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
@@ -170,7 +171,16 @@ export default function TeamManagement() {
                     onClick={() => navigate(`/team/${user._id}`)}
                   >
                     <td className="px-6 py-4">
-                      <div className={styles.cellName}>{user.name}</div>
+                      <div className={styles.nameCell}>
+                        <div className={styles.avatar}>
+                          {user.profilePhoto ? (
+                            <img src={user.profilePhoto} alt={user.name} className={styles.avatarImage} />
+                          ) : (
+                            <User size={16} className={styles.avatarIcon} />
+                          )}
+                        </div>
+                        <div className={styles.cellName}>{user.name}</div>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className={styles.cellEmail}>{user.email}</div>
