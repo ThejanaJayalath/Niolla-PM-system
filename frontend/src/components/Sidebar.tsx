@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { X } from 'lucide-react';
 import {
     LayoutDashboard,
     FolderKanban,
@@ -12,7 +13,12 @@ import {
     User,
 } from 'lucide-react';
 
-const Sidebar = () => {
+interface SidebarProps {
+    isOpen?: boolean;
+    onClose?: () => void;
+}
+
+const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
         { icon: FolderKanban, label: 'Projects', path: '/projects' },
@@ -31,49 +37,107 @@ const Sidebar = () => {
     ];
 
     return (
-        <div className="w-64 h-screen bg-sidebar border-r border-orange-100 flex flex-col font-sans">
-            <div className="px-6 pt-6 pb-2">
-                <div className="flex items-center gap-2">
-                    <img
-                        src="/login/Niollanexa.png"
-                        alt="Niolla Desk"
-                        className="h-16 w-auto object-contain"
-                    />
+        <>
+            {/* Mobile sidebar */}
+            <div
+                className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-orange-100 flex flex-col font-sans transform transition-transform duration-300 ease-in-out lg:hidden ${
+                    isOpen ? 'translate-x-0' : '-translate-x-full'
+                }`}
+            >
+                <div className="px-6 pt-6 pb-2 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <img
+                            src="/login/Niollanexa.png"
+                            alt="Niolla Desk"
+                            className="h-12 w-auto object-contain"
+                        />
+                    </div>
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="p-2 hover:bg-white/50 rounded-lg text-gray-600 lg:hidden"
+                            aria-label="Close sidebar"
+                        >
+                            <X size={20} />
+                        </button>
+                    )}
+                </div>
+
+                <div className="flex-1 overflow-y-auto pt-2 pb-4 no-scrollbar">
+                    <nav className="px-4 space-y-1">
+                        {navItems.map((item) => (
+                            <NavLink
+                                key={item.label}
+                                to={item.path}
+                                onClick={onClose}
+                                className={({ isActive }) =>
+                                    `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
+                                        ? 'bg-sidebar-active text-gray-900 shadow-sm'
+                                        : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                                    }`
+                                }
+                            >
+                                {({ isActive }) => (
+                                    <>
+                                        <item.icon
+                                            size={20}
+                                            className={isActive ? 'text-gray-900' : 'text-gray-500'}
+                                        />
+                                        {item.label}
+                                    </>
+                                )}
+                            </NavLink>
+                        ))}
+                    </nav>
+
+                    <div className="mt-8 px-4">
+                        <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                            ADMINISTRATION
+                        </h3>
+                        <nav className="space-y-1">
+                            {adminItems.map((item) => (
+                                <NavLink
+                                    key={item.label}
+                                    to={item.path}
+                                    onClick={onClose}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
+                                            ? 'bg-sidebar-active text-gray-900 shadow-sm'
+                                            : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                                        }`
+                                    }
+                                >
+                                    {({ isActive }) => (
+                                        <>
+                                            <item.icon
+                                                size={20}
+                                                className={isActive ? 'text-gray-900' : 'text-gray-500'}
+                                            />
+                                            {item.label}
+                                        </>
+                                    )}
+                                </NavLink>
+                            ))}
+                        </nav>
+                    </div>
                 </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto pt-2 pb-4 no-scrollbar">
-                <nav className="px-4 space-y-1">
-                    {navItems.map((item) => (
-                        <NavLink
-                            key={item.label}
-                            to={item.path}
-                            className={({ isActive }) =>
-                                `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
-                                    ? 'bg-sidebar-active text-gray-900 shadow-sm'
-                                    : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
-                                }`
-                            }
-                        >
-                            {({ isActive }) => (
-                                <>
-                                    <item.icon
-                                        size={20}
-                                        className={isActive ? 'text-gray-900' : 'text-gray-500'}
-                                    />
-                                    {item.label}
-                                </>
-                            )}
-                        </NavLink>
-                    ))}
-                </nav>
+            {/* Desktop sidebar */}
+            <div className="hidden lg:flex w-64 h-screen bg-sidebar border-r border-orange-100 flex-col font-sans">
+                <div className="px-6 pt-6 pb-2">
+                    <div className="flex items-center gap-2">
+                        <img
+                            src="/login/Niollanexa.png"
+                            alt="Niolla Desk"
+                            className="h-16 w-auto object-contain"
+                        />
+                    </div>
+                </div>
 
-                <div className="mt-8 px-4">
-                    <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                        ADMINISTRATION
-                    </h3>
-                    <nav className="space-y-1">
-                        {adminItems.map((item) => (
+                <div className="flex-1 overflow-y-auto pt-2 pb-4 no-scrollbar">
+                    <nav className="px-4 space-y-1">
+                        {navItems.map((item) => (
                             <NavLink
                                 key={item.label}
                                 to={item.path}
@@ -96,9 +160,39 @@ const Sidebar = () => {
                             </NavLink>
                         ))}
                     </nav>
+
+                    <div className="mt-8 px-4">
+                        <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                            ADMINISTRATION
+                        </h3>
+                        <nav className="space-y-1">
+                            {adminItems.map((item) => (
+                                <NavLink
+                                    key={item.label}
+                                    to={item.path}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
+                                            ? 'bg-sidebar-active text-gray-900 shadow-sm'
+                                            : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                                        }`
+                                    }
+                                >
+                                    {({ isActive }) => (
+                                        <>
+                                            <item.icon
+                                                size={20}
+                                                className={isActive ? 'text-gray-900' : 'text-gray-500'}
+                                            />
+                                            {item.label}
+                                        </>
+                                    )}
+                                </NavLink>
+                            ))}
+                        </nav>
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 };
 

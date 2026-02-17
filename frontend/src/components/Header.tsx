@@ -1,10 +1,18 @@
 import { Search, Bell, Menu, Moon } from 'lucide-react';
 
-const Header = () => {
+interface HeaderProps {
+    onMenuClick?: () => void;
+}
+
+const Header = ({ onMenuClick }: HeaderProps) => {
     return (
-        <header className="h-16 px-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
+        <header className="h-16 px-4 md:px-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
             <div className="flex items-center gap-4 flex-1">
-                <button className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 lg:hidden">
+                <button
+                    onClick={onMenuClick}
+                    className="p-2 hover:bg-gray-100 rounded-lg text-gray-500 lg:hidden"
+                    aria-label="Toggle menu"
+                >
                     <Menu size={20} />
                 </button>
 
@@ -21,7 +29,7 @@ const Header = () => {
                 </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4">
                 <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
                     <Moon size={20} />
                 </button>
@@ -33,14 +41,14 @@ const Header = () => {
                     <span className="absolute top-2 right-2.5 w-2 h-2 bg-primary rounded-full border-2 border-white"></span>
                 </div>
 
-                <div className="h-8 w-[1px] bg-gray-200 mx-1"></div>
+                <div className="h-8 w-[1px] bg-gray-200 mx-1 hidden sm:block"></div>
 
-                <button className="flex items-center gap-3 pl-2 pr-1 py-1 hover:bg-gray-50 rounded-full transition-colors">
+                <button className="flex items-center gap-2 md:gap-3 pl-2 pr-1 py-1 hover:bg-gray-50 rounded-full transition-colors">
                     <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-100">
                         <UserIcon />
                     </div>
-                    <span className="text-sm font-medium text-gray-700 hidden sm:block">Admin</span>
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <span className="text-sm font-medium text-gray-700 hidden md:block">Admin</span>
+                    <svg className="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
