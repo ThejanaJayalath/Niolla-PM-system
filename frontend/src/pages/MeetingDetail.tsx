@@ -25,6 +25,7 @@ interface Meeting {
     title: string;
     description?: string;
     meetingLink?: string;
+    googleEventId?: string;
     scheduledAt: string;
     notes?: string;
     status: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
