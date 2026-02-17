@@ -394,11 +394,6 @@ export default function ProposalDetail() {
             </div>
           </div>
         </div>
-
-        {/* Sidebar - Empty for now, can add related info later */}
-        <div className={styles.sidebar}>
-          {/* Sidebar content can be added here if needed */}
-        </div>
       </div>
 
       <ConfirmDialog

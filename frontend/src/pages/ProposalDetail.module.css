@@ -1,8 +1,8 @@
 .container {
   padding: 1rem 2rem;
   font-family: 'Inter', sans-serif;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
 }
 
 @media (max-width: 768px) {
@@ -115,14 +115,9 @@
 /* Grid Layout */
 .grid {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr;
   gap: 2rem;
-}
-
-@media (max-width: 1024px) {
-  .grid {
-    grid-template-columns: 1fr;
-  }
+  width: 100%;
 }
 
 /* Main Card */
@@ -135,6 +130,7 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -149,6 +145,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   align-items: start;
+  width: 100%;
 }
 
 @media (max-width: 1024px) {
