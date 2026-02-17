@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { ProposalService } from '../../application/services/ProposalService';
 import { buildProposalDocx } from '../../infrastructure/pdf/ProposalDocxBuilder';
 import { fillProposalTemplate } from '../../infrastructure/pdf/ProposalDocxGenerator';
+import { buildProposalPdf } from '../../infrastructure/pdf/ProposalPdfBuilder';
 import { convertDocxToPdf } from '../../infrastructure/pdf/convertDocxToPdf';
 import { ProposalTemplateModel } from '../../infrastructure/database/models/ProposalTemplateModel';
 import { AuthenticatedRequest } from '../middleware/auth';
@@ -77,16 +78,13 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     return;
   }
 
-  const pdfBuffer = await convertDocxToPdf(docxBuffer);
-  if (pdfBuffer && pdfBuffer.length > 0) {
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
-    res.send(pdfBuffer);
-  } else {
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
-    res.send(docxBuffer);
+  let pdfBuffer: Buffer | null = await convertDocxToPdf(docxBuffer);
+  if (!pdfBuffer || pdfBuffer.length === 0) {
+    pdfBuffer = await buildProposalPdf(proposal);
   }
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
+  res.send(pdfBuffer);
 }
 
 export async function uploadProposalTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
