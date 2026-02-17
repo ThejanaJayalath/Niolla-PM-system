@@ -46,60 +46,71 @@ export async function getProposalsByInquiry(req: AuthenticatedRequest, res: Resp
 }
 
 export async function downloadProposalPdf(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const proposal = await proposalService.findById(req.params.id);
-  if (!proposal) {
-    res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Proposal not found' } });
-    return;
-  }
-  const safeName = proposal.customerName.replace(/\s+/g, '-');
-  const timestamp = Date.now();
+  try {
+    const proposal = await proposalService.findById(req.params.id);
+    if (!proposal) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Proposal not found' } });
+      return;
+    }
+    const safeName = proposal.customerName.replace(/\s+/g, '-');
+    const timestamp = Date.now();
 
-  let docxBuffer: Buffer;
-  const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).select('templateDocx');
-  const raw = templateDoc?.templateDocx;
-  const hasTemplate = raw && (Buffer.isBuffer(raw) ? raw.length > 0 : true);
+    let docxBuffer: Buffer;
+    const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).select('templateDocx');
+    const raw = templateDoc?.templateDocx;
+    const hasTemplate = raw && (Buffer.isBuffer(raw) ? raw.length > 0 : true);
 
-  if (hasTemplate && raw) {
-    const templateBuffer = Buffer.isBuffer(raw) ? raw : Buffer.from(raw as ArrayLike<number>);
-    if (templateBuffer.length > 0) {
-      docxBuffer = fillProposalTemplate(templateBuffer, proposal);
+    if (hasTemplate && raw) {
+      const templateBuffer = Buffer.isBuffer(raw) ? raw : Buffer.from(raw as ArrayLike<number>);
+      if (templateBuffer.length > 0) {
+        docxBuffer = fillProposalTemplate(templateBuffer, proposal);
+      } else {
+        docxBuffer = await buildProposalDocx(proposal);
+      }
     } else {
       docxBuffer = await buildProposalDocx(proposal);
     }
-  } else {
-    docxBuffer = await buildProposalDocx(proposal);
-  }
 
-  const wantDocx = req.query.format === 'docx';
-  if (wantDocx) {
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
-    res.send(docxBuffer);
-    return;
-  }
+    const wantDocx = req.query.format === 'docx';
+    if (wantDocx) {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
+      res.send(docxBuffer);
+      return;
+    }
 
-  const pdfBuffer = await convertDocxToPdf(docxBuffer);
-  if (pdfBuffer && pdfBuffer.length > 0) {
+    const pdfBuffer = await convertDocxToPdf(docxBuffer);
+    if (pdfBuffer && pdfBuffer.length > 0) {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
+      res.send(pdfBuffer);
+      return;
+    }
+
+    // Conversion failed. If we used the user's template, send the filled DOCX so they can open in Word and Save as PDF.
+    if (hasTemplate && raw) {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
+      res.setHeader('X-Message', 'Template could not be converted to PDF on this server. You received your filled template as Word — open it and use File → Save As → PDF for a PDF that matches your design.');
+      res.send(docxBuffer);
+      return;
+    }
+
+    // No template: use generated PDF.
+    const generatedPdf = await buildProposalPdf(proposal);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
-    res.send(pdfBuffer);
-    return;
+    res.send(generatedPdf);
+  } catch (err) {
+    console.error('Download proposal error:', err);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'DOWNLOAD_FAILED',
+        message: err instanceof Error ? err.message : 'Failed to generate proposal document',
+      },
+    });
   }
-
-  // Conversion failed. If we used the user's template, send the filled DOCX so they can open in Word and Save as PDF.
-  if (hasTemplate && raw) {
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
-    res.setHeader('X-Message', 'Template could not be converted to PDF on this server. You received your filled template as Word — open it and use File → Save As → PDF for a PDF that matches your design.');
-    res.send(docxBuffer);
-    return;
-  }
-
-  // No template: use generated PDF.
-  const generatedPdf = await buildProposalPdf(proposal);
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
-  res.send(generatedPdf);
 }
 
 export async function uploadProposalTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {

@@ -98,13 +98,17 @@ export const api = {
     const a = document.createElement('a');
     a.href = url;
     a.download = downloadFilename;
+    a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    // Revoke after a delay so the browser can start the download
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    }, 500);
 
     const serverMessage = res.headers.get('X-Message');
-    if (serverMessage) setTimeout(() => alert(serverMessage), 100);
+    if (serverMessage) setTimeout(() => alert(serverMessage), 300);
   },
 };
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, FileText, Info, Flag, DollarSign, Trash2, Edit3, Plus, Download } from 'lucide-react';
-import { api } from '../api/client';
+import { api, getPdfDownloadUrl } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 
 interface Proposal {
@@ -41,6 +41,7 @@ export default function ProposalDetail() {
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   // Form State
   const [projectTitle, setProjectTitle] = useState('');
@@ -152,11 +153,14 @@ export default function ProposalDetail() {
 
   const downloadPdf = async () => {
     if (!proposal) return;
+    setDownloading(true);
     try {
       await api.download(`/proposals/${proposal._id}/pdf`, `proposal-${proposal.customerName.replace(/\s+/g, '-')}.pdf`);
     } catch (err) {
       console.error('Download failed', err);
       alert(err instanceof Error ? err.message : 'Failed to download proposal');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -196,11 +200,20 @@ export default function ProposalDetail() {
           <div className="flex gap-3">
             <button
               onClick={downloadPdf}
-              className="bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
+              disabled={downloading}
+              className="bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
             >
               <Download size={16} />
-              Download PDF
+              {downloading ? 'Downloading...' : 'Download PDF'}
             </button>
+            <a
+              href={getPdfDownloadUrl(proposal._id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm text-primary hover:underline ml-2"
+            >
+              Open in new tab
+            </a>
             <button
               onClick={handleDelete}
               className="bg-white border border-red-100 text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
