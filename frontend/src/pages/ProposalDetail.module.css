@@ -143,6 +143,28 @@
   }
 }
 
+/* Content Grid - Two Column Layout */
+.contentGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+}
+
+.leftColumn,
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
 .cardHeader {
   display: flex;
   justify-content: space-between;
@@ -274,6 +296,10 @@ textarea.inputParam {
   padding: 2rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   margin-bottom: 2.5rem;
+}
+
+.sectionCard:last-child {
+  margin-bottom: 0;
 }
 
 @media (max-width: 768px) {

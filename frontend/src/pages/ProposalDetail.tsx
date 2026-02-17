@@ -222,165 +222,173 @@ export default function ProposalDetail() {
             </div>
           </div>
 
-          {/* Inquiries Reference Details */}
-          <div className={styles.sectionCard}>
-            <div className={styles.sectionHeader}>
-              <FileText size={18} />
-              <h3>Inquiries Reference Details</h3>
-            </div>
+          <div className={styles.contentGrid}>
+            {/* Left Column */}
+            <div className={styles.leftColumn}>
+              {/* Inquiries Reference Details */}
+              <div className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <FileText size={18} />
+                  <h3>Inquiries Reference Details</h3>
+                </div>
 
-            <div className={styles.formGroup}>
-              <label>Name</label>
-              <input
-                type="text"
-                value={proposal.customerName}
-                readOnly
-                className={styles.inputReadonly}
-              />
-            </div>
+                <div className={styles.formGroup}>
+                  <label>Name</label>
+                  <input
+                    type="text"
+                    value={proposal.customerName}
+                    readOnly
+                    className={styles.inputReadonly}
+                  />
+                </div>
 
-            <div className={styles.formGroup}>
-              <label>Description</label>
-              <textarea
-                value={proposal.projectDescription}
-                readOnly
-                className={styles.inputReadonly}
-                rows={4}
-              />
-            </div>
+                <div className={styles.formGroup}>
+                  <label>Description</label>
+                  <textarea
+                    value={proposal.projectDescription}
+                    readOnly
+                    className={styles.inputReadonly}
+                    rows={4}
+                  />
+                </div>
 
-            <div className={styles.formGroup}>
-              <label>Required Features</label>
-              <div className={styles.chipContainer}>
-                {proposal.requiredFeatures && proposal.requiredFeatures.length > 0 ? (
-                  proposal.requiredFeatures.map((feature, index) => (
-                    <span key={index} className={styles.chip}>
-                      {feature}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-gray-400 italic text-sm">No features specified</span>
-                )}
+                <div className={styles.formGroup}>
+                  <label>Required Features</label>
+                  <div className={styles.chipContainer}>
+                    {proposal.requiredFeatures && proposal.requiredFeatures.length > 0 ? (
+                      proposal.requiredFeatures.map((feature, index) => (
+                        <span key={index} className={styles.chip}>
+                          {feature}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-gray-400 italic text-sm">No features specified</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* General Information */}
-          <div className={styles.sectionCard}>
-            <div className={styles.sectionHeader}>
-              <Info size={18} />
-              <h3>General Information</h3>
-            </div>
+            {/* Right Column */}
+            <div className={styles.rightColumn}>
+              {/* General Information */}
+              <div className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <Info size={18} />
+                  <h3>General Information</h3>
+                </div>
 
-            <div className={styles.formGroup}>
-              <label>Project Title</label>
-              <input
-                type="text"
-                value={isEditing ? projectTitle : (proposal.projectName || '')}
-                onChange={(e) => setProjectTitle(e.target.value)}
-                readOnly={!isEditing}
-                className={isEditing ? styles.inputParam : styles.inputReadonly}
-              />
-            </div>
-          </div>
+                <div className={styles.formGroup}>
+                  <label>Project Title</label>
+                  <input
+                    type="text"
+                    value={isEditing ? projectTitle : (proposal.projectName || '')}
+                    onChange={(e) => setProjectTitle(e.target.value)}
+                    readOnly={!isEditing}
+                    className={isEditing ? styles.inputParam : styles.inputReadonly}
+                  />
+                </div>
+              </div>
 
-          {/* Milestones */}
-          <div className={styles.sectionCard}>
-            <div className={styles.sectionHeader}>
-              <Flag size={18} />
-              <h3>Milestones</h3>
-            </div>
+              {/* Milestones */}
+              <div className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <Flag size={18} />
+                  <h3>Milestones</h3>
+                </div>
 
-            <div className={styles.formGroup}>
-              <table className={styles.milestonesTable}>
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Amount</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(isEditing ? milestones : proposal.milestones).map((milestone, index) => (
-                    <tr key={index}>
-                      <td>
-                        <input
-                          type="text"
-                          value={milestone.title || ''}
-                          onChange={(e) => updateMilestone(index, 'title', e.target.value)}
-                          readOnly={!isEditing}
-                          className={isEditing ? styles.milestoneInput : styles.milestoneInputReadonly}
-                          placeholder="Milestone title"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={isEditing ? (milestone.amount?.toString() || '') : `Rs. ${(typeof milestone.amount === 'number' ? milestone.amount : parseFloat(milestone.amount?.toString() || '0')).toLocaleString()}`}
-                          onChange={(e) => updateMilestone(index, 'amount', e.target.value)}
-                          readOnly={!isEditing}
-                          className={isEditing ? styles.milestoneInput : styles.milestoneInputReadonly}
-                          placeholder="Amount"
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          value={milestone.timePeriod || ''}
-                          onChange={(e) => updateMilestone(index, 'timePeriod', e.target.value)}
-                          readOnly={!isEditing}
-                          className={isEditing ? styles.milestoneInput : styles.milestoneInputReadonly}
-                          placeholder="Time period"
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                <div className={styles.formGroup}>
+                  <table className={styles.milestonesTable}>
+                    <thead>
+                      <tr>
+                        <th>Title</th>
+                        <th>Amount</th>
+                        <th>Time</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(isEditing ? milestones : proposal.milestones).map((milestone, index) => (
+                        <tr key={index}>
+                          <td>
+                            <input
+                              type="text"
+                              value={milestone.title || ''}
+                              onChange={(e) => updateMilestone(index, 'title', e.target.value)}
+                              readOnly={!isEditing}
+                              className={isEditing ? styles.milestoneInput : styles.milestoneInputReadonly}
+                              placeholder="Milestone title"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              value={isEditing ? (milestone.amount?.toString() || '') : `Rs. ${(typeof milestone.amount === 'number' ? milestone.amount : parseFloat(milestone.amount?.toString() || '0')).toLocaleString()}`}
+                              onChange={(e) => updateMilestone(index, 'amount', e.target.value)}
+                              readOnly={!isEditing}
+                              className={isEditing ? styles.milestoneInput : styles.milestoneInputReadonly}
+                              placeholder="Amount"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              value={milestone.timePeriod || ''}
+                              onChange={(e) => updateMilestone(index, 'timePeriod', e.target.value)}
+                              readOnly={!isEditing}
+                              className={isEditing ? styles.milestoneInput : styles.milestoneInputReadonly}
+                              placeholder="Time period"
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
 
-              {isEditing && (
-                <button onClick={addMilestone} className={styles.addMilestoneBtn}>
-                  <Plus size={16} />
-                  Add another Milestone
-                </button>
-              )}
-            </div>
-          </div>
+                  {isEditing && (
+                    <button onClick={addMilestone} className={styles.addMilestoneBtn}>
+                      <Plus size={16} />
+                      Add another Milestone
+                    </button>
+                  )}
+                </div>
+              </div>
 
-          {/* Pricing */}
-          <div className={styles.sectionCard}>
-            <div className={styles.sectionHeader}>
-              <DollarSign size={18} />
-              <h3>Pricing</h3>
-            </div>
+              {/* Pricing */}
+              <div className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <DollarSign size={18} />
+                  <h3>Pricing</h3>
+                </div>
 
-            <div className={styles.formGroup}>
-              <label>Advance Payment</label>
-              <input
-                type="number"
-                value={isEditing ? advancePayment : (proposal.advancePayment?.toString() || '')}
-                onChange={(e) => setAdvancePayment(e.target.value)}
-                readOnly={!isEditing}
-                className={isEditing ? styles.inputParam : styles.inputReadonly}
-              />
-            </div>
+                <div className={styles.formGroup}>
+                  <label>Advance Payment</label>
+                  <input
+                    type="number"
+                    value={isEditing ? advancePayment : (proposal.advancePayment?.toString() || '')}
+                    onChange={(e) => setAdvancePayment(e.target.value)}
+                    readOnly={!isEditing}
+                    className={isEditing ? styles.inputParam : styles.inputReadonly}
+                  />
+                </div>
 
-            <div className={styles.formGroup}>
-              <label>Project Cost</label>
-              <input
-                type="number"
-                value={isEditing ? projectCost : (proposal.projectCost?.toString() || '')}
-                onChange={(e) => setProjectCost(e.target.value)}
-                readOnly={!isEditing}
-                className={isEditing ? styles.inputParam : styles.inputReadonly}
-              />
-            </div>
+                <div className={styles.formGroup}>
+                  <label>Project Cost</label>
+                  <input
+                    type="number"
+                    value={isEditing ? projectCost : (proposal.projectCost?.toString() || '')}
+                    onChange={(e) => setProjectCost(e.target.value)}
+                    readOnly={!isEditing}
+                    className={isEditing ? styles.inputParam : styles.inputReadonly}
+                  />
+                </div>
 
-            <div className={styles.totalCostContainer}>
-              <div className={styles.totalCostLabel}>Total Cost</div>
-              <div className={styles.totalCostDisplay}>
-                <div className={styles.totalCostAmount}>
-                  LKR {(isEditing ? calculateTotal() : proposal.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className={styles.totalCostContainer}>
+                  <div className={styles.totalCostLabel}>Total Cost</div>
+                  <div className={styles.totalCostDisplay}>
+                    <div className={styles.totalCostAmount}>
+                      LKR {(isEditing ? calculateTotal() : proposal.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
