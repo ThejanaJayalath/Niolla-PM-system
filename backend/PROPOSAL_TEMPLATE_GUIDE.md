@@ -63,7 +63,20 @@ So a multi-page template is supported; just make sure every placeholder is a sin
 
 ---
 
-## 4. Example layout in your template
+## 4. Getting a PDF that matches your template
+
+When you click **Download PDF**, the app uses your filled Word template and converts it to PDF. That conversion needs **LibreOffice** on the machine running the backend.
+
+- **Windows:** Install LibreOffice from [libreoffice.org](https://www.libreoffice.org/download/download/). Use the default path. Restart the backend after installing. If the app still doesn’t find it, set in `.env`:  
+  `LIBREOFFICE_PATH=C:\Program Files\LibreOffice\program\soffice.exe`
+- **Mac:** Install LibreOffice (e.g. from the website or Homebrew). It is usually found automatically.
+- **Linux:** Install with your package manager (e.g. `apt install libreoffice` or `yum install libreoffice`).
+
+If LibreOffice is not installed (or not found), the app will send you the **filled template as a Word file** instead of PDF. Open it in Word and use **File → Save As → PDF** to get a PDF that looks exactly like your template.
+
+---
+
+## 5. Example layout in your template
 
 You can structure your document like this (use your own design; only the placeholder **text** must match):
 
@@ -90,7 +103,7 @@ DELIVERABLES
 
 ---
 
-## 5. After building the template
+## 6. After building the template
 
 1. Save as **.docx** (Word document).
 2. In the app, go to **Create Proposal** → **Upload Template** and upload this file.

@@ -102,6 +102,9 @@ export const api = {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+
+    const serverMessage = res.headers.get('X-Message');
+    if (serverMessage) setTimeout(() => alert(serverMessage), 100);
   },
 };
 

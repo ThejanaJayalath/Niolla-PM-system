@@ -78,13 +78,28 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     return;
   }
 
-  let pdfBuffer: Buffer | null = await convertDocxToPdf(docxBuffer);
-  if (!pdfBuffer || pdfBuffer.length === 0) {
-    pdfBuffer = await buildProposalPdf(proposal);
+  const pdfBuffer = await convertDocxToPdf(docxBuffer);
+  if (pdfBuffer && pdfBuffer.length > 0) {
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
+    res.send(pdfBuffer);
+    return;
   }
+
+  // Conversion failed. If we used the user's template, send the filled DOCX so they can open in Word and Save as PDF.
+  if (hasTemplate && raw) {
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
+    res.setHeader('X-Message', 'Template could not be converted to PDF on this server. You received your filled template as Word — open it and use File → Save As → PDF for a PDF that matches your design.');
+    res.send(docxBuffer);
+    return;
+  }
+
+  // No template: use generated PDF.
+  const generatedPdf = await buildProposalPdf(proposal);
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
-  res.send(pdfBuffer);
+  res.send(generatedPdf);
 }
 
 export async function uploadProposalTemplate(req: AuthenticatedRequest, res: Response): Promise<void> {
