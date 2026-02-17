@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, FileText, Info, Flag, DollarSign, Trash2, Edit3, Plus, Download } from 'lucide-react';
 import { api, getPdfDownloadUrl } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
+import styles from './ProposalDetail.module.css';
 
 interface Proposal {
   _id: string;
@@ -74,7 +75,7 @@ export default function ProposalDetail() {
       ? data.milestones.map(m => ({
         ...m,
         amount: m.amount?.toString() || '',
-        time: m.timePeriod // Map timePeriod to time for UI consistency if needed, but keeping logic distinct
+        timePeriod: m.timePeriod || ''
       }))
       : [{ title: '', amount: '', timePeriod: '' }]
     );
@@ -164,245 +165,234 @@ export default function ProposalDetail() {
     }
   };
 
-  if (loading) return <div className="p-8 text-center text-gray-500">Loading...</div>;
-  if (!proposal) return <div className="p-8 text-center text-gray-500">Proposal not found</div>;
+  if (loading) return <div className={styles.container}>Loading...</div>;
+  if (!proposal) return <div className={styles.container}>Proposal not found</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col gap-4 mb-6">
+    <div className={styles.container}>
+      {/* Back Button & Breadcrumb */}
+      <div className="flex flex-col gap-4 mb-6">
+        <Link to="/proposals" className="text-gray-500 hover:text-gray-900 flex items-center gap-2 transition-colors w-fit">
+          <ArrowLeft size={20} />
+          <span className="font-medium text-lg">Back</span>
+        </Link>
+        <div className={styles.breadcrumb}>
+          <span>Home</span> &gt; <span>Proposals</span> &gt; <span className="font-semibold">Proposal Details</span>
+        </div>
+      </div>
+
+      {/* Header */}
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.pageTitle}>{proposal.customerName}</h1>
+          <p className={styles.subTitle}>
+            {proposal.proposalId ? `${proposal.proposalId} • ` : ''}Proposal Details
+          </p>
+        </div>
+        <div className={styles.headerActions}>
           <button
-            onClick={() => navigate('/proposals')}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors w-fit"
+            onClick={downloadPdf}
+            disabled={downloading}
+            className={styles.downloadBtn}
           >
-            <ArrowLeft size={20} />
-            <span className="font-medium text-lg">Back</span>
+            <Download size={16} />
+            {downloading ? 'Downloading...' : 'Download PDF'}
           </button>
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <span>Home</span>
-            <span>&gt;</span>
-            <span>Proposals</span>
-            <span>&gt;</span>
-            <span className="font-semibold text-gray-500">Proposal Details</span>
-          </div>
+          <button onClick={handleDelete} className={styles.deleteBtn}>
+            <Trash2 size={16} /> Delete Proposal
+          </button>
         </div>
+      </div>
 
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-[2rem] font-extrabold text-gray-900 tracking-tight leading-tight">
-              {proposal.customerName}
-            </h1>
-            <p className="text-base text-gray-500 mt-1">
-              {proposal.proposalId ? `${proposal.proposalId} • ` : ''}Proposal Details
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={downloadPdf}
-              disabled={downloading}
-              className="bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              <Download size={16} />
-              {downloading ? 'Downloading...' : 'Download PDF'}
-            </button>
-            <a
-              href={getPdfDownloadUrl(proposal._id)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline ml-2"
-            >
-              Open in new tab
-            </a>
-            <button
-              onClick={handleDelete}
-              className="bg-white border border-red-100 text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
-            >
-              <Trash2 size={16} />
-              Delete Proposal
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-8">
-          {/* Left Column */}
-          <div className="space-y-6">
-            {/* Status/Edit Card */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-gray-700">Status:</span>
-                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
-                  CREATED
-                </span>
-              </div>
+      <div className={styles.grid}>
+        {/* Main Content */}
+        <div className={styles.mainCard}>
+          <div className={styles.cardHeader}>
+            <h2 className={styles.cardTitle}>Proposal Details</h2>
+            <div className="flex items-center gap-2">
               {isEditing ? (
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
-                >
-                  <Save size={16} />
-                  {saving ? 'Saving...' : 'Save Changes'}
+                <button onClick={handleSave} disabled={saving} className={styles.saveBtn}>
+                  <Save size={16} /> {saving ? 'Saving...' : 'Save Changes'}
                 </button>
               ) : (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-bold transition-colors flex items-center gap-2"
-                >
-                  <Edit3 size={16} />
-                  Edit Proposal
+                <button onClick={() => setIsEditing(true)} className={styles.editBtn}>
+                  <Edit3 size={16} /> Edit Proposal
                 </button>
               )}
             </div>
+          </div>
 
-            {/* Inquiries Reference Details (Read-only from Inquiry) */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <FileText size={20} className="text-primary" />
-                <h3 className="text-base font-bold text-gray-900">Inquiries Reference Details</h3>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
-                  <div className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-600">
-                    {proposal.customerName}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
-                  <div className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-600 min-h-[80px]">
-                    {proposal.projectDescription}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Required Features</label>
-                  <div className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-600 min-h-[60px]">
-                    {proposal.requiredFeatures?.join(', ') || 'No features specified'}
-                  </div>
-                </div>
-              </div>
+          {/* Inquiries Reference Details */}
+          <div className={styles.sectionCard}>
+            <div className={styles.sectionHeader}>
+              <FileText size={18} />
+              <h3>Inquiries Reference Details</h3>
             </div>
 
-            {/* General Information (Editable) */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Info size={20} className="text-primary" />
-                <h3 className="text-base font-bold text-gray-900">General Information</h3>
-              </div>
+            <div className={styles.formGroup}>
+              <label>Name</label>
+              <input
+                type="text"
+                value={proposal.customerName}
+                readOnly
+                className={styles.inputReadonly}
+              />
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Project Title</label>
-                <input
-                  type="text"
-                  value={isEditing ? projectTitle : (proposal.projectName || '')}
-                  onChange={(e) => setProjectTitle(e.target.value)}
-                  readOnly={!isEditing}
-                  className={`w-full px-4 py-2.5 rounded-lg text-sm ${isEditing ? 'bg-white border border-gray-300 focus:outline-none focus:border-primary' : 'bg-gray-50 border border-gray-300 text-gray-600'}`}
-                />
+            <div className={styles.formGroup}>
+              <label>Description</label>
+              <textarea
+                value={proposal.projectDescription}
+                readOnly
+                className={styles.inputReadonly}
+                rows={4}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Required Features</label>
+              <div className={styles.chipContainer}>
+                {proposal.requiredFeatures && proposal.requiredFeatures.length > 0 ? (
+                  proposal.requiredFeatures.map((feature, index) => (
+                    <span key={index} className={styles.chip}>
+                      {feature}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-400 italic text-sm">No features specified</span>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Milestones (Editable) */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Flag size={20} className="text-primary" />
-                <h3 className="text-base font-bold text-gray-900">Milestones</h3>
-              </div>
-
-              <div className="space-y-3">
-                <div className="grid grid-cols-3 gap-3 text-sm font-medium text-gray-700">
-                  <div>Title</div>
-                  <div>Amount</div>
-                  <div>Time</div>
-                </div>
-
-                {(isEditing ? milestones : proposal.milestones).map((milestone, index) => (
-                  <div key={index} className="grid grid-cols-3 gap-3">
-                    <input
-                      type="text"
-                      value={milestone.title}
-                      onChange={(e) => updateMilestone(index, 'title', e.target.value)}
-                      readOnly={!isEditing}
-                      className={`px-3 py-2 rounded-lg text-sm ${isEditing ? 'bg-white border border-gray-300 focus:outline-none focus:border-primary' : 'bg-gray-50 border border-gray-300 text-gray-600'}`}
-                    />
-                    <input
-                      type="text"
-                      value={isEditing ? (milestone.amount || '') : `Rs. ${(milestone.amount || 0).toLocaleString()}`}
-                      onChange={(e) => updateMilestone(index, 'amount', e.target.value)}
-                      readOnly={!isEditing}
-                      className={`px-3 py-2 rounded-lg text-sm ${isEditing ? 'bg-white border border-gray-300 focus:outline-none focus:border-primary' : 'bg-gray-50 border border-gray-300 text-gray-600'}`}
-                    />
-                    <input
-                      type="text"
-                      value={milestone.timePeriod || ''}
-                      onChange={(e) => updateMilestone(index, 'timePeriod', e.target.value)}
-                      readOnly={!isEditing}
-                      className={`px-3 py-2 rounded-lg text-sm ${isEditing ? 'bg-white border border-gray-300 focus:outline-none focus:border-primary' : 'bg-gray-50 border border-gray-300 text-gray-600'}`}
-                    />
-                  </div>
-                ))}
-
-                {isEditing && (
-                  <button
-                    onClick={addMilestone}
-                    className="text-primary hover:text-primary-hover font-medium text-sm flex items-center gap-1 mt-2"
-                  >
-                    <Plus size={16} />
-                    Add another Milestone
-                  </button>
-                )}
-              </div>
+          {/* General Information */}
+          <div className={styles.sectionCard}>
+            <div className={styles.sectionHeader}>
+              <Info size={18} />
+              <h3>General Information</h3>
             </div>
 
-            {/* Pricing (Editable) */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <DollarSign size={20} className="text-primary" />
-                <h3 className="text-base font-bold text-gray-900">Pricing</h3>
-              </div>
+            <div className={styles.formGroup}>
+              <label>Project Title</label>
+              <input
+                type="text"
+                value={isEditing ? projectTitle : (proposal.projectName || '')}
+                onChange={(e) => setProjectTitle(e.target.value)}
+                readOnly={!isEditing}
+                className={isEditing ? styles.inputParam : styles.inputReadonly}
+              />
+            </div>
+          </div>
 
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Advance Payment</label>
-                  <input
-                    type="number"
-                    value={isEditing ? advancePayment : (proposal.advancePayment || '')}
-                    onChange={(e) => setAdvancePayment(e.target.value)}
-                    readOnly={!isEditing}
-                    className={`w-full px-4 py-2.5 rounded-lg text-sm ${isEditing ? 'bg-white border border-gray-300 focus:outline-none focus:border-primary' : 'bg-gray-50 border border-gray-300 text-gray-600'}`}
-                  />
-                </div>
+          {/* Milestones */}
+          <div className={styles.sectionCard}>
+            <div className={styles.sectionHeader}>
+              <Flag size={18} />
+              <h3>Milestones</h3>
+            </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Project Cost</label>
-                  <input
-                    type="number"
-                    value={isEditing ? projectCost : (proposal.projectCost || '')}
-                    onChange={(e) => setProjectCost(e.target.value)}
-                    readOnly={!isEditing}
-                    className={`w-full px-4 py-2.5 rounded-lg text-sm ${isEditing ? 'bg-white border border-gray-300 focus:outline-none focus:border-primary' : 'bg-gray-50 border border-gray-300 text-gray-600'}`}
-                  />
-                </div>
+            <div className={styles.formGroup}>
+              <table className={styles.milestonesTable}>
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(isEditing ? milestones : proposal.milestones).map((milestone, index) => (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          type="text"
+                          value={milestone.title || ''}
+                          onChange={(e) => updateMilestone(index, 'title', e.target.value)}
+                          readOnly={!isEditing}
+                          className={isEditing ? styles.milestoneInput : styles.milestoneInputReadonly}
+                          placeholder="Milestone title"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={isEditing ? (milestone.amount?.toString() || '') : `Rs. ${(typeof milestone.amount === 'number' ? milestone.amount : parseFloat(milestone.amount?.toString() || '0')).toLocaleString()}`}
+                          onChange={(e) => updateMilestone(index, 'amount', e.target.value)}
+                          readOnly={!isEditing}
+                          className={isEditing ? styles.milestoneInput : styles.milestoneInputReadonly}
+                          placeholder="Amount"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          value={milestone.timePeriod || ''}
+                          onChange={(e) => updateMilestone(index, 'timePeriod', e.target.value)}
+                          readOnly={!isEditing}
+                          className={isEditing ? styles.milestoneInput : styles.milestoneInputReadonly}
+                          placeholder="Time period"
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
 
-                <div className="pt-4">
-                  <div className="text-sm font-medium text-gray-700 mb-2 text-center">Total Cost</div>
-                  <div className="bg-white border-2 border-primary rounded-lg px-6 py-6 text-center">
-                    <div className="text-3xl font-bold text-primary">
-                      LKR {(isEditing ? calculateTotal() : proposal.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </div>
-                  </div>
+              {isEditing && (
+                <button onClick={addMilestone} className={styles.addMilestoneBtn}>
+                  <Plus size={16} />
+                  Add another Milestone
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Pricing */}
+          <div className={styles.sectionCard}>
+            <div className={styles.sectionHeader}>
+              <DollarSign size={18} />
+              <h3>Pricing</h3>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Advance Payment</label>
+              <input
+                type="number"
+                value={isEditing ? advancePayment : (proposal.advancePayment?.toString() || '')}
+                onChange={(e) => setAdvancePayment(e.target.value)}
+                readOnly={!isEditing}
+                className={isEditing ? styles.inputParam : styles.inputReadonly}
+              />
+            </div>
+
+            <div className={styles.formGroup}>
+              <label>Project Cost</label>
+              <input
+                type="number"
+                value={isEditing ? projectCost : (proposal.projectCost?.toString() || '')}
+                onChange={(e) => setProjectCost(e.target.value)}
+                readOnly={!isEditing}
+                className={isEditing ? styles.inputParam : styles.inputReadonly}
+              />
+            </div>
+
+            <div className={styles.totalCostContainer}>
+              <div className={styles.totalCostLabel}>Total Cost</div>
+              <div className={styles.totalCostDisplay}>
+                <div className={styles.totalCostAmount}>
+                  LKR {(isEditing ? calculateTotal() : proposal.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Sidebar - Empty for now, can add related info later */}
+        <div className={styles.sidebar}>
+          {/* Sidebar content can be added here if needed */}
+        </div>
       </div>
+
       <ConfirmDialog
         open={showDeleteConfirm}
         title="Delete Proposal"
