@@ -159,7 +159,7 @@ export default function Inquiries() {
       </div>
 
       <div className={styles.filtersRow}>
-        <div className="relative w-64">
+        <div className="relative w-64 md:w-64 sm:w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
@@ -170,7 +170,7 @@ export default function Inquiries() {
           />
         </div>
 
-        <div className="relative w-48">
+        <div className="relative w-48 md:w-48 sm:w-full">
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
@@ -215,7 +215,7 @@ export default function Inquiries() {
                       {inq.projectDescription}
                     </td>
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative w-40">
+                      <div className="relative w-40 md:w-40 sm:w-full max-w-full">
                         <select
                           value={getNormalizedStatus(inq.status)}
                           onChange={(e) => updateStatus(inq._id, e.target.value)}
@@ -231,15 +231,15 @@ export default function Inquiries() {
                       </div>
                     </td>
                     <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-center items-center w-full max-w-[200px] mx-auto">
+                      <div className="flex justify-center items-center w-full max-w-[200px] mx-auto md:max-w-[200px] sm:max-w-full">
                         {/* Proposal Logic */}
                         {(!inq.proposals || inq.proposals.length === 0) ? (
                           <button
                             onClick={() => handleCreateProposal(inq._id)}
                             className="w-full flex items-center justify-between border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm"
                           >
-                            <span>Create Proposal</span>
-                            <Plus size={16} />
+                            <span className="truncate">Create Proposal</span>
+                            <Plus size={16} className="flex-shrink-0 ml-2" />
                           </button>
                         ) : inq.proposals.length === 1 ? (
                           <div className="flex w-full gap-2">
@@ -247,8 +247,8 @@ export default function Inquiries() {
                               onClick={() => handleDownloadProposal(inq.proposals![0]._id)}
                               className="flex-1 border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm"
                             >
-                              <span>Download Proposal</span>
-                              <Download size={16} />
+                              <span className="truncate">Download</span>
+                              <Download size={16} className="flex-shrink-0 ml-2" />
                             </button>
                           </div>
                         ) : (
@@ -259,17 +259,17 @@ export default function Inquiries() {
                                 onClick={() => handleDownloadProposal(selectedProposals[inq._id])}
                                 className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm"
                               >
-                                <span>Download Proposal</span>
-                                <Download size={16} />
+                                <span className="truncate">Download</span>
+                                <Download size={16} className="flex-shrink-0 ml-2" />
                               </button>
                             ) : (
                               <>
                                 <button className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
-                                  <span>Proposal List</span>
-                                  <ChevronDown size={16} />
+                                  <span className="truncate">Proposal List</span>
+                                  <ChevronDown size={16} className="flex-shrink-0 ml-2" />
                                 </button>
                                 {/* Dropdown menu */}
-                                <div className="absolute top-full left-0 w-full bg-white border border-gray-100 shadow-lg rounded-lg mt-1 hidden group-hover:block z-20">
+                                <div className="absolute top-full left-0 w-full bg-white border border-gray-100 shadow-lg rounded-lg mt-1 hidden group-hover:block md:group-hover:block sm:group-hover:hidden z-20">
                                   {inq.proposals.map((proposal, i) => (
                                     <div
                                       key={proposal._id}
@@ -305,9 +305,10 @@ export default function Inquiries() {
         </table>
 
         {/* Pagination placeholder (mock) */}
-        <div className="px-6 py-3 bg-[#f9fafb] border-t border-[#fed7aa] flex items-center justify-between text-xs text-gray-500">
+        <div className="px-6 py-3 bg-[#f9fafb] border-t border-[#fed7aa] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
           <div className="flex items-center gap-2">
-            <span>Rows Per Page:</span>
+            <span className="hidden sm:inline">Rows Per Page:</span>
+            <span className="sm:hidden">Rows:</span>
             <select className="bg-white border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-orange-300">
               <option>8</option>
               <option>16</option>
