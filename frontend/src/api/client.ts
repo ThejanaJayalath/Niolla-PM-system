@@ -75,6 +75,7 @@ export const api = {
     return json as ApiResponse<{ fileName: string; message: string }>;
   },
   getProposalTemplateInfo: () => request<{ hasTemplate: boolean; fileName?: string; uploadedAt?: string }>('/proposals/template'),
+  /** Download proposal as PDF (or DOCX if format=docx). Uses uploaded template when available. */
   download: async (path: string, filename: string): Promise<void> => {
     const token = getToken();
     const headers: Record<string, string> = {};

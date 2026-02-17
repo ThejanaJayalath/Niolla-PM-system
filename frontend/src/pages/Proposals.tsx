@@ -52,7 +52,16 @@ export default function Proposals() {
 
   const handleDownload = async (id: string, customerName: string) => {
     try {
-      await (api as any).download(`/proposals/${id}/pdf`, `proposal-${customerName.replace(/\s+/g, '-')}.pdf`);
+      await api.download(`/proposals/${id}/pdf`, `proposal-${customerName.replace(/\s+/g, '-')}.pdf`);
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Failed to download proposal');
+    }
+  };
+
+  const handleDownloadWord = async (id: string, customerName: string) => {
+    try {
+      await api.download(`/proposals/${id}/pdf?format=docx`, `proposal-${customerName.replace(/\s+/g, '-')}.docx`);
     } catch (err) {
       console.error(err);
       alert(err instanceof Error ? err.message : 'Failed to download proposal');
@@ -141,6 +150,13 @@ export default function Proposals() {
                           onClick={() => window.open(getPdfDownloadUrl(p._id), '_blank')}
                           className="text-gray-900 hover:text-primary transition-colors"
                           title="View PDF"
+                        >
+                          <FileText size={20} />
+                        </button>
+                        <button
+                          onClick={() => handleDownloadWord(p._id, p.customerName)}
+                          className="text-gray-900 hover:text-primary transition-colors"
+                          title="Download as Word (uses template)"
                         >
                           <FileText size={20} />
                         </button>

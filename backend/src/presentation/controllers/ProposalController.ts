@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { ProposalService } from '../../application/services/ProposalService';
 import { buildProposalDocx } from '../../infrastructure/pdf/ProposalDocxBuilder';
+import { fillProposalTemplate } from '../../infrastructure/pdf/ProposalDocxGenerator';
 import { convertDocxToPdf } from '../../infrastructure/pdf/convertDocxToPdf';
 import { ProposalTemplateModel } from '../../infrastructure/database/models/ProposalTemplateModel';
 import { AuthenticatedRequest } from '../middleware/auth';
@@ -51,8 +52,31 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
   }
   const safeName = proposal.customerName.replace(/\s+/g, '-');
   const timestamp = Date.now();
-  // Build document from proposal data (no Word template — always valid .docx)
-  const docxBuffer = await buildProposalDocx(proposal);
+
+  let docxBuffer: Buffer;
+  const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).select('templateDocx');
+  const raw = templateDoc?.templateDocx;
+  const hasTemplate = raw && (Buffer.isBuffer(raw) ? raw.length > 0 : true);
+
+  if (hasTemplate && raw) {
+    const templateBuffer = Buffer.isBuffer(raw) ? raw : Buffer.from(raw as ArrayLike<number>);
+    if (templateBuffer.length > 0) {
+      docxBuffer = fillProposalTemplate(templateBuffer, proposal);
+    } else {
+      docxBuffer = await buildProposalDocx(proposal);
+    }
+  } else {
+    docxBuffer = await buildProposalDocx(proposal);
+  }
+
+  const wantDocx = req.query.format === 'docx';
+  if (wantDocx) {
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
+    res.send(docxBuffer);
+    return;
+  }
+
   const pdfBuffer = await convertDocxToPdf(docxBuffer);
   if (pdfBuffer && pdfBuffer.length > 0) {
     res.setHeader('Content-Type', 'application/pdf');

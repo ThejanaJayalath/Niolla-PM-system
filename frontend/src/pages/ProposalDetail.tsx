@@ -150,10 +150,22 @@ export default function ProposalDetail() {
     setMilestones([...milestones, { title: '', amount: '', timePeriod: '' }]);
   };
 
+  const safeName = proposal?.customerName?.replace(/\s+/g, '-') ?? 'proposal';
+
   const downloadPdf = async () => {
     if (!proposal) return;
     try {
-      await api.download(`/proposals/${proposal._id}/pdf`, `proposal-${proposal.customerName.replace(/\s+/g, '-')}.pdf`);
+      await api.download(`/proposals/${proposal._id}/pdf`, `proposal-${safeName}.pdf`);
+    } catch (err) {
+      console.error('Download failed', err);
+      alert(err instanceof Error ? err.message : 'Failed to download proposal');
+    }
+  };
+
+  const downloadWord = async () => {
+    if (!proposal) return;
+    try {
+      await api.download(`/proposals/${proposal._id}/pdf?format=docx`, `proposal-${safeName}.docx`);
     } catch (err) {
       console.error('Download failed', err);
       alert(err instanceof Error ? err.message : 'Failed to download proposal');
@@ -194,6 +206,13 @@ export default function ProposalDetail() {
             </p>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={downloadWord}
+              className="bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
+            >
+              <FileText size={16} />
+              Download as Word
+            </button>
             <button
               onClick={downloadPdf}
               className="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
