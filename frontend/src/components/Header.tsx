@@ -1,10 +1,73 @@
-import { Search, Bell, Menu, Moon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, Bell, Menu, Moon, User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { api } from '../api/client';
+import styles from './Header.module.css';
 
 interface HeaderProps {
     onMenuClick?: () => void;
 }
 
+interface UserProfile {
+    profilePhoto?: string;
+    name: string;
+    email: string;
+    role: string;
+}
+
 const Header = ({ onMenuClick }: HeaderProps) => {
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const res = await api.get<UserProfile>('/auth/me');
+                if (res.success && res.data?.profilePhoto) {
+                    setProfilePhoto(res.data.profilePhoto);
+                }
+            } catch (err) {
+                console.error('Failed to fetch profile photo:', err);
+            }
+        };
+        fetchProfile();
+    }, []);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setDropdownOpen(false);
+            }
+        };
+
+        if (dropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [dropdownOpen]);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
+
+    const handleProfileClick = () => {
+        navigate('/profile');
+        setDropdownOpen(false);
+    };
+
+    const handleSettingsClick = () => {
+        navigate('/settings');
+        setDropdownOpen(false);
+    };
+
     return (
         <header className="h-16 px-4 md:px-6 bg-white border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
             <div className="flex items-center gap-4 flex-1">
@@ -43,24 +106,62 @@ const Header = ({ onMenuClick }: HeaderProps) => {
 
                 <div className="h-8 w-[1px] bg-gray-200 mx-1 hidden sm:block"></div>
 
-                <button className="flex items-center gap-2 md:gap-3 pl-2 pr-1 py-1 hover:bg-gray-50 rounded-full transition-colors">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-100">
-                        <UserIcon />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700 hidden md:block">Admin</span>
-                    <svg className="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </button>
+                <div className={styles.userMenu} ref={dropdownRef}>
+                    <button 
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                        className={styles.userButton}
+                    >
+                        <div className={styles.avatar}>
+                            {profilePhoto ? (
+                                <img src={profilePhoto} alt={user?.name || 'User'} className={styles.avatarImage} />
+                            ) : (
+                                <User size={16} className={styles.avatarIcon} />
+                            )}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 hidden md:block">
+                            {user?.name || 'Admin'}
+                        </span>
+                        <ChevronDown 
+                            size={16} 
+                            className={`${styles.chevron} ${dropdownOpen ? styles.chevronOpen : ''}`}
+                        />
+                    </button>
+
+                    {dropdownOpen && (
+                        <div className={styles.dropdown}>
+                            <div className={styles.dropdownHeader}>
+                                <div className={styles.dropdownAvatar}>
+                                    {profilePhoto ? (
+                                        <img src={profilePhoto} alt={user?.name || 'User'} className={styles.dropdownAvatarImage} />
+                                    ) : (
+                                        <User size={20} className={styles.dropdownAvatarIcon} />
+                                    )}
+                                </div>
+                                <div className={styles.dropdownUserInfo}>
+                                    <div className={styles.dropdownUserName}>{user?.name || 'Admin'}</div>
+                                    <div className={styles.dropdownUserEmail}>{user?.email || ''}</div>
+                                </div>
+                            </div>
+                            <div className={styles.dropdownDivider}></div>
+                            <button onClick={handleProfileClick} className={styles.dropdownItem}>
+                                <User size={18} />
+                                <span>Profile</span>
+                            </button>
+                            <button onClick={handleSettingsClick} className={styles.dropdownItem}>
+                                <Settings size={18} />
+                                <span>Settings</span>
+                            </button>
+                            <div className={styles.dropdownDivider}></div>
+                            <button onClick={handleLogout} className={`${styles.dropdownItem} ${styles.dropdownItemDanger}`}>
+                                <LogOut size={18} />
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </header>
     );
 };
-
-const UserIcon = () => (
-    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-    </svg>
-)
 
 export default Header;
