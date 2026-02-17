@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, FileText, Info, Flag, DollarSign, Trash2, Edit3, Plus, Download } from 'lucide-react';
-import { api, getPdfDownloadUrl } from '../api/client';
+import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 import styles from './ProposalDetail.module.css';
 
