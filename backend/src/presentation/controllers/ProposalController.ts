@@ -108,7 +108,7 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     if (usedTemplate) {
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
-      res.setHeader('X-Message', 'Template could not be converted to PDF on this server. You received your filled template as Word — open it and use File → Save As → PDF for a PDF that matches your design.');
+      res.setHeader('X-Message', 'Template could not be converted to PDF on this server. You received your filled template as Word - open it and use File > Save As > PDF for a PDF that matches your design.');
       res.send(docxBuffer);
       return;
     }
