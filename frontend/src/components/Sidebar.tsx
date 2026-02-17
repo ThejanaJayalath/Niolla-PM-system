@@ -47,7 +47,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                 <div className="px-6 pt-6 pb-2 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <img
-                            src="/login/Niollanexa.png"
+                            src="/login/Niollanexa.gif"
                             alt="Niolla Desk"
                             className="h-12 w-auto object-contain"
                         />
@@ -128,7 +128,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                 <div className="px-6 pt-6 pb-2">
                     <div className="flex items-center gap-2">
                         <img
-                            src="/login/Niollanexa.png"
+                            src="/login/Niollanexa.gif"
                             alt="Niolla Desk"
                             className="h-16 w-auto object-contain"
                         />
