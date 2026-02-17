@@ -206,7 +206,7 @@
 
 /* Form Fields */
 .formGroup {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .formGroup label {
@@ -273,7 +273,7 @@ textarea.inputParam {
   border-radius: 16px;
   padding: 2rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
 }
 
 @media (max-width: 768px) {
