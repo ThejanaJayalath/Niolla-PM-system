@@ -37,10 +37,6 @@ export default function Login() {
           alt="Niolla Nexa"
           className={styles.logoImage}
         />
-        <div className={styles.brandText}>
-          <span className={styles.brandName}>NIOLLA</span>
-          <span className={styles.brandSub}>NEXA</span>
-        </div>
       </header>
 
       <div className={styles.card}>
