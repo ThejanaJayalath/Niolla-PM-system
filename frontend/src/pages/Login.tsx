@@ -31,18 +31,17 @@ export default function Login() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.brand}>
-        <img
-          src="/login/login-logo.gif"
-          alt="Niolla Nexa"
-          className={styles.logoImage}
-        />
-      </header>
-
       <div className={styles.card}>
-        <div>
-          <h1 className={styles.title}>Welcome Back</h1>
-          <p className={styles.subtitle}>Please sign in to your account</p>
+        <div className={styles.cardHeader}>
+          <img
+            src="/login/login-logo.gif"
+            alt="Niolla Nexa"
+            className={styles.logoImage}
+          />
+          <div>
+            <h1 className={styles.title}>Welcome Back</h1>
+            <p className={styles.subtitle}>Please sign in to your account</p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className={styles.form}>
