@@ -33,7 +33,7 @@ export default function Login() {
     <div className={styles.page}>
       <header className={styles.brand}>
         <img
-          src="/login/Niollanexa.gif"
+          src="/login/login-logo.gif"
           alt="Niolla Nexa"
           className={styles.logoImage}
         />
