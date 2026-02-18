@@ -16,7 +16,7 @@
   padding: 2rem 1.5rem;
 }
 
-/* NIOLLA branding: a bit down and closer to login box */
+/* NIOLLA NEXA branding: logo (GIF) + text side by side */
 .brand {
   position: absolute;
   top: 2.75rem;
@@ -24,25 +24,39 @@
   transform: translateX(-50%);
   z-index: 10;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
-/* Logo: black → white via CSS filter; slightly bigger */
 .logoImage {
   display: block;
-  height: 60px;
+  height: 56px;
   width: auto;
   object-fit: contain;
-  filter: brightness(0) invert(1);
+}
+
+.brandText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
 }
 
 .brandName {
-  font-size: 1.625rem;
+  font-size: 1.5rem;
   font-weight: 800;
-  color: #f8fafc;
   letter-spacing: 0.12em;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(249, 115, 22, 0.8), 0 0 40px rgba(249, 115, 22, 0.4);
+}
+
+.brandSub {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: rgba(251, 146, 60, 0.95);
+  text-shadow: 0 0 12px rgba(249, 115, 22, 0.6);
 }
 
 .loadingText {
@@ -62,7 +76,7 @@
   }
 }
 
-/* Centered translucent dark login card */
+/* Frosted glass login card – translucent so orange background shows through */
 .card {
   position: relative;
   z-index: 10;
@@ -70,12 +84,12 @@
   max-width: 420px;
   margin-top: -1.5rem;
   padding: 2.5rem 2rem;
-  background: rgba(30, 41, 59, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(251, 146, 60, 0.25);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
   gap: 1.75rem;
@@ -170,8 +184,8 @@
 
 .input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  border-color: rgba(251, 146, 60, 0.6);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2);
 }
 
 .forgotWrap {
@@ -187,27 +201,27 @@
 }
 
 .forgotLink:hover {
-  color: #93c5fd;
+  color: #fdba74;
 }
 
 .button {
   margin-top: 0.25rem;
   padding: 0.875rem;
-  background: #3b82f6;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #c2410c 100%);
   border: none;
   border-radius: 10px;
   color: #fff;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.4);
+  transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 20px rgba(249, 115, 22, 0.5), 0 0 30px rgba(249, 115, 22, 0.25);
 }
 
 .button:hover:not(:disabled) {
-  background: #2563eb;
+  filter: brightness(1.1);
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px 0 rgba(59, 130, 246, 0.45);
+  box-shadow: 0 8px 28px rgba(249, 115, 22, 0.55), 0 0 40px rgba(249, 115, 22, 0.3);
 }
 
 .button:active:not(:disabled) {
@@ -228,14 +242,14 @@
 }
 
 .signUpLink {
-  color: #93c5fd;
+  color: #fdba74;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s ease;
 }
 
 .signUpLink:hover {
-  color: #bfdbfe;
+  color: #fed7aa;
 }
 
 .error {

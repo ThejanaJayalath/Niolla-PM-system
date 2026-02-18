@@ -33,11 +33,14 @@ export default function Login() {
     <div className={styles.page}>
       <header className={styles.brand}>
         <img
-          src="/logo/logo.png"
-          alt="Niolla"
+          src="/login/Niollanexa.gif"
+          alt="Niolla Nexa"
           className={styles.logoImage}
         />
-        <span className={styles.brandName}>NIOLLA</span>
+        <div className={styles.brandText}>
+          <span className={styles.brandName}>NIOLLA</span>
+          <span className={styles.brandSub}>NEXA</span>
+        </div>
       </header>
 
       <div className={styles.card}>
