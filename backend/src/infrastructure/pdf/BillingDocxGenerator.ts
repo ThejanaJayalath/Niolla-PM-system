@@ -23,11 +23,10 @@ function formatDate(d: Date): string {
 }
 
 export function getInvoiceTemplateData(billing: Billing): Record<string, unknown> {
-  const created = (billing as { createdAt?: string }).createdAt;
   const billingDate = billing.billingDate
     ? new Date(billing.billingDate)
-    : created
-      ? new Date(created)
+    : billing.createdAt
+      ? new Date(billing.createdAt)
       : new Date();
 
   const items = Array.isArray(billing.items) && billing.items.length > 0
