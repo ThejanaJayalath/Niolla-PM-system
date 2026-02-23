@@ -132,7 +132,11 @@ export default function Billing() {
             ) : (
               <>
                 {paginatedRecords.map((b) => (
-                  <tr key={b._id} className="h-[60px] hover:bg-gray-50 transition-colors cursor-pointer">
+                  <tr
+                    key={b._id}
+                    onClick={() => navigate(`/billing/${b._id}`)}
+                    className="h-[60px] hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
                     <td className="px-6 py-4 font-medium text-gray-900">{b.customerName}</td>
                     <td className="px-6 py-4 text-gray-600">{b.projectName || 'N/A'}</td>
                     <td className="px-6 py-4 font-bold text-gray-900">
@@ -150,6 +154,10 @@ export default function Billing() {
                     <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-center items-center gap-4">
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/billing/${b._id}`);
+                          }}
                           className="text-gray-900 hover:text-primary transition-colors"
                           title="View"
                         >

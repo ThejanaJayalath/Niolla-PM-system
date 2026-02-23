@@ -15,6 +15,15 @@ export interface CreateBillingInput {
   billingDate: Date;
 }
 
+export interface UpdateBillingInput {
+  companyName?: string;
+  address?: string;
+  email?: string;
+  billingDate?: Date;
+  items?: BillingItem[];
+  totalAmount?: number;
+}
+
 export class BillingService {
   async getNextBillingId(): Promise<string> {
     const last = await BillingModel.findOne().sort({ createdAt: -1 }).select('billingId').lean();
@@ -59,5 +68,14 @@ export class BillingService {
   async delete(id: string): Promise<boolean> {
     const result = await BillingModel.findByIdAndDelete(id);
     return !!result;
+  }
+
+  async update(id: string, data: UpdateBillingInput): Promise<Billing | null> {
+    const doc = await BillingModel.findByIdAndUpdate(
+      id,
+      { $set: data },
+      { new: true }
+    );
+    return doc ? (doc.toObject() as unknown as Billing) : null;
   }
 }

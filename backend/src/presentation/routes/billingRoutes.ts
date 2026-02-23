@@ -6,6 +6,7 @@ import {
   createBilling,
   listBillings,
   getBilling,
+  updateBilling,
   deleteBilling,
   uploadBillingTemplate,
   getBillingTemplateInfo,
@@ -56,6 +57,23 @@ router.get('/', listBillings);
 router.get('/template', getBillingTemplateInfo);
 router.post('/template', upload.single('template'), uploadBillingTemplate);
 router.get('/:id', [param('id').isMongoId()], validate, getBilling);
+router.patch(
+  '/:id',
+  [
+    param('id').isMongoId(),
+    body('companyName').optional().trim(),
+    body('address').optional().trim(),
+    body('email').optional().trim(),
+    body('billingDate').optional().isISO8601(),
+    body('items').optional().isArray(),
+    body('items.*.amount').optional().isNumeric(),
+    body('items.*.number').optional().trim(),
+    body('items.*.description').optional().trim(),
+    body('totalAmount').optional().isNumeric(),
+  ],
+  validate,
+  updateBilling
+);
 router.delete('/:id', [param('id').isMongoId()], validate, deleteBilling);
 
 export default router;

@@ -88,6 +88,31 @@ export async function uploadBillingTemplate(req: AuthenticatedRequest, res: Resp
   });
 }
 
+export async function updateBilling(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const id = req.params.id;
+  const {
+    companyName,
+    address,
+    email,
+    billingDate,
+    items,
+    totalAmount,
+  } = req.body;
+  const update: Record<string, unknown> = {};
+  if (companyName !== undefined) update.companyName = companyName;
+  if (address !== undefined) update.address = address;
+  if (email !== undefined) update.email = email;
+  if (billingDate !== undefined) update.billingDate = new Date(billingDate);
+  if (items !== undefined) update.items = items;
+  if (totalAmount !== undefined) update.totalAmount = Number(totalAmount);
+  const billing = await billingService.update(id, update as import('../../application/services/BillingService').UpdateBillingInput);
+  if (!billing) {
+    res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Billing not found' } });
+    return;
+  }
+  res.json({ success: true, data: billing });
+}
+
 export async function getBillingTemplateInfo(req: AuthenticatedRequest, res: Response): Promise<void> {
   const doc = await BillingTemplateModel.findOne().sort({ uploadedAt: -1 }).select('fileName uploadedAt').lean();
   if (!doc) {
