@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Info, Flag, DollarSign, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Info, Flag, DollarSign, Trash2, Upload, Check } from 'lucide-react';
 import { api } from '../api/client';
 
 interface Inquiry {
@@ -205,8 +205,11 @@ export default function CreateProposal() {
                             <Upload size={16} />
                             {templateUploading ? 'Uploading...' : 'Upload Template'}
                         </button>
-                        {templateInfo.hasTemplate && templateInfo.fileName && (
-                            <span className="text-sm text-gray-500">Template: {templateInfo.fileName} — proposal PDF downloads will use this template.</span>
+                        {templateInfo.hasTemplate && (
+                            <span className="text-sm text-green-600 font-medium flex items-center gap-2">
+                                <Check size={18} className="shrink-0" strokeWidth={2.5} />
+                                Template Add successfully
+                            </span>
                         )}
                         <button
                             className="bg-white border border-red-100 text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm"
