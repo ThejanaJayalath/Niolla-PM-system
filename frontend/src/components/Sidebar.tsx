@@ -25,6 +25,9 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
         { icon: ListTodo, label: 'Tasks', path: '/tasks' },
         { icon: FileText, label: 'Work Logs', path: '/work-logs' },
         { icon: TrendingUp, label: 'Performance', path: '/performance' },
+    ];
+
+    const leadsItems = [
         { icon: MessageSquare, label: 'Inquiries', path: '/inquiries' },
         { icon: FileText, label: 'Proposal', path: '/proposals' },
         { icon: Calendar, label: 'Meetings', path: '/meetings' },
@@ -89,6 +92,37 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             </NavLink>
                         ))}
                     </nav>
+
+                    <div className="mt-8 px-4">
+                        <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                            LEADS MANAGEMENT
+                        </h3>
+                        <nav className="space-y-1">
+                            {leadsItems.map((item) => (
+                                <NavLink
+                                    key={item.label}
+                                    to={item.path}
+                                    onClick={onClose}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
+                                            ? 'bg-sidebar-active text-gray-900 shadow-sm'
+                                            : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                                        }`
+                                    }
+                                >
+                                    {({ isActive }) => (
+                                        <>
+                                            <item.icon
+                                                size={20}
+                                                className={isActive ? 'text-gray-900' : 'text-gray-500'}
+                                            />
+                                            {item.label}
+                                        </>
+                                    )}
+                                </NavLink>
+                            ))}
+                        </nav>
+                    </div>
 
                     <div className="mt-8 px-4">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
@@ -160,6 +194,36 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             </NavLink>
                         ))}
                     </nav>
+
+                    <div className="mt-8 px-4">
+                        <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                            LEADS MANAGEMENT
+                        </h3>
+                        <nav className="space-y-1">
+                            {leadsItems.map((item) => (
+                                <NavLink
+                                    key={item.label}
+                                    to={item.path}
+                                    className={({ isActive }) =>
+                                        `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
+                                            ? 'bg-sidebar-active text-gray-900 shadow-sm'
+                                            : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                                        }`
+                                    }
+                                >
+                                    {({ isActive }) => (
+                                        <>
+                                            <item.icon
+                                                size={20}
+                                                className={isActive ? 'text-gray-900' : 'text-gray-500'}
+                                            />
+                                            {item.label}
+                                        </>
+                                    )}
+                                </NavLink>
+                            ))}
+                        </nav>
+                    </div>
 
                     <div className="mt-8 px-4">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
