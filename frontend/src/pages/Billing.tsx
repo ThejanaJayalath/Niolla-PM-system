@@ -15,7 +15,6 @@ interface BillingRecord {
 
 export default function Billing() {
   const [billingRecords, setBillingRecords] = useState<BillingRecord[]>([]);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -95,13 +94,7 @@ export default function Billing() {
             </tr>
           </thead>
           <tbody className="divide-y-0">
-            {loading ? (
-              <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                  Loading...
-                </td>
-              </tr>
-            ) : filteredRecords.length === 0 ? (
+            {filteredRecords.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                   No billing records yet.
