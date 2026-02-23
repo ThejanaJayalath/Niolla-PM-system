@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText, DownloadCloud, Trash2 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import styles from './Inquiries.module.css';
+import { api } from '../api/client';
 
 interface BillingRecord {
   _id: string;
@@ -14,22 +16,43 @@ interface BillingRecord {
 }
 
 export default function Billing() {
+  const navigate = useNavigate();
   const [billingRecords, setBillingRecords] = useState<BillingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const load = async () => {
+    try {
+      const res = await api.get<BillingRecord[]>('/billing');
+      if (res.success && res.data) setBillingRecords(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
 
   const handleDelete = async () => {
     const id = deleteId;
     if (!id) return;
     setDeleting(true);
     setDeleteId(null);
-    setBillingRecords((prev) => prev.filter((b) => b._id !== id));
-    setDeleting(false);
+    try {
+      const res = await api.delete(`/billing/${id}`);
+      if (res?.success !== false) await load();
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const handleAddBilling = () => {
-    // Button only – no Add Billing page; can be wired to a modal later
+    navigate('/billing/new');
   };
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,7 +117,13 @@ export default function Billing() {
             </tr>
           </thead>
           <tbody className="divide-y-0">
-            {filteredRecords.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                  Loading...
+                </td>
+              </tr>
+            ) : filteredRecords.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                   No billing records yet.
@@ -107,7 +136,7 @@ export default function Billing() {
                     <td className="px-6 py-4 font-medium text-gray-900">{b.customerName}</td>
                     <td className="px-6 py-4 text-gray-600">{b.projectName || 'N/A'}</td>
                     <td className="px-6 py-4 font-bold text-gray-900">
-                      {b.billingId || `Billing_${b._id.slice(-6)}`}
+                      {b.billingId || `INV ${b._id.slice(-6)}`}
                     </td>
                     <td className="px-6 py-4 text-gray-600">Rs. {b.totalAmount.toLocaleString()}</td>
                     <td className="px-6 py-4 text-gray-600">

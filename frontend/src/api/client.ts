@@ -75,6 +75,30 @@ export const api = {
     return json as ApiResponse<{ fileName: string; message: string }>;
   },
   getProposalTemplateInfo: () => request<{ hasTemplate: boolean; fileName?: string; uploadedAt?: string }>('/proposals/template'),
+  uploadBillingTemplate: async (file: File): Promise<ApiResponse<{ fileName: string; message: string }>> => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('template', file);
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/billing/template`, {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        success: false,
+        error: {
+          code: json?.error?.code || 'UPLOAD_FAILED',
+          message: json?.error?.message || 'Billing template upload failed',
+        },
+      };
+    }
+    return json as ApiResponse<{ fileName: string; message: string }>;
+  },
+  getBillingTemplateInfo: () => request<{ hasTemplate: boolean; fileName?: string; uploadedAt?: string }>('/billing/template'),
   /** Download proposal as PDF (or DOCX if format=docx). Uses uploaded template when available. */
   download: async (path: string, filename: string): Promise<void> => {
     const token = getToken();
