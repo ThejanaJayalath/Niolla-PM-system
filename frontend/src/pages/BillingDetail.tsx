@@ -238,9 +238,11 @@ export default function BillingDetail() {
                   <input
                     type="text"
                     value={
-                      billing.inquiryId && typeof billing.inquiryId === 'object' && '_id' in billing.inquiryId
-                        ? (billing.inquiryId as { _id: string })._id
-                        : (billing.inquiryId ?? '')
+                      billing.inquiryId && typeof billing.inquiryId === 'object' && 'customerId' in billing.inquiryId
+                        ? (billing.inquiryId as { customerId: string }).customerId
+                        : billing.inquiryId && typeof billing.inquiryId === 'object' && '_id' in billing.inquiryId
+                          ? (billing.inquiryId as { _id: string })._id
+                          : (billing.inquiryId ?? '')
                     }
                     readOnly
                     className={styles.inputReadonly}

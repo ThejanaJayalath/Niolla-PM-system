@@ -56,12 +56,12 @@ export class BillingService {
   }
 
   async findById(id: string): Promise<Billing | null> {
-    const doc = await BillingModel.findById(id).populate('inquiryId', 'customerName phoneNumber');
+    const doc = await BillingModel.findById(id).populate('inquiryId', 'customerName phoneNumber customerId');
     return doc ? (doc.toObject() as unknown as Billing) : null;
   }
 
   async findAll(): Promise<Billing[]> {
-    const docs = await BillingModel.find().sort({ createdAt: -1 }).populate('inquiryId', 'customerName phoneNumber');
+    const docs = await BillingModel.find().sort({ createdAt: -1 }).populate('inquiryId', 'customerName phoneNumber customerId');
     return docs.map((d) => d.toObject() as unknown as Billing);
   }
 
@@ -76,6 +76,8 @@ export class BillingService {
       { $set: data },
       { new: true }
     );
-    return doc ? (doc.toObject() as unknown as Billing) : null;
+    if (!doc) return null;
+    await doc.populate('inquiryId', 'customerName phoneNumber customerId');
+    return doc.toObject() as unknown as Billing;
   }
 }
