@@ -5,6 +5,7 @@ import {
   createReminder,
   getReminder,
   getRemindersByInquiry,
+  getRemindersList,
   getUpcomingReminders,
   updateReminder,
   deleteReminder,
@@ -40,6 +41,7 @@ router.post(
   createReminder
 );
 
+router.get('/', [query('limit').optional().isInt({ min: 1, max: 200 }), query('type').optional().isIn(['reminder', 'meeting']), query('upcoming').optional().isIn(['true', 'false'])], validate, getRemindersList);
 router.get('/upcoming', [query('limit').optional().isInt({ min: 1, max: 100 })], validate, getUpcomingReminders);
 router.get('/inquiry/:inquiryId', [param('inquiryId').isMongoId()], validate, getRemindersByInquiry);
 router.get('/:id', [param('id').isMongoId()], validate, getReminder);
@@ -50,6 +52,7 @@ router.patch(
     body('title').optional().trim().notEmpty(),
     body('scheduledAt').optional().isISO8601(),
     body('notes').optional().trim(),
+    body('status').optional().isIn(['schedule', 'overdue', 'done', 'cancel', 'postpone']),
     body('completed').optional().isBoolean(),
   ],
   validate,

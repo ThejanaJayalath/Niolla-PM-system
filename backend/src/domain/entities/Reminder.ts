@@ -9,6 +9,7 @@ export interface Reminder {
   googleEventId?: string;
   scheduledAt: Date;
   notes?: string;
+  status?: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
   completed?: boolean;
   createdAt: Date;
   updatedAt: Date;

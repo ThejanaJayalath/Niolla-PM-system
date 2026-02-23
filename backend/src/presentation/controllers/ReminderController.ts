@@ -104,6 +104,17 @@ export async function getUpcomingReminders(req: AuthenticatedRequest, res: Respo
   res.json({ success: true, data: reminders });
 }
 
+/** List reminders from MongoDB. Use ?upcoming=false to get all (including past); default is upcoming only. */
+export async function getRemindersList(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 100;
+  const type = req.query.type as string | undefined;
+  const upcoming = req.query.upcoming !== 'false';
+  const reminders = upcoming
+    ? await reminderService.findUpcoming(limit, type)
+    : await reminderService.findAll(limit, type);
+  res.json({ success: true, data: reminders });
+}
+
 export async function updateReminder(req: AuthenticatedRequest, res: Response): Promise<void> {
   const id = req.params.id;
   const existing = await reminderService.findById(id);

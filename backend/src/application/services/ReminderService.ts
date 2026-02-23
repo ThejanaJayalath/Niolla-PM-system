@@ -56,6 +56,19 @@ export class ReminderService {
     return docs.map((d) => d.toObject() as unknown as Reminder);
   }
 
+  /** List all reminders (optionally by type) from MongoDB, sorted by scheduledAt descending. */
+  async findAll(limit = 100, type?: string): Promise<Reminder[]> {
+    const query: any = {};
+    if (type) {
+      query.type = type;
+    }
+    const docs = await ReminderModel.find(query)
+      .sort({ scheduledAt: -1 })
+      .limit(limit)
+      .populate('inquiryId', 'customerName phoneNumber');
+    return docs.map((d) => d.toObject() as unknown as Reminder);
+  }
+
   async update(id: string, data: UpdateReminderInput): Promise<Reminder | null> {
     const doc = await ReminderModel.findByIdAndUpdate(id, data, { new: true });
     return doc ? (doc.toObject() as unknown as Reminder) : null;

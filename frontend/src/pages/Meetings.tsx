@@ -45,9 +45,8 @@ export default function Meetings() {
 
     const load = async () => {
         try {
-            // Fetch upcoming meetings (we might need a specific endpoint or filter)
-            // For now using upcoming reminders with type=meeting
-            const res = await api.get<Meeting[]>('/reminders/upcoming?limit=100&type=meeting');
+            // Fetch all meetings from MongoDB (reminders with type=meeting)
+            const res = await api.get<Meeting[]>('/reminders?limit=100&type=meeting&upcoming=false');
             if (res.success && res.data) {
                 setMeetings(res.data);
             }
