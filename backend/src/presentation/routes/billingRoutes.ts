@@ -10,6 +10,7 @@ import {
   deleteBilling,
   uploadBillingTemplate,
   getBillingTemplateInfo,
+  downloadBillingPdf,
 } from '../controllers/BillingController';
 
 const upload = multer({
@@ -56,6 +57,7 @@ router.post(
 router.get('/', listBillings);
 router.get('/template', getBillingTemplateInfo);
 router.post('/template', upload.single('template'), uploadBillingTemplate);
+router.get('/:id/pdf', [param('id').isMongoId()], validate, downloadBillingPdf);
 router.get('/:id', [param('id').isMongoId()], validate, getBilling);
 router.patch(
   '/:id',

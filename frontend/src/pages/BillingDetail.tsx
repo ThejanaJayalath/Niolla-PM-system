@@ -44,6 +44,7 @@ export default function BillingDetail() {
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const [companyName, setCompanyName] = useState('');
   const [address, setAddress] = useState('');
@@ -162,6 +163,22 @@ export default function BillingDetail() {
     setItems(items.filter((_, i) => i !== index));
   };
 
+  const downloadPdf = async () => {
+    if (!id) return;
+    setDownloading(true);
+    try {
+      await api.download(
+        `/billing/${id}/pdf`,
+        `invoice-${billing.customerName.replace(/\s+/g, '-')}.pdf`
+      );
+    } catch (err) {
+      console.error('Download failed', err);
+      alert(err instanceof Error ? err.message : 'Failed to download invoice');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   if (loading) return <div className={styles.container}>Loading...</div>;
   if (!billing) return <div className={styles.container}>Billing not found</div>;
 
@@ -191,12 +208,13 @@ export default function BillingDetail() {
         <div className={styles.headerActions}>
           <button
             type="button"
-            disabled
+            onClick={downloadPdf}
+            disabled={downloading}
             className={styles.downloadBtn}
-            title="Billing PDF coming soon"
+            title="Download invoice as PDF"
           >
             <Download size={16} />
-            Download PDF
+            {downloading ? 'Downloading...' : 'Download PDF'}
           </button>
           <button onClick={handleDelete} className={styles.deleteBtn}>
             <Trash2 size={16} /> Delete Billing

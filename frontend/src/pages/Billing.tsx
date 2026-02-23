@@ -164,8 +164,15 @@ export default function Billing() {
                           <FileText size={20} />
                         </button>
                         <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            api.download(`/billing/${b._id}/pdf`, `invoice-${b.customerName.replace(/\s+/g, '-')}.pdf`).catch((err) => {
+                              console.error(err);
+                              alert(err instanceof Error ? err.message : 'Failed to download invoice');
+                            });
+                          }}
                           className="text-gray-900 hover:text-primary transition-colors"
-                          title="Download"
+                          title="Download invoice"
                         >
                           <DownloadCloud size={20} />
                         </button>
