@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, FileText, CreditCard, Building2, Upload, Check, Trash2 } from 'lucide-react';
 import { api } from '../api/client';
+import styles from './CreateBilling.module.css';
 
 interface Inquiry {
   _id: string;
@@ -160,278 +161,279 @@ export default function CreateBilling() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-      <div className="max-w-7xl mx-auto px-8 py-8">
-        <div className="flex flex-col gap-4 mb-6">
+    <div className={styles.container}>
+      {/* Back & Breadcrumb - same as Proposal Details */}
+      <div className="flex flex-col gap-4 mb-6">
+        <Link to="/billing" className={styles.backLink}>
+          <ArrowLeft size={20} />
+          <span>Back</span>
+        </Link>
+        <div className={styles.breadcrumb}>
+          <span>Home</span> &gt; <span>Billing</span> &gt; <span className="font-semibold">Create Billing</span>
+        </div>
+      </div>
+
+      {/* Header - same structure as Proposal Details */}
+      <div className={styles.header}>
+        <div>
+          <h1 className={styles.pageTitle}>Create Billing</h1>
+          <p className={styles.subTitle}>Create a new bill or invoice for your customer</p>
+        </div>
+        <div className={styles.headerActions}>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".docx"
+            className="hidden"
+            onChange={handleUploadTemplate}
+          />
           <button
-            onClick={() => navigate('/billing')}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors w-fit"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={templateUploading}
+            className={styles.uploadBtn}
           >
-            <ArrowLeft size={20} />
-            <span className="font-medium text-lg">Back</span>
+            <Upload size={16} />
+            {templateUploading ? 'Uploading...' : 'Upload Template'}
           </button>
-          <div className="flex items-center gap-2 text-sm text-gray-400">
-            <span>Home</span>
-            <span>&gt;</span>
-            <span>Billing</span>
-            <span>&gt;</span>
-            <span className="font-semibold text-gray-500">Create Billing</span>
-          </div>
+          {templateInfo.hasTemplate && (
+            <span className={styles.templateSuccess}>
+              <Check size={18} strokeWidth={2.5} />
+              Template Add successfully
+            </span>
+          )}
         </div>
+      </div>
 
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-[2rem] font-extrabold text-gray-900 tracking-tight leading-tight">Create Billing</h1>
-            <p className="text-base text-gray-500 mt-1">Create a new bill or invoice for your customer</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".docx"
-              className="hidden"
-              onChange={handleUploadTemplate}
-            />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={templateUploading}
-              className="bg-white border border-primary text-primary hover:bg-primary/5 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2 shadow-sm disabled:opacity-50"
-            >
-              <Upload size={16} />
-              {templateUploading ? 'Uploading...' : 'Upload Template'}
-            </button>
-            {templateInfo.hasTemplate && (
-              <span className="text-sm text-green-600 font-medium flex items-center gap-2">
-                <Check size={18} className="shrink-0" strokeWidth={2.5} />
-                Template Add successfully
-              </span>
-            )}
-          </div>
-        </div>
-        {templateError && (
-          <div className="mb-4 px-4 py-2 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-            {templateError}
-          </div>
-        )}
+      {templateError && <div className={styles.templateError}>{templateError}</div>}
 
-        <div className="grid grid-cols-2 gap-8">
-          {/* Left Column */}
-          <div className="space-y-6">
-            {/* Bill Reference Details */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <FileText size={20} className="text-primary" />
-                  <h3 className="text-base font-bold text-gray-900">Bill Reference Details</h3>
-                </div>
-                <div className="relative">
-                  <button
+      <div className={styles.grid}>
+        <div className={styles.mainCard}>
+          <div className={styles.cardHeader}>
+            <h2 className={styles.cardTitle}>Billing Details</h2>
+          </div>
+
+          <div className={styles.contentGrid}>
+            {/* Left Column */}
+            <div className={styles.leftColumn}>
+              {/* Bill Reference Details */}
+              <div className={styles.sectionCard}>
+                <div className={styles.sectionHeaderRow}>
+                  <div className={styles.sectionHeader}>
+                    <FileText size={18} />
+                    <h3>Bill Reference Details</h3>
+                  </div>
+                  <div className={styles.sectionHeaderActions}>
+                    <button
+                    type="button"
                     onClick={() => setShowInquiryDropdown(!showInquiryDropdown)}
-                    className="bg-primary hover:bg-primary-hover text-white px-4 py-2.5 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                    className={styles.addCustomerBtn}
                   >
                     <Plus size={16} />
                     Add Customer
                   </button>
                   {showInquiryDropdown && (
-                    <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 w-96 max-h-64 overflow-y-auto">
-                      <div className="p-2 border-b border-gray-200">
+                    <div className={styles.dropdown}>
+                      <div className={styles.dropdownSearch}>
                         <input
                           type="text"
                           placeholder="Search inquiries..."
                           value={searchInquiry}
                           onChange={(e) => setSearchInquiry(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:border-primary"
                           autoFocus
                         />
                       </div>
-                      <div className="max-h-48 overflow-y-auto">
+                      <div className={styles.dropdownList}>
                         {filteredInquiries.map((inq) => (
                           <button
                             key={inq._id}
+                            type="button"
                             onClick={() => handleSelectInquiry(inq)}
-                            className="w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0"
+                            className={styles.dropdownItem}
                           >
-                            <div className="font-medium text-gray-900">{inq.customerName}</div>
-                            {inq.customerId && <div className="text-xs text-gray-500">{inq.customerId}</div>}
+                            <div className={styles.dropdownItemName}>{inq.customerName}</div>
+                            {inq.customerId && <div className={styles.dropdownItemId}>{inq.customerId}</div>}
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
+
+                <div className={styles.formGroup}>
+                  <label>Name</label>
                   <input
                     type="text"
                     value={selectedInquiry?.customerName ?? ''}
                     placeholder="Customer name"
-                    disabled
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-400"
+                    readOnly
+                    className={styles.inputReadonly}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Customer Id</label>
+                <div className={styles.formGroup}>
+                  <label>Customer Id</label>
                   <input
                     type="text"
                     value={selectedInquiry?.customerId ?? ''}
                     placeholder="Customer Id"
-                    disabled
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-400"
+                    readOnly
+                    className={styles.inputReadonly}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+                <div className={styles.formGroup}>
+                  <label>Description</label>
                   <textarea
                     value={selectedInquiry?.projectDescription ?? ''}
                     placeholder="Project description"
-                    disabled
-                    rows={3}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-400 resize-none"
+                    readOnly
+                    rows={4}
+                    className={styles.inputReadonly}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Required Features</label>
+                <div className={styles.formGroup}>
+                  <label>Required Features</label>
                   <textarea
                     value={selectedInquiry?.requiredFeatures?.join(', ') ?? ''}
                     placeholder="Required features"
-                    disabled
+                    readOnly
                     rows={2}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-400 resize-none"
+                    className={styles.inputReadonly}
                   />
                 </div>
               </div>
-            </div>
 
-            {/* General Details */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Building2 size={20} className="text-primary" />
-                <h3 className="text-base font-bold text-gray-900">General Details</h3>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Company Name (optional)</label>
+              {/* General Details */}
+              <div className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <Building2 size={18} />
+                  <h3>General Details</h3>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Company Name (optional)</label>
                   <input
                     type="text"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder="Enter company name"
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className={styles.inputParam}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Address</label>
+                <div className={styles.formGroup}>
+                  <label>Address</label>
                   <input
                     type="text"
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Enter address"
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className={styles.inputParam}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                <div className={styles.formGroup}>
+                  <label>Email</label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter email"
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className={styles.inputParam}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Billing Date</label>
+                <div className={styles.formGroup}>
+                  <label>Billing Date</label>
                   <input
                     type="date"
                     value={billingDate}
                     onChange={(e) => setBillingDate(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className={styles.inputParam}
                   />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Billing Information */}
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <CreditCard size={20} className="text-primary" />
-                <h3 className="text-base font-bold text-gray-900">Billing Information</h3>
-              </div>
-              <p className="text-xs text-gray-500 mb-3">Use negative amount to decrease total (e.g. -500)</p>
-              <div className="space-y-3">
-                {items.length > 0 && (
-                  <div className="grid grid-cols-[80px_1fr_120px_40px] gap-3 text-sm font-medium text-gray-700">
-                    <div>Number</div>
-                    <div>Description</div>
-                    <div>Amount</div>
-                    <div></div>
-                  </div>
-                )}
-                {items.map((row, index) => (
-                  <div key={index} className="grid grid-cols-[80px_1fr_120px_40px] gap-3 items-center">
-                    <input
-                      type="text"
-                      value={row.number}
-                      onChange={(e) => updateItem(index, 'number', e.target.value)}
-                      placeholder="No."
-                      className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary"
-                    />
-                    <input
-                      type="text"
-                      value={row.description}
-                      onChange={(e) => updateItem(index, 'description', e.target.value)}
-                      placeholder="Description"
-                      className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary"
-                    />
-                    <input
-                      type="number"
-                      step="any"
-                      value={row.amount}
-                      onChange={(e) => updateItem(index, 'amount', e.target.value)}
-                      placeholder="0 or -"
-                      className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeItem(index)}
-                      disabled={items.length <= 1}
-                      className="p-2 text-gray-400 hover:text-red-600 disabled:opacity-30"
-                      title="Remove row"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addItem}
-                  className="text-primary hover:text-primary-hover font-medium text-sm flex items-center gap-1"
-                >
-                  <Plus size={16} />
-                  {items.length === 0 ? 'Add Billing Item' : 'Add another Item'}
-                </button>
-              </div>
+            {/* Right Column - Billing Information */}
+            <div className={styles.rightColumn}>
+              <div className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <CreditCard size={18} />
+                  <h3>Billing Information</h3>
+                </div>
+                <p className={styles.itemsHint}>Use negative amount to decrease total (e.g. -500)</p>
+                <div className={styles.formGroup}>
+                  <table className={styles.itemsTable}>
+                    <thead>
+                      <tr>
+                        <th>Number</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((row, index) => (
+                        <tr key={index}>
+                          <td>
+                            <input
+                              type="text"
+                              value={row.number}
+                              onChange={(e) => updateItem(index, 'number', e.target.value)}
+                              placeholder="No."
+                              className={styles.itemInput}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              value={row.description}
+                              onChange={(e) => updateItem(index, 'description', e.target.value)}
+                              placeholder="Description"
+                              className={styles.itemInput}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              step="any"
+                              value={row.amount}
+                              onChange={(e) => updateItem(index, 'amount', e.target.value)}
+                              placeholder="0 or -"
+                              className={styles.itemInput}
+                            />
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => removeItem(index)}
+                              disabled={items.length <= 1}
+                              className={styles.removeItemBtn}
+                              title="Remove row"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <button type="button" onClick={addItem} className={styles.addItemBtn}>
+                    <Plus size={16} />
+                    {items.length === 0 ? 'Add Billing Item' : 'Add another Item'}
+                  </button>
+                </div>
 
-              <div className="pt-6 mt-4 border-t border-gray-200">
-                <div className="text-sm font-medium text-gray-700 mb-2 text-center">Total Amount</div>
-                <div className="bg-white border-2 border-primary rounded-lg px-6 py-6 text-center">
-                  <div className="text-3xl font-bold text-primary">
-                    LKR {calculateTotal().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                <div className={styles.totalCostContainer}>
+                  <div className={styles.totalCostLabel}>Total Amount</div>
+                  <div className={styles.totalCostDisplay}>
+                    <div className={styles.totalCostAmount}>
+                      LKR {calculateTotal().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="pt-4">
                 <button
                   onClick={handleSubmit}
                   disabled={submitting || !selectedInquiry}
-                  className="w-full px-6 py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={styles.submitBtn}
                 >
                   {submitting ? 'Creating...' : 'Create Bill'}
                 </button>
