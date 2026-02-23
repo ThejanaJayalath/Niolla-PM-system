@@ -6,6 +6,7 @@ import {
     ListTodo,
     FileText,
     TrendingUp,
+    CreditCard,
     MessageSquare,
     Calendar,
     Settings,
@@ -25,6 +26,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
         { icon: ListTodo, label: 'Tasks', path: '/tasks' },
         { icon: FileText, label: 'Work Logs', path: '/work-logs' },
         { icon: TrendingUp, label: 'Performance', path: '/performance' },
+        { icon: CreditCard, label: 'Billing', path: '/billing' },
     ];
 
     const leadsItems = [
