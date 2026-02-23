@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, CreditCard, DollarSign, Building2, Upload, Check, Trash2 } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, CreditCard, Building2, Upload, Check, Trash2 } from 'lucide-react';
 import { api } from '../api/client';
 
 interface Inquiry {
