@@ -164,7 +164,7 @@ export default function BillingDetail() {
   };
 
   const downloadPdf = async () => {
-    if (!id) return;
+    if (!id || !billing) return;
     setDownloading(true);
     try {
       await api.download(
