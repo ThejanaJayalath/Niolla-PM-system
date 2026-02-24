@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { BillingItem } from '../../../domain/entities/Billing';
+import { BillingItem, BillingType } from '../../../domain/entities/Billing';
 
 export interface BillingDocument extends Document {
   billingId: string;
@@ -8,7 +8,10 @@ export interface BillingDocument extends Document {
   projectName?: string;
   phoneNumber?: string;
   items: BillingItem[];
+  subTotal: number;
+  advanceApplied: number;
   totalAmount: number;
+  billingType: BillingType;
   companyName?: string;
   address?: string;
   email?: string;
@@ -34,7 +37,10 @@ const billingSchema = new Schema<BillingDocument>(
     projectName: { type: String },
     phoneNumber: { type: String },
     items: [billingItemSchema],
+    subTotal: { type: Number, default: 0 },
+    advanceApplied: { type: Number, default: 0 },
     totalAmount: { type: Number, required: true },
+    billingType: { type: String, enum: ['NORMAL', 'ADVANCE', 'FINAL'], default: 'NORMAL' },
     companyName: { type: String },
     address: { type: String },
     email: { type: String },

@@ -4,6 +4,8 @@ export interface BillingItem {
   amount: number;
 }
 
+export type BillingType = 'NORMAL' | 'ADVANCE' | 'FINAL';
+
 export interface Billing {
   _id?: string;
   billingId: string;
@@ -12,7 +14,12 @@ export interface Billing {
   projectName?: string;
   phoneNumber?: string;
   items: BillingItem[];
+  /** Sum of item amounts (before advance deduction). Stored for PDF. */
+  subTotal: number;
+  /** Advance applied on this bill (deducted from subTotal). Stored for PDF. */
+  advanceApplied: number;
   totalAmount: number;
+  billingType: BillingType;
   companyName?: string;
   address?: string;
   email?: string;

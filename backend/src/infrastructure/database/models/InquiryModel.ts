@@ -14,6 +14,8 @@ export interface InquiryDocument extends Document {
     status: 'CREATED' | 'DOWNLOADED';
   }[];
   status: InquiryStatus;
+  totalAdvancePaid: number;
+  totalAdvanceUsed: number;
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -43,6 +45,8 @@ const inquirySchema = new Schema<InquiryDocument>(
       enum: ['NEW', 'PROPOSAL_SENT', 'NEGOTIATING', 'CONFIRMED', 'LOST'] as InquiryStatus[],
       default: 'NEW',
     },
+    totalAdvancePaid: { type: Number, default: 0 },
+    totalAdvanceUsed: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

@@ -19,6 +19,8 @@ interface BillingItemRow {
   amount: string;
 }
 
+type BillingType = 'NORMAL' | 'ADVANCE' | 'FINAL';
+
 export default function CreateBilling() {
   const navigate = useNavigate();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -26,7 +28,13 @@ export default function CreateBilling() {
   const [searchInquiry, setSearchInquiry] = useState('');
   const [showInquiryDropdown, setShowInquiryDropdown] = useState(false);
 
+  const [billingType, setBillingType] = useState<BillingType>('NORMAL');
   const [items, setItems] = useState<BillingItemRow[]>([{ number: '', description: '', amount: '' }]);
+  const [advanceAmountOnly, setAdvanceAmountOnly] = useState('');
+  const [applyAdvance, setApplyAdvance] = useState(false);
+  const [advanceApplyAmount, setAdvanceApplyAmount] = useState('');
+  const [remainingAdvance, setRemainingAdvance] = useState(0);
+
   const [companyName, setCompanyName] = useState('');
   const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
@@ -89,6 +97,18 @@ export default function CreateBilling() {
     setShowInquiryDropdown(false);
   };
 
+  useEffect(() => {
+    if (!selectedInquiry?._id || (billingType !== 'NORMAL' && billingType !== 'FINAL')) {
+      setRemainingAdvance(0);
+      return;
+    }
+    (async () => {
+      const res = await api.get<{ remainingAdvance: number }>(`/billing/remaining-advance?inquiryId=${selectedInquiry._id}`);
+      if (res.success && res.data) setRemainingAdvance(res.data.remainingAdvance ?? 0);
+      else setRemainingAdvance(0);
+    })();
+  }, [selectedInquiry?._id, billingType]);
+
   const addItem = () => {
     setItems((prev) => [...prev, { number: '', description: '', amount: '' }]);
   };
@@ -106,13 +126,60 @@ export default function CreateBilling() {
     setItems((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const calculateTotal = () => {
+  const calculateSubTotal = () => {
     return items.reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0);
   };
+
+  const subTotal = calculateSubTotal();
+  const rawApply = parseFloat(advanceApplyAmount);
+  const defaultApply = Math.min(remainingAdvance, subTotal);
+  const applyAmount =
+    applyAdvance && (billingType === 'NORMAL' || billingType === 'FINAL')
+      ? Math.max(0, Math.min(remainingAdvance, subTotal, Number.isFinite(rawApply) ? rawApply : defaultApply))
+      : 0;
+  const totalAmount =
+    billingType === 'ADVANCE'
+      ? parseFloat(advanceAmountOnly) || 0
+      : applyAdvance
+        ? Math.max(0, subTotal - applyAmount)
+        : subTotal;
 
   const handleSubmit = async () => {
     if (!selectedInquiry) {
       alert('Please select a customer');
+      return;
+    }
+    if (billingType === 'ADVANCE') {
+      const adv = parseFloat(advanceAmountOnly) || 0;
+      if (adv <= 0) {
+        alert('Enter advance amount');
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const res = await api.post('/billing', {
+          inquiryId: selectedInquiry._id,
+          customerName: selectedInquiry.customerName,
+          projectName: selectedInquiry.projectDescription ? selectedInquiry.projectDescription.slice(0, 100) : undefined,
+          phoneNumber: selectedInquiry.phoneNumber,
+          items: [],
+          subTotal: 0,
+          advanceApplied: 0,
+          totalAmount: adv,
+          billingType: 'ADVANCE',
+          companyName: companyName.trim() || undefined,
+          address: address.trim() || undefined,
+          email: email.trim() || undefined,
+          billingDate: new Date(billingDate).toISOString(),
+        });
+        if (res.success) navigate('/billing');
+        else alert(res.error?.message || 'Failed to create bill');
+      } catch (err) {
+        console.error(err);
+        alert('Failed to create bill');
+      } finally {
+        setSubmitting(false);
+      }
       return;
     }
     const mappedItems = items
@@ -126,7 +193,9 @@ export default function CreateBilling() {
       alert('Add at least one billing item with amount');
       return;
     }
-    const total = calculateTotal();
+    const sub = calculateSubTotal();
+    const advApplied = applyAdvance ? applyAmount : 0;
+    const total = applyAdvance ? Math.max(0, sub - advApplied) : sub;
     setSubmitting(true);
     try {
       const res = await api.post('/billing', {
@@ -135,7 +204,10 @@ export default function CreateBilling() {
         projectName: selectedInquiry.projectDescription ? selectedInquiry.projectDescription.slice(0, 100) : undefined,
         phoneNumber: selectedInquiry.phoneNumber,
         items: mappedItems,
+        subTotal: sub,
+        advanceApplied: advApplied,
         totalAmount: total,
+        billingType,
         companyName: companyName.trim() || undefined,
         address: address.trim() || undefined,
         email: email.trim() || undefined,
@@ -358,81 +430,161 @@ export default function CreateBilling() {
                   <CreditCard size={18} />
                   <h3>Billing Information</h3>
                 </div>
-                <p className={styles.itemsHint}>Use negative amount to decrease total (e.g. -500)</p>
+
                 <div className={styles.formGroup}>
-                  <table className={styles.itemsTable}>
-                    <thead>
-                      <tr>
-                        <th>Number</th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((row, index) => (
-                        <tr key={index}>
-                          <td>
-                            <input
-                              type="text"
-                              value={row.number}
-                              onChange={(e) => updateItem(index, 'number', e.target.value)}
-                              placeholder="No."
-                              className={styles.itemInput}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="text"
-                              value={row.description}
-                              onChange={(e) => updateItem(index, 'description', e.target.value)}
-                              placeholder="Description"
-                              className={styles.itemInput}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="number"
-                              step="any"
-                              value={row.amount}
-                              onChange={(e) => updateItem(index, 'amount', e.target.value)}
-                              placeholder="0 or -"
-                              className={styles.itemInput}
-                            />
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              onClick={() => removeItem(index)}
-                              disabled={items.length <= 1}
-                              className={styles.removeItemBtn}
-                              title="Remove row"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  <button type="button" onClick={addItem} className={styles.addItemBtn}>
-                    <Plus size={16} />
-                    {items.length === 0 ? 'Add Billing Item' : 'Add another Item'}
-                  </button>
+                  <label>Bill Type</label>
+                  <select
+                    value={billingType}
+                    onChange={(e) => setBillingType(e.target.value as BillingType)}
+                    className={styles.inputParam}
+                  >
+                    <option value="NORMAL">Normal</option>
+                    <option value="ADVANCE">Advance</option>
+                    <option value="FINAL">Final</option>
+                  </select>
                 </div>
+
+                {billingType === 'ADVANCE' ? (
+                  <div className={styles.formGroup}>
+                    <label>Advance Amount (LKR)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      value={advanceAmountOnly}
+                      onChange={(e) => setAdvanceAmountOnly(e.target.value)}
+                      placeholder="e.g. 5000"
+                      className={styles.inputParam}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <p className={styles.itemsHint}>Use negative amount to decrease total (e.g. -500)</p>
+                    <div className={styles.formGroup}>
+                      <table className={styles.itemsTable}>
+                        <thead>
+                          <tr>
+                            <th>Number</th>
+                            <th>Description</th>
+                            <th>Amount</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {items.map((row, index) => (
+                            <tr key={index}>
+                              <td>
+                                <input
+                                  type="text"
+                                  value={row.number}
+                                  onChange={(e) => updateItem(index, 'number', e.target.value)}
+                                  placeholder="No."
+                                  className={styles.itemInput}
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="text"
+                                  value={row.description}
+                                  onChange={(e) => updateItem(index, 'description', e.target.value)}
+                                  placeholder="Description"
+                                  className={styles.itemInput}
+                                />
+                              </td>
+                              <td>
+                                <input
+                                  type="number"
+                                  step="any"
+                                  value={row.amount}
+                                  onChange={(e) => updateItem(index, 'amount', e.target.value)}
+                                  placeholder="0 or -"
+                                  className={styles.itemInput}
+                                />
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  onClick={() => removeItem(index)}
+                                  disabled={items.length <= 1}
+                                  className={styles.removeItemBtn}
+                                  title="Remove row"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <button type="button" onClick={addItem} className={styles.addItemBtn}>
+                        <Plus size={16} />
+                        {items.length === 0 ? 'Add Billing Item' : 'Add another Item'}
+                      </button>
+                    </div>
+
+                    {selectedInquiry?._id && (remainingAdvance > 0 || applyAdvance) && (
+                      <div className={styles.formGroup}>
+                        <label className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            checked={applyAdvance}
+                            onChange={(e) => {
+                              setApplyAdvance(e.target.checked);
+                              if (e.target.checked && advanceApplyAmount === '') {
+                                setAdvanceApplyAmount(String(Math.min(remainingAdvance, subTotal)));
+                              }
+                            }}
+                          />
+                          Apply Advance Payment
+                        </label>
+                        {applyAdvance && (
+                          <>
+                            <div className={styles.advanceRemaining}>
+                              Remaining Advance: LKR {remainingAdvance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label>Apply amount (LKR)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max={Math.min(remainingAdvance, subTotal)}
+                                step="any"
+                                value={advanceApplyAmount}
+                                onChange={(e) => setAdvanceApplyAmount(e.target.value)}
+                                placeholder={String(Math.min(remainingAdvance, subTotal))}
+                                className={styles.inputParam}
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    <div className={styles.summaryRow}>
+                      <span>Sub Total</span>
+                      <span>LKR {subTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    {applyAdvance && applyAmount > 0 && (
+                      <div className={styles.summaryRow}>
+                        <span>− Advance applied</span>
+                        <span>LKR {applyAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 <div className={styles.totalCostContainer}>
                   <div className={styles.totalCostLabel}>Total Amount</div>
                   <div className={styles.totalCostDisplay}>
                     <div className={styles.totalCostAmount}>
-                      LKR {calculateTotal().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      LKR {totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
                   </div>
                 </div>
 
                 <button
                   onClick={handleSubmit}
-                  disabled={submitting || !selectedInquiry}
+                  disabled={submitting || !selectedInquiry || (billingType === 'ADVANCE' && totalAmount <= 0)}
                   className={styles.submitBtn}
                 >
                   {submitting ? 'Creating...' : 'Create Bill'}

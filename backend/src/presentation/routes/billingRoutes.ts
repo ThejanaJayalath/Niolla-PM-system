@@ -1,6 +1,6 @@
 import multer from 'multer';
 import { Router } from 'express';
-import { body, param, validationResult } from 'express-validator';
+import { body, param, query, validationResult } from 'express-validator';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import {
   createBilling,
@@ -11,6 +11,7 @@ import {
   uploadBillingTemplate,
   getBillingTemplateInfo,
   downloadBillingPdf,
+  getRemainingAdvance,
 } from '../controllers/BillingController';
 
 const upload = multer({
@@ -41,10 +42,13 @@ router.post(
     body('phoneNumber').optional().trim(),
     body('inquiryId').optional().isMongoId(),
     body('items').isArray().withMessage('Items must be an array'),
-    body('items.*.amount').isNumeric().withMessage('Item amount must be a number'),
+    body('items.*.amount').optional().isNumeric(),
     body('items.*.number').optional().trim(),
     body('items.*.description').optional().trim(),
+    body('subTotal').optional().isNumeric(),
+    body('advanceApplied').optional().isNumeric(),
     body('totalAmount').isNumeric().withMessage('Total amount is required'),
+    body('billingType').optional().isIn(['NORMAL', 'ADVANCE', 'FINAL']),
     body('companyName').optional().trim(),
     body('address').optional().trim(),
     body('email').optional().trim(),
@@ -55,6 +59,7 @@ router.post(
 );
 
 router.get('/', listBillings);
+router.get('/remaining-advance', [query('inquiryId').notEmpty().isMongoId().withMessage('inquiryId is required')], validate, getRemainingAdvance);
 router.get('/template', getBillingTemplateInfo);
 router.post('/template', upload.single('template'), uploadBillingTemplate);
 router.get('/:id/pdf', [param('id').isMongoId()], validate, downloadBillingPdf);
@@ -71,7 +76,10 @@ router.patch(
     body('items.*.amount').optional().isNumeric(),
     body('items.*.number').optional().trim(),
     body('items.*.description').optional().trim(),
+    body('subTotal').optional().isNumeric(),
+    body('advanceApplied').optional().isNumeric(),
     body('totalAmount').optional().isNumeric(),
+    body('billingType').optional().isIn(['NORMAL', 'ADVANCE', 'FINAL']),
   ],
   validate,
   updateBilling

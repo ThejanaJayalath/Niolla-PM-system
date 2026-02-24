@@ -29,19 +29,30 @@ export async function createBilling(req: AuthenticatedRequest, res: Response): P
     projectName,
     phoneNumber,
     items,
+    subTotal,
+    advanceApplied,
     totalAmount,
+    billingType,
     companyName,
     address,
     email,
     billingDate,
   } = req.body;
+  const itemsArr = Array.isArray(items) ? items : [];
+  const sub = Number(subTotal);
+  const adv = Number(advanceApplied) || 0;
+  const total = Number(totalAmount);
+  const type = billingType === 'ADVANCE' || billingType === 'FINAL' ? billingType : 'NORMAL';
   const billing = await billingService.create({
     inquiryId,
     customerName,
     projectName,
     phoneNumber,
-    items: Array.isArray(items) ? items : [],
-    totalAmount: Number(totalAmount),
+    items: itemsArr,
+    subTotal: Number.isNaN(sub) ? 0 : sub,
+    advanceApplied: adv,
+    totalAmount: Number.isNaN(total) ? 0 : total,
+    billingType: type,
     companyName,
     address,
     email,
@@ -113,7 +124,10 @@ export async function updateBilling(req: AuthenticatedRequest, res: Response): P
     email,
     billingDate,
     items,
+    subTotal,
+    advanceApplied,
     totalAmount,
+    billingType,
   } = req.body;
   const update: Record<string, unknown> = {};
   if (companyName !== undefined) update.companyName = companyName;
@@ -121,13 +135,26 @@ export async function updateBilling(req: AuthenticatedRequest, res: Response): P
   if (email !== undefined) update.email = email;
   if (billingDate !== undefined) update.billingDate = new Date(billingDate);
   if (items !== undefined) update.items = items;
+  if (subTotal !== undefined) update.subTotal = Number(subTotal);
+  if (advanceApplied !== undefined) update.advanceApplied = Number(advanceApplied);
   if (totalAmount !== undefined) update.totalAmount = Number(totalAmount);
+  if (billingType !== undefined) update.billingType = billingType;
   const billing = await billingService.update(id, update as import('../../application/services/BillingService').UpdateBillingInput);
   if (!billing) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Billing not found' } });
     return;
   }
   res.json({ success: true, data: billing });
+}
+
+export async function getRemainingAdvance(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const inquiryId = req.query.inquiryId as string;
+  if (!inquiryId) {
+    res.status(400).json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'inquiryId is required' } });
+    return;
+  }
+  const remaining = await billingService.getRemainingAdvance(inquiryId);
+  res.json({ success: true, data: { remainingAdvance: remaining } });
 }
 
 export async function getBillingTemplateInfo(req: AuthenticatedRequest, res: Response): Promise<void> {

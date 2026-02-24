@@ -19,7 +19,10 @@ interface Billing {
   projectName?: string;
   phoneNumber?: string;
   items: BillingItem[];
+  subTotal?: number;
+  advanceApplied?: number;
   totalAmount: number;
+  billingType?: 'NORMAL' | 'ADVANCE' | 'FINAL';
   companyName?: string;
   address?: string;
   email?: string;
@@ -51,10 +54,31 @@ export default function BillingDetail() {
   const [email, setEmail] = useState('');
   const [billingDate, setBillingDate] = useState('');
   const [items, setItems] = useState<ItemRow[]>([]);
+  const [applyAdvance, setApplyAdvance] = useState(false);
+  const [advanceApplyAmount, setAdvanceApplyAmount] = useState('');
+  const [remainingAdvance, setRemainingAdvance] = useState(0);
 
   useEffect(() => {
     loadBilling();
   }, [id]);
+
+  const inquiryId = billing?.inquiryId && typeof billing.inquiryId === 'object' && '_id' in billing.inquiryId
+    ? (billing.inquiryId as { _id: string })._id
+    : typeof billing?.inquiryId === 'string'
+      ? billing.inquiryId
+      : undefined;
+
+  useEffect(() => {
+    if (!inquiryId || !isEditing) {
+      setRemainingAdvance(0);
+      return;
+    }
+    (async () => {
+      const res = await api.get<{ remainingAdvance: number }>(`/billing/remaining-advance?inquiryId=${inquiryId}`);
+      if (res.success && res.data) setRemainingAdvance(res.data.remainingAdvance ?? 0);
+      else setRemainingAdvance(0);
+    })();
+  }, [inquiryId, isEditing]);
 
   const loadBilling = async () => {
     if (!id) return;
@@ -85,11 +109,22 @@ export default function BillingDetail() {
           }))
         : [{ number: '', description: '', amount: '' }]
     );
+    setApplyAdvance((data.advanceApplied ?? 0) > 0);
+    setAdvanceApplyAmount((data.advanceApplied ?? 0) > 0 ? String(data.advanceApplied) : '');
   };
 
-  const calculateTotal = () => {
+  const calculateSubTotal = () => {
     return items.reduce((sum, row) => sum + (parseFloat(row.amount) || 0), 0);
   };
+
+  const subTotalEdit = calculateSubTotal();
+  const rawApply = parseFloat(advanceApplyAmount);
+  const defaultApply = Math.min(remainingAdvance, subTotalEdit);
+  const advanceAppliedEdit =
+    applyAdvance && inquiryId
+      ? Math.max(0, Math.min(remainingAdvance, subTotalEdit, Number.isFinite(rawApply) ? rawApply : defaultApply))
+      : 0;
+  const totalEdit = Math.max(0, subTotalEdit - advanceAppliedEdit);
 
   const handleSave = async () => {
     if (!id) return;
@@ -102,7 +137,9 @@ export default function BillingDetail() {
           description: i.description.trim() || undefined,
           amount: parseFloat(i.amount) || 0,
         }));
-      const total = mappedItems.length > 0 ? mappedItems.reduce((s, i) => s + i.amount, 0) : billing?.totalAmount ?? 0;
+      const subTotal = mappedItems.length > 0 ? mappedItems.reduce((s, i) => s + i.amount, 0) : (billing?.subTotal ?? 0);
+      const advanceApplied = applyAdvance ? advanceAppliedEdit : 0;
+      const totalAmount = Math.max(0, subTotal - advanceApplied);
 
       const res = await api.patch<Billing>(`/billing/${id}`, {
         companyName: companyName.trim() || undefined,
@@ -110,7 +147,9 @@ export default function BillingDetail() {
         email: email.trim() || undefined,
         billingDate: billingDate ? new Date(billingDate).toISOString() : undefined,
         items: mappedItems.length > 0 ? mappedItems : undefined,
-        totalAmount: mappedItems.length > 0 ? total : undefined,
+        subTotal,
+        advanceApplied,
+        totalAmount,
       });
 
       if (res.success && res.data) {
@@ -183,8 +222,12 @@ export default function BillingDetail() {
   if (!billing) return <div className={styles.container}>Billing not found</div>;
 
   const displayItems = isEditing ? items : billing.items;
-  const displayTotal = isEditing ? calculateTotal() : billing.totalAmount;
-  const hasNoItems = !isEditing && (!billing.items || billing.items.length === 0);
+  const displaySubTotal = isEditing
+    ? subTotalEdit
+    : (billing.subTotal ?? (billing.items?.length ? billing.items.reduce((s, i) => s + Number(i.amount), 0) : 0));
+  const displayAdvanceApplied = isEditing ? advanceAppliedEdit : (billing.advanceApplied ?? 0);
+  const displayTotal = isEditing ? totalEdit : billing.totalAmount;
+  const hasNoItems = !isEditing && (!billing.items || billing.items.length === 0) && billing.billingType !== 'ADVANCE';
 
   return (
     <div className={styles.container}>
@@ -333,6 +376,15 @@ export default function BillingDetail() {
                   <CreditCard size={18} />
                   <h3>Billing Information</h3>
                 </div>
+                {billing.billingType === 'ADVANCE' && !isEditing && (
+                  <div className={styles.formGroup}>
+                    <div className={styles.summaryRow}>
+                      <span>Advance amount</span>
+                      <span>LKR {billing.totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                  </div>
+                )}
+                {(billing.billingType !== 'ADVANCE' || isEditing) && (
                 <div className={styles.formGroup}>
                   <table className={styles.milestonesTable}>
                     <thead>
@@ -432,6 +484,59 @@ export default function BillingDetail() {
                     </button>
                   )}
                 </div>
+                )}
+
+                {billing.billingType !== 'ADVANCE' && (
+                  <>
+                    <div className={styles.summaryRow}>
+                      <span>Sub Total</span>
+                      <span>LKR {displaySubTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    </div>
+                    {isEditing && inquiryId && (remainingAdvance > 0 || applyAdvance) && (
+                      <div className={styles.formGroup}>
+                        <label className={styles.checkboxLabel}>
+                          <input
+                            type="checkbox"
+                            checked={applyAdvance}
+                            onChange={(e) => {
+                              setApplyAdvance(e.target.checked);
+                              if (e.target.checked && advanceApplyAmount === '') {
+                                setAdvanceApplyAmount(String(Math.min(remainingAdvance, subTotalEdit)));
+                              }
+                            }}
+                          />
+                          Apply Advance Payment
+                        </label>
+                        {applyAdvance && (
+                          <>
+                            <div className={styles.advanceRemaining}>
+                              Remaining Advance: LKR {remainingAdvance.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </div>
+                            <div className={styles.formGroup}>
+                              <label>Apply amount (LKR)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                max={Math.min(remainingAdvance, subTotalEdit)}
+                                step="any"
+                                value={advanceApplyAmount}
+                                onChange={(e) => setAdvanceApplyAmount(e.target.value)}
+                                className={styles.milestoneInput}
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    {displayAdvanceApplied > 0 && (
+                      <div className={styles.summaryRow}>
+                        <span>− Advance applied</span>
+                        <span>LKR {displayAdvanceApplied.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      </div>
+                    )}
+                  </>
+                )}
+
                 <div className={styles.totalCostContainer}>
                   <div className={styles.totalCostLabel}>Total Amount</div>
                   <div className={styles.totalCostDisplay}>

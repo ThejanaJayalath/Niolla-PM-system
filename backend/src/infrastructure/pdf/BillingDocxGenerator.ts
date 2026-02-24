@@ -5,9 +5,10 @@ import { Billing } from '../../domain/entities/Billing';
 /**
  * Fills the invoice/billing Word template.
  * Template placeholders: {{billingId}}, {{billingDate}}, {{customerName}}, {{companyName}},
- * {{address}}, {{email}}, {{phoneNumber}}, and for items use a loop: {#items}{{no}}{{description}}{{amount}}{/items}.
+ * {{address}}, {{email}}, {{phoneNumber}}, and for items use a loop: {{#items}} {{no}} {{description}} {{amount}} {{/items}} (all in one table row).
  * For a single row you can use {{item.no}}, {{item.description}}, {{item.amount}} (first item only).
- * Summary: {{subTotal}}, {{totalAmount}}. Optional sender: {{senderCompanyName}}, {{senderAddress}}, etc.
+ * Summary: {{subTotal}}, {{totalAmount}}. Advance (optional): use {{#advanceApplied}}- Advance Payment = {{advanceApplied}}{{/advanceApplied}} so the line hides when no advance.
+ * Optional sender: {{senderCompanyName}}, {{senderAddress}}, etc.
  */
 
 function formatLkr(value: number): string {
@@ -37,11 +38,12 @@ export function getInvoiceTemplateData(billing: Billing): Record<string, unknown
       }))
     : [{ no: '1', description: '—', amount: formatLkr(0) }];
 
-  const subTotal = billing.items?.length
+  const subTotalComputed = billing.items?.length
     ? billing.items.reduce((sum, it) => sum + Number(it.amount), 0)
-    : billing.totalAmount ?? 0;
-
-  const totalAmount = billing.totalAmount ?? subTotal;
+    : 0;
+  const subTotal = (billing.subTotal ?? subTotalComputed) || billing.totalAmount ?? 0;
+  const advanceAppliedNum = billing.advanceApplied ?? 0;
+  const totalAmount = billing.totalAmount ?? Math.max(0, subTotal - advanceAppliedNum);
 
   const itemFirst = items[0] ?? { no: '1', description: '—', amount: formatLkr(0) };
 
@@ -67,6 +69,7 @@ export function getInvoiceTemplateData(billing: Billing): Record<string, unknown
     items,
     item: itemFirst,
     subTotal: formatLkr(subTotal),
+    advanceApplied: advanceAppliedNum > 0 ? formatLkr(advanceAppliedNum) : null,
     totalAmount: formatLkr(totalAmount),
     total: { amount: formatLkr(totalAmount) },
     senderCompanyName,

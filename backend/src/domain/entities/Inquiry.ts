@@ -12,6 +12,10 @@ export interface Inquiry {
     status: 'CREATED' | 'DOWNLOADED';
   }[];
   status: InquiryStatus;
+  /** Total advance received (from ADVANCE-type bills) for this inquiry. */
+  totalAdvancePaid?: number;
+  /** Total advance already applied (deducted on NORMAL/FINAL bills) for this inquiry. */
+  totalAdvanceUsed?: number;
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string;
