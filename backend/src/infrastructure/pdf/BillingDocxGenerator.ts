@@ -41,7 +41,7 @@ export function getInvoiceTemplateData(billing: Billing): Record<string, unknown
   const subTotalComputed = billing.items?.length
     ? billing.items.reduce((sum, it) => sum + Number(it.amount), 0)
     : 0;
-  const subTotal = (billing.subTotal ?? subTotalComputed) || billing.totalAmount ?? 0;
+  const subTotal = (billing.subTotal ?? subTotalComputed) || (billing.totalAmount ?? 0);
   const advanceAppliedNum = billing.advanceApplied ?? 0;
   const totalAmount = billing.totalAmount ?? Math.max(0, subTotal - advanceAppliedNum);
 
