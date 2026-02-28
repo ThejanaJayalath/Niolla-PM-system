@@ -37,5 +37,6 @@ app.use('/api/v1/proposals', proposalRoutes);
 app.use('/api/v1/billing', billingRoutes);
 app.use('/api/v1/google-oauth', getOAuthStartRouter());
 app.get('/oauth2callback', handleOAuthCallback);
+app.get('/api/oauth2callback', handleOAuthCallback);
 
 app.use(errorHandler);
