@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Plus, Calendar, User, FileText, StickyNote, Mail, Repeat } from 'lucide-react';
+import { X, Plus, Calendar, User, FileText, StickyNote, Mail, Repeat, Users } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './CreateMeetingModal.module.css';
 
@@ -16,6 +16,12 @@ interface Inquiry {
     customerId?: string;
 }
 
+interface TeamMember {
+    _id: string;
+    name: string;
+    email: string;
+}
+
 const RECURRENCE_OPTIONS: { value: '' | string; label: string; rrule?: string }[] = [
     { value: '', label: 'None' },
     { value: 'daily5', label: 'Daily (5 times)', rrule: 'RRULE:FREQ=DAILY;COUNT=5' },
@@ -29,6 +35,10 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
     const [inquiries, setInquiries] = useState<Inquiry[]>([]);
     const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
     const [searchInquiry, setSearchInquiry] = useState('');
+    const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+    const [selectedTeamMemberIds, setSelectedTeamMemberIds] = useState<string[]>([]);
+    const [showTeamMemberDropdown, setShowTeamMemberDropdown] = useState(false);
+    const [searchTeamMember, setSearchTeamMember] = useState('');
 
     const [formData, setFormData] = useState({
         inquiryId: initialInquiryId || '',
@@ -46,6 +56,7 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
     useEffect(() => {
         if (isOpen) {
             loadInquiries();
+            loadTeamMembers();
             setFormData({
                 inquiryId: initialInquiryId || '',
                 customerName: '',
@@ -61,6 +72,9 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
             setError(null);
             setSearchInquiry('');
             setShowCustomerDropdown(false);
+            setSelectedTeamMemberIds([]);
+            setShowTeamMemberDropdown(false);
+            setSearchTeamMember('');
         }
     }, [isOpen, initialInquiryId]);
 
@@ -78,6 +92,39 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
             }
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const loadTeamMembers = async () => {
+        try {
+            const res = await api.get<TeamMember[]>('/users');
+            if (res.success && res.data) {
+                setTeamMembers(res.data);
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleToggleTeamMember = (member: TeamMember) => {
+        const emailLower = member.email.trim().toLowerCase();
+        const currentEmails = parseAttendees(formData.attendeesText);
+        const isSelected = selectedTeamMemberIds.includes(member._id);
+
+        if (isSelected) {
+            setSelectedTeamMemberIds(prev => prev.filter(id => id !== member._id));
+            setFormData(prev => ({
+                ...prev,
+                attendeesText: currentEmails.filter(e => e !== emailLower).join('\n'),
+            }));
+        } else {
+            setSelectedTeamMemberIds(prev => [...prev, member._id]);
+            if (!currentEmails.includes(emailLower)) {
+                setFormData(prev => ({
+                    ...prev,
+                    attendeesText: (prev.attendeesText.trim() ? prev.attendeesText.trim() + '\n' : '') + member.email,
+                }));
+            }
         }
     };
 
@@ -148,6 +195,23 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
         inq.customerName.toLowerCase().includes(searchInquiry.toLowerCase()) ||
         (inq.customerId && inq.customerId.toLowerCase().includes(searchInquiry.toLowerCase()))
     );
+
+    const filteredTeamMembers = teamMembers.filter(m =>
+        m.name.toLowerCase().includes(searchTeamMember.toLowerCase()) ||
+        m.email.toLowerCase().includes(searchTeamMember.toLowerCase())
+    );
+
+    // Keep selected team members in sync when user edits the attendees textarea
+    useEffect(() => {
+        if (!isOpen || teamMembers.length === 0) return;
+        const emailsInText = parseAttendees(formData.attendeesText);
+        const ids = teamMembers
+            .filter(m => emailsInText.includes(m.email.trim().toLowerCase()))
+            .map(m => m._id);
+        setSelectedTeamMemberIds(prev =>
+            prev.length === ids.length && prev.every((id, i) => id === ids[i]) ? prev : ids
+        );
+    }, [formData.attendeesText, isOpen, teamMembers]);
 
     if (!isOpen) return null;
 
@@ -271,6 +335,59 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                                     <option value={90}>1.5 hr</option>
                                     <option value={120}>2 hr</option>
                                 </select>
+                            </div>
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label>
+                                <Users size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+                                Team members
+                            </label>
+                            <div className={styles.addCustomerWrap}>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowTeamMemberDropdown(!showTeamMemberDropdown);
+                                        setShowCustomerDropdown(false);
+                                    }}
+                                    className={styles.addCustomerBtn}
+                                >
+                                    <Plus size={16} />
+                                    {selectedTeamMemberIds.length > 0
+                                        ? `${selectedTeamMemberIds.length} team member(s) selected`
+                                        : 'Select team members'}
+                                </button>
+                                {showTeamMemberDropdown && (
+                                    <div className={styles.dropdown}>
+                                        <div className={styles.dropdownSearch}>
+                                            <input
+                                                type="text"
+                                                placeholder="Search team members..."
+                                                value={searchTeamMember}
+                                                onChange={e => setSearchTeamMember(e.target.value)}
+                                                autoFocus
+                                            />
+                                        </div>
+                                        {filteredTeamMembers.length > 0 ? (
+                                            filteredTeamMembers.map(member => (
+                                                <button
+                                                    key={member._id}
+                                                    type="button"
+                                                    onClick={() => handleToggleTeamMember(member)}
+                                                    className={styles.dropdownItem}
+                                                >
+                                                    <div className={styles.dropdownItemName}>
+                                                        {member.name}
+                                                        {selectedTeamMemberIds.includes(member._id) && ' ✓'}
+                                                    </div>
+                                                    <div className={styles.dropdownItemMeta}>{member.email}</div>
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className={styles.dropdownEmpty}>No team members found</div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
