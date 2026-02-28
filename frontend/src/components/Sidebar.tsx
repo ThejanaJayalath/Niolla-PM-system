@@ -12,6 +12,7 @@ import {
     Settings,
     Users,
     User,
+    UserCircle,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,6 +28,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
         { icon: FileText, label: 'Work Logs', path: '/work-logs' },
         { icon: TrendingUp, label: 'Performance', path: '/performance' },
         { icon: CreditCard, label: 'Billing', path: '/billing' },
+        { icon: UserCircle, label: 'Customer', path: '/customer' },
     ];
 
     const leadsItems = [
