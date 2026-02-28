@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { X } from 'lucide-react';
+import { X, Lock } from 'lucide-react';
+import MaintenanceModal from './MaintenanceModal';
 import {
     LayoutDashboard,
     FolderKanban,
@@ -21,6 +23,8 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
+    const [meetingsMaintenanceOpen, setMeetingsMaintenanceOpen] = useState(false);
+
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
         { icon: FolderKanban, label: 'Projects', path: '/projects' },
@@ -34,7 +38,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
     const leadsItems = [
         { icon: MessageSquare, label: 'Inquiries', path: '/inquiries' },
         { icon: FileText, label: 'Proposal', path: '/proposals' },
-        { icon: Calendar, label: 'Meetings', path: '/meetings' },
+        { icon: Calendar, label: 'Meetings', path: '/meetings', locked: true },
     ];
 
     const adminItems = [
@@ -45,6 +49,12 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
 
     return (
         <>
+            <MaintenanceModal
+                open={meetingsMaintenanceOpen}
+                title="Meetings temporarily unavailable"
+                message="Meeting function closed temporarily due to maintenance."
+                onClose={() => setMeetingsMaintenanceOpen(false)}
+            />
             {/* Mobile sidebar */}
             <div
                 className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-orange-100 flex flex-col font-sans transform transition-transform duration-300 ease-in-out lg:hidden ${
@@ -102,29 +112,45 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             LEADS MANAGEMENT
                         </h3>
                         <nav className="space-y-1">
-                            {leadsItems.map((item) => (
-                                <NavLink
-                                    key={item.label}
-                                    to={item.path}
-                                    onClick={onClose}
-                                    className={({ isActive }) =>
-                                        `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
-                                            ? 'bg-sidebar-active text-gray-900 shadow-sm'
-                                            : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
-                                        }`
-                                    }
-                                >
-                                    {({ isActive }) => (
-                                        <>
-                                            <item.icon
-                                                size={20}
-                                                className={isActive ? 'text-gray-900' : 'text-gray-500'}
-                                            />
-                                            {item.label}
-                                        </>
-                                    )}
-                                </NavLink>
-                            ))}
+                            {leadsItems.map((item) =>
+                                (item as { locked?: boolean }).locked ? (
+                                    <button
+                                        key={item.label}
+                                        type="button"
+                                        onClick={() => {
+                                            setMeetingsMaintenanceOpen(true);
+                                            onClose?.();
+                                        }}
+                                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-500 hover:bg-white/50 hover:text-gray-700 w-full text-left"
+                                    >
+                                        <item.icon size={20} className="text-gray-400" />
+                                        {item.label}
+                                        <Lock size={14} className="ml-auto text-gray-400" />
+                                    </button>
+                                ) : (
+                                    <NavLink
+                                        key={item.label}
+                                        to={item.path}
+                                        onClick={onClose}
+                                        className={({ isActive }) =>
+                                            `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
+                                                ? 'bg-sidebar-active text-gray-900 shadow-sm'
+                                                : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                                            }`
+                                        }
+                                    >
+                                        {({ isActive }) => (
+                                            <>
+                                                <item.icon
+                                                    size={20}
+                                                    className={isActive ? 'text-gray-900' : 'text-gray-500'}
+                                                />
+                                                {item.label}
+                                            </>
+                                        )}
+                                    </NavLink>
+                                )
+                            )}
                         </nav>
                     </div>
 
@@ -204,28 +230,41 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             LEADS MANAGEMENT
                         </h3>
                         <nav className="space-y-1">
-                            {leadsItems.map((item) => (
-                                <NavLink
-                                    key={item.label}
-                                    to={item.path}
-                                    className={({ isActive }) =>
-                                        `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
-                                            ? 'bg-sidebar-active text-gray-900 shadow-sm'
-                                            : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
-                                        }`
-                                    }
-                                >
-                                    {({ isActive }) => (
-                                        <>
-                                            <item.icon
-                                                size={20}
-                                                className={isActive ? 'text-gray-900' : 'text-gray-500'}
-                                            />
-                                            {item.label}
-                                        </>
-                                    )}
-                                </NavLink>
-                            ))}
+                            {leadsItems.map((item) =>
+                                (item as { locked?: boolean }).locked ? (
+                                    <button
+                                        key={item.label}
+                                        type="button"
+                                        onClick={() => setMeetingsMaintenanceOpen(true)}
+                                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-500 hover:bg-white/50 hover:text-gray-700 w-full text-left"
+                                    >
+                                        <item.icon size={20} className="text-gray-400" />
+                                        {item.label}
+                                        <Lock size={14} className="ml-auto text-gray-400" />
+                                    </button>
+                                ) : (
+                                    <NavLink
+                                        key={item.label}
+                                        to={item.path}
+                                        className={({ isActive }) =>
+                                            `flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
+                                                ? 'bg-sidebar-active text-gray-900 shadow-sm'
+                                                : 'text-gray-600 hover:bg-white/50 hover:text-gray-900'
+                                            }`
+                                        }
+                                    >
+                                        {({ isActive }) => (
+                                            <>
+                                                <item.icon
+                                                    size={20}
+                                                    className={isActive ? 'text-gray-900' : 'text-gray-500'}
+                                                />
+                                                {item.label}
+                                            </>
+                                        )}
+                                    </NavLink>
+                                )
+                            )}
                         </nav>
                     </div>
 

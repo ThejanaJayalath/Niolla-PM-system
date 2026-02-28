@@ -67,6 +67,16 @@
   color: #f59e0b;
 }
 
+.iconMaintenance svg {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.iconWrap.iconMaintenance svg {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
 .title {
   margin: 0 0 0.75rem;
   font-size: 1.25rem;
