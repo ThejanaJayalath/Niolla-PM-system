@@ -9,6 +9,28 @@ The app stores the Google refresh token **in the database**. When the token expi
 3. Sign in with Google in the popup and allow access.
 4. The popup closes and the new token is saved automatically. No `.env` or restart needed.
 
+### "localhost refused to connect" or redirect goes to localhost after sign-in
+
+When the app is **deployed** (e.g. https://niollanexa.vercel.app) but the backend still has the **default** redirect URI (`http://localhost:5000/oauth2callback`), Google redirects to localhost after sign-in and the browser shows "This site can't be reached".
+
+**Fix:** Set the backend’s **production** callback URL in both places:
+
+1. **Backend (Vercel) → Environment Variables**  
+   Add or edit:
+   - `GOOGLE_OAUTH_REDIRECT_URI` = **your backend’s public URL** + `/oauth2callback`  
+   - If the API is on the same domain as the frontend:  
+     `https://niollanexa.vercel.app/oauth2callback`  
+   - If the API is on a different domain (e.g. another Vercel project):  
+     `https://your-backend-domain.vercel.app/oauth2callback`
+   - `FRONTEND_URL` = `https://niollanexa.vercel.app`
+
+2. **Google Cloud Console** → APIs & Services → Credentials → your OAuth 2.0 Client → **Authorized redirect URIs**  
+   Add the **exact same** URL as `GOOGLE_OAUTH_REDIRECT_URI` (e.g. `https://niollanexa.vercel.app/oauth2callback`).
+
+3. **Redeploy the backend** so the new env is applied.
+
+After that, when you click **Reconnect Google Calendar**, Google will redirect to your deployed backend and the flow will complete.
+
 ---
 
 ## What the error means

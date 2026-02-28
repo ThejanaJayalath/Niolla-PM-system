@@ -17,19 +17,33 @@ function handleGoogleCalendarError(err: unknown, res: Response): boolean {
       : undefined;
   console.error('[Reminder] Google Calendar error:', message, details ?? err);
 
-  // In development, show the real error so users can fix OAuth/env
+  const isTokenError =
+    message.includes('invalid_grant') ||
+    message.includes('expired') ||
+    message.includes('revoked') ||
+    message.includes('Token has been');
   const isEnvError = message.includes('must be set in .env') || message.includes('GOOGLE_');
-  const displayMessage =
-    process.env.NODE_ENV !== 'production' && (isEnvError || message)
-      ? message
-      : 'Calendar operation failed. Check OAuth and env (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN).';
+
+  let displayMessage: string;
+  if (isTokenError) {
+    displayMessage =
+      'Google Calendar connection expired or was revoked. Reconnect in Settings to create meetings with Meet links.';
+  } else if (process.env.NODE_ENV !== 'production' && (isEnvError || message)) {
+    displayMessage = message;
+  } else if (isEnvError) {
+    displayMessage =
+      'Calendar not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and reconnect in Settings.';
+  } else {
+    displayMessage =
+      'Calendar operation failed. Reconnect Google Calendar in Settings and try again.';
+  }
 
   res.status(502).json({
     success: false,
     error: {
       code: 'GOOGLE_MEET_ERROR',
       message: displayMessage,
-      detail: process.env.NODE_ENV !== 'production' && !isEnvError ? String(message) : undefined,
+      detail: process.env.NODE_ENV !== 'production' && !isTokenError && !isEnvError ? String(message) : undefined,
       ...(process.env.NODE_ENV !== 'production' && details ? { googleResponse: details } : {}),
     },
   });

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { X, Plus, Calendar, User, FileText, StickyNote, Mail, Repeat, Users } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './CreateMeetingModal.module.css';
@@ -52,6 +53,7 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
         sendInvites: true,
         recurrence: '',
     });
+    const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
 
     useEffect(() => {
         if (isOpen) {
@@ -70,6 +72,7 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                 recurrence: '',
             });
             setError(null);
+            setErrorCode(undefined);
             setSearchInquiry('');
             setShowCustomerDropdown(false);
             setSelectedTeamMemberIds([]);
@@ -182,10 +185,12 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                 onClose();
             } else {
                 setError(res.error?.message || 'Failed to create meeting');
+                setErrorCode(res.error?.code);
             }
         } catch (err) {
             console.error(err);
             setError('Failed to create meeting. Check your connection and try again.');
+            setErrorCode(undefined);
         } finally {
             setLoading(false);
         }
@@ -270,6 +275,17 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                         {error && (
                             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
                                 {error}
+                                {errorCode === 'GOOGLE_MEET_ERROR' && (
+                                    <div className="mt-2">
+                                        <Link
+                                            to="/settings"
+                                            onClick={() => onClose()}
+                                            className="font-medium underline hover:no-underline"
+                                        >
+                                            Reconnect Google Calendar in Settings →
+                                        </Link>
+                                    </div>
+                                )}
                             </div>
                         )}
 
