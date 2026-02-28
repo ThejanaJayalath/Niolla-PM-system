@@ -1,6 +1,7 @@
 import { Inquiry, InquiryStatus } from '../../domain/entities/Inquiry';
 import { InquiryModel } from '../../infrastructure/database/models/InquiryModel';
 import { CustomerService } from './CustomerService';
+import { ProposalService } from './ProposalService';
 
 export interface CreateInquiryInput {
   customerName: string;
@@ -22,6 +23,7 @@ export interface UpdateInquiryInput {
 
 export class InquiryService {
   private customerService = new CustomerService();
+  private proposalService = new ProposalService();
 
   async create(data: CreateInquiryInput): Promise<{ inquiry: Inquiry; duplicatePhone: boolean }> {
     const normalizedPhone = this.normalizePhone(data.phoneNumber);
@@ -74,10 +76,17 @@ export class InquiryService {
     if (inquiry && data.status === 'CONFIRMED') {
       const existing = await this.customerService.findByInquiryId(String(inquiry._id));
       if (!existing) {
+        const proposals = await this.proposalService.findAllByInquiryId(String(inquiry._id));
+        const projectTitles = [...new Set(
+          proposals.map((p) => p.projectName).filter((t): t is string => Boolean(t))
+        )];
+        const projects = projectTitles.length > 0
+          ? projectTitles
+          : [inquiry.projectDescription].filter(Boolean);
         await this.customerService.create({
           name: inquiry.customerName,
           phoneNumber: inquiry.phoneNumber,
-          projects: [inquiry.projectDescription].filter(Boolean),
+          projects,
           inquiryId: String(inquiry._id),
         });
       }

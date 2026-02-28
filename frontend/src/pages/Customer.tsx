@@ -133,7 +133,11 @@ export default function Customer() {
                     <td className="px-6 py-4 text-gray-600">{c.phoneNumber}</td>
                     <td className="px-6 py-4 text-gray-600">{c.email || '—'}</td>
                     <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={(c.projects || []).join(', ')}>
-                      {(c.projects && c.projects.length) ? c.projects.join(', ') : '—'}
+                      {(c.projects && c.projects.length)
+                        ? c.projects.length === 1
+                          ? c.projects[0]
+                          : `${c.projects[0]} • +${c.projects.length - 1} more`
+                        : '—'}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-center items-center gap-2">
