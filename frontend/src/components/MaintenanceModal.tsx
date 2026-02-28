@@ -34,7 +34,7 @@ export default function MaintenanceModal({
         <h3 className={styles.title}>{title}</h3>
         <p className={styles.message}>{message}</p>
         <div className={styles.actions} style={{ gridTemplateColumns: '1fr' }}>
-          <button type="button" className={styles.confirmBtn} onClick={onClose}>
+          <button type="button" className={styles.maintenanceOkBtn} onClick={onClose}>
             OK
           </button>
         </div>

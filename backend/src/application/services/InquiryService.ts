@@ -1,5 +1,6 @@
 import { Inquiry, InquiryStatus } from '../../domain/entities/Inquiry';
 import { InquiryModel } from '../../infrastructure/database/models/InquiryModel';
+import { CustomerService } from './CustomerService';
 
 export interface CreateInquiryInput {
   customerName: string;
@@ -20,6 +21,8 @@ export interface UpdateInquiryInput {
 }
 
 export class InquiryService {
+  private customerService = new CustomerService();
+
   async create(data: CreateInquiryInput): Promise<{ inquiry: Inquiry; duplicatePhone: boolean }> {
     const normalizedPhone = this.normalizePhone(data.phoneNumber);
     const existing = await InquiryModel.findOne({ phoneNumber: normalizedPhone });
@@ -67,7 +70,19 @@ export class InquiryService {
     const update: Record<string, unknown> = { ...data };
     if (data.phoneNumber) update.phoneNumber = this.normalizePhone(data.phoneNumber);
     const doc = await InquiryModel.findByIdAndUpdate(id, update, { new: true, runValidators: false });
-    return doc ? (doc.toObject() as unknown as Inquiry) : null;
+    const inquiry = doc ? (doc.toObject() as unknown as Inquiry) : null;
+    if (inquiry && data.status === 'CONFIRMED') {
+      const existing = await this.customerService.findByInquiryId(String(inquiry._id));
+      if (!existing) {
+        await this.customerService.create({
+          name: inquiry.customerName,
+          phoneNumber: inquiry.phoneNumber,
+          projects: [inquiry.projectDescription].filter(Boolean),
+          inquiryId: String(inquiry._id),
+        });
+      }
+    }
+    return inquiry;
   }
 
   async delete(id: string): Promise<boolean> {
