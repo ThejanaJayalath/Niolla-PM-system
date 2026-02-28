@@ -36,10 +36,27 @@ The project’s `vercel.json` now rewrites `/oauth2callback` to the API, and the
 
 Google shows this when the **redirect URI** in your OAuth request does not **exactly** match one of the **Authorized redirect URIs** in Google Cloud Console.
 
-- In **Vercel**, `GOOGLE_OAUTH_REDIRECT_URI` must be exactly the same string as in Google Console (e.g. `https://niollanexa.vercel.app/oauth2callback`).
-- **No trailing slash** – use `https://niollanexa.vercel.app/oauth2callback`, not `.../oauth2callback/`.
-- **Same scheme** – use `https` in production, not `http`.
-- In **Google Cloud Console** → Credentials → your OAuth client → **Authorized redirect URIs**, add that exact URL. Save and try again.
+**Step 1 – See what your app sends**
+
+Open this URL in your browser (use your real app URL if different):
+
+- **Production:** https://niollanexa.vercel.app/api/v1/google-oauth/redirect-uri  
+- **Local:** http://localhost:5000/api/v1/google-oauth/redirect-uri  
+
+You’ll see JSON with `redirectUri`. Copy that **exact** value (e.g. `https://niollanexa.vercel.app/oauth2callback` or `http://localhost:5000/oauth2callback`).
+
+**Step 2 – Add it in Google Cloud Console**
+
+1. Go to [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials).
+2. Open your **OAuth 2.0 Client ID** (Web application).
+3. Under **Authorized redirect URIs**, click **ADD URI** and paste the **exact** `redirectUri` from Step 1.
+4. Remove any old or different URIs for this app (e.g. with a trailing slash or `http` instead of `https`).
+5. Click **Save**.
+
+**Step 3 – If the app showed the wrong URI**
+
+- If you saw `http://localhost:5000/oauth2callback` on **production**, the backend env is not set. In **Vercel** → your project → **Settings** → **Environment Variables**, add `GOOGLE_OAUTH_REDIRECT_URI` = `https://niollanexa.vercel.app/oauth2callback` (no trailing slash), then **redeploy**.
+- The value must match exactly: same scheme (`https` in production), no trailing slash, same host.
 
 ---
 

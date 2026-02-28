@@ -13,6 +13,16 @@ const SCOPES = ['https://www.googleapis.com/auth/calendar'];
  */
 export function getOAuthStartRouter(): Router {
   const router = Router();
+
+  /** Debug: see exactly which redirect_uri the app uses. Add this exact URL in Google Cloud Console → Credentials → Authorized redirect URIs. */
+  router.get('/redirect-uri', (_req: Request, res: Response) => {
+    const redirectUri = process.env.GOOGLE_OAUTH_REDIRECT_URI || 'http://localhost:5000/oauth2callback';
+    res.json({
+      redirectUri,
+      hint: 'Add this exact string to Google Cloud Console → APIs & Services → Credentials → your OAuth 2.0 Client → Authorized redirect URIs',
+    });
+  });
+
   router.get('/start', (_req: Request, res: Response) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
