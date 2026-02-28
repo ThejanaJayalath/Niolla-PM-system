@@ -26,7 +26,7 @@ export function getOAuthStartRouter(): Router {
     const oauth2Client = new google.auth.OAuth2(clientId, clientSecret, REDIRECT_URI);
     const authUrl = oauth2Client.generateAuthUrl({
       access_type: 'offline',
-      prompt: 'consent',
+      prompt: 'select_account consent',
       scope: SCOPES,
     });
     res.redirect(authUrl);

@@ -6,7 +6,7 @@ The app stores the Google refresh token **in the database**. When the token expi
 
 1. Go to **Settings** in the app.
 2. Under **Google Calendar & Meet**, click **Reconnect Google Calendar**.
-3. Sign in with Google in the popup and allow access.
+3. In the popup, **choose the Google account** you want to link (or add another), then allow calendar access.
 4. The popup closes and the new token is saved automatically. No `.env` or restart needed.
 
 ### "localhost refused to connect" or redirect goes to localhost after sign-in
@@ -31,6 +31,15 @@ APIs & Services → Credentials → your OAuth 2.0 Client → **Authorized redir
 **3. Code change (already done)**
 
 The project’s `vercel.json` now rewrites `/oauth2callback` to the API, and the backend handles both `/oauth2callback` and `/api/oauth2callback`. After you set the env vars and redeploy, **Reconnect Google Calendar** will complete without going to localhost.
+
+### "Error 400: redirect_uri_mismatch"
+
+Google shows this when the **redirect URI** in your OAuth request does not **exactly** match one of the **Authorized redirect URIs** in Google Cloud Console.
+
+- In **Vercel**, `GOOGLE_OAUTH_REDIRECT_URI` must be exactly the same string as in Google Console (e.g. `https://niollanexa.vercel.app/oauth2callback`).
+- **No trailing slash** – use `https://niollanexa.vercel.app/oauth2callback`, not `.../oauth2callback/`.
+- **Same scheme** – use `https` in production, not `http`.
+- In **Google Cloud Console** → Credentials → your OAuth client → **Authorized redirect URIs**, add that exact URL. Save and try again.
 
 ---
 
