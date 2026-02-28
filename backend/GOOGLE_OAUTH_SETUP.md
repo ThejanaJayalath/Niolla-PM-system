@@ -79,6 +79,8 @@ Restart the backend so it reloads env (e.g. stop and run `npm run dev` again).
 
 **Optional:** Set `FRONTEND_URL=http://localhost:3000` (or your frontend URL) so that after OAuth the browser redirects to your app; defaults to `http://localhost:3000`.
 
+**Production (Vercel):** Set `FRONTEND_URL=https://niollanexa.vercel.app` in the **backend** project’s Vercel Environment Variables so the OAuth callback redirects users back to your app.
+
 ---
 
 ## 5. See the real error (development)

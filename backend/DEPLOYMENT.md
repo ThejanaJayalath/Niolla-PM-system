@@ -15,8 +15,9 @@ Set these in your host (e.g. Vercel → Project → Settings → Environment Var
 
 ### Optional (Google OAuth redirect for production)
 
-- `GOOGLE_OAUTH_REDIRECT_URI` – e.g. `https://your-api.vercel.app/oauth2callback`  
-  Add this exact URL in Google Cloud Console → APIs & Services → Credentials → your OAuth 2.0 Client → Authorized redirect URIs.
+- `GOOGLE_OAUTH_REDIRECT_URI` – Your **backend** callback URL, e.g. `https://your-backend.vercel.app/oauth2callback`.  
+  Add this exact URL in Google Cloud Console → APIs & Services → Credentials → your OAuth 2.0 Client → **Authorized redirect URIs**.
+- `FRONTEND_URL` – Your frontend base URL so the app redirects back after OAuth, e.g. `https://niollanexa.vercel.app`.
 
 ## Notes
 
