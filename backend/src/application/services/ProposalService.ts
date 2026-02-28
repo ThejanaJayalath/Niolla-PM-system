@@ -1,6 +1,7 @@
 import { Proposal, ProposalMilestone } from '../../domain/entities/Proposal';
 import { InquiryModel } from '../../infrastructure/database/models/InquiryModel';
 import { ProposalModel } from '../../infrastructure/database/models/ProposalModel';
+import { CustomerService } from './CustomerService';
 
 export interface CreateProposalInput {
   inquiryId: string;
@@ -16,6 +17,8 @@ export interface CreateProposalInput {
 }
 
 export class ProposalService {
+  private customerService = new CustomerService();
+
   async create(data: CreateProposalInput): Promise<Proposal> {
     const inquiry = await InquiryModel.findById(data.inquiryId);
     if (!inquiry) throw new Error('Inquiry not found');
@@ -61,6 +64,20 @@ export class ProposalService {
       // Auto-update status to PROPOSAL_SENT
       $set: { status: 'PROPOSAL_SENT' },
     });
+
+    // If a customer exists for this inquiry, add the new projectName to their projects
+    const projectName = proposal.projectName ?? data.projectName;
+    if (projectName?.trim()) {
+      const customer = await this.customerService.findByInquiryId(data.inquiryId);
+      if (customer && customer._id) {
+        const existing = customer.projects || [];
+        if (!existing.includes(projectName.trim())) {
+          await this.customerService.update(customer._id, {
+            projects: [...existing, projectName.trim()],
+          });
+        }
+      }
+    }
 
     return proposal.toObject() as unknown as Proposal;
   }
