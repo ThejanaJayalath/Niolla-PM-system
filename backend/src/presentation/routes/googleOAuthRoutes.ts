@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { google } from 'googleapis';
+import { setGoogleRefreshToken } from '../../application/services/IntegrationService';
 
 // For Vercel: set GOOGLE_OAUTH_REDIRECT_URI=https://your-api.vercel.app/oauth2callback in env and add that URL in Google Cloud OAuth client.
 const REDIRECT_URI = process.env.GOOGLE_OAUTH_REDIRECT_URI || 'http://localhost:5000/oauth2callback';
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
 /**
@@ -58,17 +60,13 @@ export async function handleOAuthCallback(req: Request, res: Response): Promise<
         <p>You may have already granted access. Try revoking the app at
         <a href="https://myaccount.google.com/permissions" target="_blank">Google Account permissions</a>
         and run the flow again from <a href="/api/v1/google-oauth/start">/api/v1/google-oauth/start</a>.</p>
-        <p>Make sure <strong>niollanexa@gmail.com</strong> is added as a Test user in OAuth consent screen.</p>
+        <p>Make sure your account is added as a Test user in OAuth consent screen (if app is in Testing).</p>
       `);
       return;
     }
-    res.send(`
-      <h2>Refresh token generated</h2>
-      <p>Add this to your <code>.env</code> file:</p>
-      <pre style="background:#f4f4f4;padding:12px;overflow:auto;">GOOGLE_REFRESH_TOKEN=${refreshToken}</pre>
-      <p>Then restart your backend.</p>
-      <p><small>You can close this tab.</small></p>
-    `);
+    await setGoogleRefreshToken(refreshToken);
+    const callbackUrl = `${FRONTEND_URL.replace(/\/$/, '')}/google-oauth-callback?success=1`;
+    res.redirect(callbackUrl);
   } catch (err) {
     console.error('OAuth token exchange error:', err);
     res.status(500).send(

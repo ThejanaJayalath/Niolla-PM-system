@@ -1,16 +1,23 @@
 import { google } from 'googleapis';
+import { getGoogleRefreshToken } from './IntegrationService';
 
 const CALENDAR_ID = 'primary';
 const DEFAULT_DURATION_MINUTES = 60;
 const TIMEZONE = 'Asia/Colombo';
 
-function getOAuth2Client() {
+async function getOAuth2Client() {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) {
+  if (!clientId || !clientSecret) {
     throw new Error(
-      'GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN must be set in .env (OAuth2).'
+      'GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in .env (OAuth2).'
+    );
+  }
+  const refreshToken =
+    (await getGoogleRefreshToken()) || process.env.GOOGLE_REFRESH_TOKEN || '';
+  if (!refreshToken) {
+    throw new Error(
+      'No Google Calendar refresh token. Connect Google Calendar in Settings (or set GOOGLE_REFRESH_TOKEN in .env).'
     );
   }
   const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
@@ -22,7 +29,7 @@ function getOAuth2Client() {
 async function withCalendarAuth<T>(
   fn: (calendar: ReturnType<typeof google.calendar>) => Promise<T>
 ): Promise<T> {
-  const auth = getOAuth2Client();
+  const auth = await getOAuth2Client();
   const calendar = google.calendar({ version: 'v3', auth });
   try {
     return await fn(calendar);

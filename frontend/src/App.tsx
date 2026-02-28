@@ -13,6 +13,7 @@ import ProposalDetail from './pages/ProposalDetail';
 import Meetings from './pages/Meetings';
 import MeetingDetail from './pages/MeetingDetail';
 import Settings from './pages/Settings';
+import GoogleOAuthCallback from './pages/GoogleOAuthCallback';
 import Profile from './pages/Profile';
 import TeamManagement from './pages/TeamManagement';
 import EmployeeDetail from './pages/EmployeeDetail';
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="billing/new" element={<CreateBilling />} />
         <Route path="billing/:id" element={<BillingDetail />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="google-oauth-callback" element={<GoogleOAuthCallback />} />
         <Route path="profile" element={<Profile />} />
         <Route path="team" element={<TeamManagement />} />
         <Route path="team/:id" element={<EmployeeDetail />} />

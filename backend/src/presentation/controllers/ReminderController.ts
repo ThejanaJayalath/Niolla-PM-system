@@ -16,12 +16,20 @@ function handleGoogleCalendarError(err: unknown, res: Response): boolean {
       ? (err as { response?: { data?: unknown } }).response?.data
       : undefined;
   console.error('[Reminder] Google Calendar error:', message, details ?? err);
+
+  // In development, show the real error so users can fix OAuth/env
+  const isEnvError = message.includes('must be set in .env') || message.includes('GOOGLE_');
+  const displayMessage =
+    process.env.NODE_ENV !== 'production' && (isEnvError || message)
+      ? message
+      : 'Calendar operation failed. Check OAuth and env (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN).';
+
   res.status(502).json({
     success: false,
     error: {
       code: 'GOOGLE_MEET_ERROR',
-      message: 'Calendar operation failed. Check OAuth and env (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN).',
-      detail: process.env.NODE_ENV !== 'production' ? String(message) : undefined,
+      message: displayMessage,
+      detail: process.env.NODE_ENV !== 'production' && !isEnvError ? String(message) : undefined,
       ...(process.env.NODE_ENV !== 'production' && details ? { googleResponse: details } : {}),
     },
   });
