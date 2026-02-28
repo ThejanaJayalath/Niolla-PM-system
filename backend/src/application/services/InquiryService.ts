@@ -76,10 +76,17 @@ export class InquiryService {
     if (inquiry && data.status === 'CONFIRMED') {
       const existing = await this.customerService.findByInquiryId(String(inquiry._id));
       if (!existing) {
-        const proposals = await this.proposalService.findAllByInquiryId(String(inquiry._id));
-        const projectTitles = [...new Set(
-          proposals.map((p) => p.projectName).filter((t): t is string => Boolean(t))
-        )];
+        // Prefer Project Titles stored in inquiry's proposals array (same as Proposal tab's Project Name)
+        const fromInquiry = (inquiry.proposals || [])
+          .map((p) => p.projectName)
+          .filter((t): t is string => Boolean(t));
+        let projectTitles = [...new Set(fromInquiry)];
+        if (projectTitles.length === 0) {
+          const proposals = await this.proposalService.findAllByInquiryId(String(inquiry._id));
+          projectTitles = [...new Set(
+            proposals.map((p) => p.projectName).filter((t): t is string => Boolean(t))
+          )];
+        }
         const projects = projectTitles.length > 0
           ? projectTitles
           : [inquiry.projectDescription].filter(Boolean);

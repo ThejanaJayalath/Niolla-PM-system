@@ -12,6 +12,7 @@ export interface InquiryDocument extends Document {
     _id: string;
     createdAt: Date;
     status: 'CREATED' | 'DOWNLOADED';
+    projectName?: string;
   }[];
   status: InquiryStatus;
   totalAdvancePaid: number;
@@ -35,9 +36,10 @@ const inquirySchema = new Schema<InquiryDocument>(
     internalNotes: { type: String },
     proposals: [
       {
-        _id: { type: String, required: true }, // Using string ID for simplicity or ObjectId if referencing a Proposal collection later
+        _id: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
         status: { type: String, enum: ['CREATED', 'DOWNLOADED'], default: 'CREATED' },
+        projectName: { type: String },
       },
     ],
     status: {

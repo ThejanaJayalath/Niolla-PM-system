@@ -48,17 +48,18 @@ export class ProposalService {
       notes: data.notes,
     });
 
-    // Link proposal to Inquiry
+    // Link proposal to Inquiry (include Project Title so it's stored in inquiry tab)
     await InquiryModel.findByIdAndUpdate(data.inquiryId, {
       $push: {
         proposals: {
-          _id: proposal._id,
+          _id: String(proposal._id),
           createdAt: proposal.createdAt,
-          status: 'CREATED'
-        }
+          status: 'CREATED',
+          projectName: proposal.projectName ?? data.projectName,
+        },
       },
       // Auto-update status to PROPOSAL_SENT
-      $set: { status: 'PROPOSAL_SENT' }
+      $set: { status: 'PROPOSAL_SENT' },
     });
 
     return proposal.toObject() as unknown as Proposal;
@@ -87,9 +88,9 @@ export class ProposalService {
     const proposal = await ProposalModel.findById(id);
     if (!proposal) return false;
 
-    // Remove from Inquiry
+    // Remove from Inquiry (match _id as string, same as when we $push)
     await InquiryModel.findByIdAndUpdate(proposal.inquiryId, {
-      $pull: { proposals: { _id: proposal._id } }
+      $pull: { proposals: { _id: String(proposal._id) } },
     });
 
     await ProposalModel.findByIdAndDelete(id);
@@ -110,10 +111,18 @@ export class ProposalService {
           maintenanceNote: data.maintenanceNote,
           validUntil: data.validUntil,
           notes: data.notes,
-        }
+        },
       },
       { new: true }
     );
+    if (proposal && data.projectName !== undefined) {
+      const proposalIdStr = String(proposal._id);
+      await InquiryModel.updateOne(
+        { 'proposals._id': proposalIdStr },
+        { $set: { 'proposals.$[p].projectName': data.projectName } },
+        { arrayFilters: [{ 'p._id': proposalIdStr }] }
+      );
+    }
     return proposal ? (proposal.toObject() as unknown as Proposal) : null;
   }
 }

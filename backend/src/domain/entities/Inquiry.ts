@@ -10,6 +10,7 @@ export interface Inquiry {
     _id: string;
     createdAt: Date;
     status: 'CREATED' | 'DOWNLOADED';
+    projectName?: string;
   }[];
   status: InquiryStatus;
   /** Total advance received (from ADVANCE-type bills) for this inquiry. */
