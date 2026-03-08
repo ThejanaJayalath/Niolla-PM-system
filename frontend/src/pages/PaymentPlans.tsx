@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, CalendarCheck } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AddPaymentPlanModal from '../components/AddPaymentPlanModal';
@@ -34,6 +34,9 @@ export default function PaymentPlans() {
   const [editPlan, setEditPlan] = useState<PaymentPlan | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [generatePlanId, setGeneratePlanId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
 
   const loadPlans = async () => {
     try {
@@ -94,6 +97,26 @@ export default function PaymentPlans() {
       if (res?.success !== false) await loadPlans();
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleGenerateInstallments = async () => {
+    const planId = generatePlanId;
+    if (!planId) return;
+    setGenerating(true);
+    setGenerateError(null);
+    try {
+      const res = await api.post<unknown>(`/installments/generate`, { planId });
+      if (res?.success) {
+        setGeneratePlanId(null);
+        await loadPlans();
+      } else {
+        setGenerateError(res?.error?.message || 'Failed to generate installments');
+      }
+    } catch (err) {
+      setGenerateError(err instanceof Error ? err.message : 'Failed to generate installments');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -205,6 +228,14 @@ export default function PaymentPlans() {
                       <div className="flex justify-center items-center gap-2">
                         <button
                           type="button"
+                          onClick={() => setGeneratePlanId(p._id)}
+                          className="p-2 text-gray-600 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors"
+                          title="Generate installments"
+                        >
+                          <CalendarCheck size={18} />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => handleEdit(p)}
                           className="p-2 text-gray-600 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors"
                           title="Edit"
@@ -288,6 +319,37 @@ export default function PaymentPlans() {
         danger
         onConfirm={handleDelete}
         onCancel={() => !deleting && setDeleteId(null)}
+      />
+
+      <ConfirmDialog
+        open={!!generatePlanId}
+        title="Generate Installments"
+        message={
+          generateError
+            ? generateError
+            : (() => {
+                const plan = plans.find((x) => x._id === generatePlanId);
+                const n = plan?.totalInstallments ?? 0;
+                return `Create ${n} installment(s) for this plan? You can view and manage them under Installments.`;
+              })()
+        }
+        confirmLabel={generateError ? 'OK' : generating ? 'Generating…' : 'Generate'}
+        cancelLabel="Cancel"
+        danger={!!generateError}
+        onConfirm={
+          generateError
+            ? () => {
+                setGeneratePlanId(null);
+                setGenerateError(null);
+              }
+            : handleGenerateInstallments
+        }
+        onCancel={() => {
+          if (!generating) {
+            setGeneratePlanId(null);
+            setGenerateError(null);
+          }
+        }}
       />
     </div>
   );
