@@ -15,6 +15,7 @@ import {
     Users,
     User,
     UserCircle,
+    Wallet,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -28,6 +29,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
         { icon: FolderKanban, label: 'Projects', path: '/projects' },
+        { icon: Wallet, label: 'Payment Plans', path: '/payment-plans' },
         { icon: ListTodo, label: 'Tasks', path: '/tasks' },
         { icon: FileText, label: 'Work Logs', path: '/work-logs' },
         { icon: TrendingUp, label: 'Performance', path: '/performance' },

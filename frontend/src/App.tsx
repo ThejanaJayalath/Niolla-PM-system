@@ -22,6 +22,7 @@ import BillingDetail from './pages/BillingDetail';
 import CreateBilling from './pages/CreateBilling';
 import Customer from './pages/Customer';
 import Projects from './pages/Projects';
+import PaymentPlans from './pages/PaymentPlans';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="billing/:id" element={<BillingDetail />} />
         <Route path="customer" element={<Customer />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="payment-plans" element={<PaymentPlans />} />
         <Route path="settings" element={<Settings />} />
         <Route path="google-oauth-callback" element={<GoogleOAuthCallback />} />
         <Route path="profile" element={<Profile />} />
