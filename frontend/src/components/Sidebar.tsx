@@ -21,6 +21,7 @@ import {
     User,
     UserCircle,
     Wallet,
+    ScrollText,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -56,6 +57,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
     const adminItems = [
         { icon: Settings, label: 'Settings', path: '/settings' },
         { icon: Users, label: 'Team Management', path: '/team' },
+        { icon: ScrollText, label: 'Audit', path: '/audit' },
         { icon: User, label: 'Profile', path: '/profile' },
     ];
 

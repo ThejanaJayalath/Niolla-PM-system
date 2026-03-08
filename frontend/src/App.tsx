@@ -28,6 +28,7 @@ import Payments from './pages/Payments';
 import Invoices from './pages/Invoices';
 import PaymentNotifications from './pages/PaymentNotifications';
 import Reports from './pages/Reports';
+import Audit from './pages/Audit';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -71,6 +72,7 @@ export default function App() {
         <Route path="invoices" element={<Invoices />} />
         <Route path="notifications" element={<PaymentNotifications />} />
         <Route path="reports" element={<Reports />} />
+        <Route path="audit" element={<Audit />} />
         <Route path="settings" element={<Settings />} />
         <Route path="google-oauth-callback" element={<GoogleOAuthCallback />} />
         <Route path="profile" element={<Profile />} />

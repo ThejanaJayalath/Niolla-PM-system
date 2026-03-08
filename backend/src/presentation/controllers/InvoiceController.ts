@@ -23,6 +23,16 @@ export async function getInvoice(req: AuthenticatedRequest, res: Response): Prom
   res.json({ success: true, data: invoice });
 }
 
+/** Mark invoice as emailed (sets emailedAt). Actual email can be wired later via nodemailer/SendGrid. */
+export async function sendInvoiceEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const invoice = await invoiceService.markEmailed(req.params.id);
+  if (!invoice) {
+    res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Invoice not found' } });
+    return;
+  }
+  res.json({ success: true, data: invoice });
+}
+
 export async function downloadInvoicePdf(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const invoice = await invoiceService.findById(req.params.id);

@@ -78,6 +78,16 @@ export class InvoiceService {
     return docs.map((d) => this.toInvoice(d));
   }
 
+  async markEmailed(id: string): Promise<Invoice | null> {
+    const doc = await InvoiceModel.findByIdAndUpdate(
+      id,
+      { $set: { emailedAt: new Date() } },
+      { new: true }
+    )
+      .populate('clientId', 'name companyName email');
+    return doc ? this.toInvoice(doc) : null;
+  }
+
   private toInvoice(doc: { toObject: () => Record<string, unknown> }): Invoice {
     const o = doc.toObject();
     const client = o.clientId as { _id?: unknown; name?: string; companyName?: string } | null;

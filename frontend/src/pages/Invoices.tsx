@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileDown } from 'lucide-react';
+import { FileDown, Mail } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './Inquiries.module.css';
 
@@ -14,6 +14,7 @@ interface Invoice {
   discountAmt?: number;
   status: 'draft' | 'sent' | 'paid';
   clientName?: string;
+  emailedAt?: string;
 }
 
 interface CustomerOption {
@@ -29,6 +30,7 @@ export default function Invoices() {
   const [clientFilter, setClientFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const loadInvoices = async () => {
     try {
@@ -74,6 +76,18 @@ export default function Invoices() {
       console.error(err);
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleSendEmail = async (inv: Invoice) => {
+    setSendingId(inv._id);
+    try {
+      const res = await api.patch<Invoice>(`/invoices/${inv._id}/send-email`, {});
+      if (res?.success && res.data) setInvoices((prev) => prev.map((i) => (i._id === inv._id ? { ...i, emailedAt: res.data!.emailedAt } : i)));
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSendingId(null);
     }
   };
 
@@ -133,19 +147,20 @@ export default function Invoices() {
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Date</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Total Amount</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Status</th>
+              <th className="px-6 py-4 text-orange-500 font-bold text-sm">Emailed</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm !text-center">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y-0">
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                   Loading...
                 </td>
               </tr>
             ) : invoices.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                   No invoices yet. Invoices are created automatically when you record a payment.
                 </td>
               </tr>
@@ -164,8 +179,18 @@ export default function Invoices() {
                         {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-gray-600 text-sm">{inv.emailedAt ? formatDate(inv.emailedAt) : '—'}</td>
                     <td className="px-6 py-4">
                       <div className="flex justify-center items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSendEmail(inv)}
+                          disabled={sendingId === inv._id}
+                          className="p-2 text-gray-600 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="Mark as sent by email"
+                        >
+                          <Mail size={18} />
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleDownloadPdf(inv)}
@@ -181,7 +206,7 @@ export default function Invoices() {
                 ))}
                 {Array.from({ length: Math.max(0, rowsPerPage - paginated.length) }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="h-[60px]">
-                    {Array.from({ length: 6 }).map((_, i) => (
+                    {Array.from({ length: 7 }).map((_, i) => (
                       <td key={i} className="px-6 py-4">&nbsp;</td>
                     ))}
                   </tr>
