@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, FolderKanban, Percent, DollarSign, Hash, Calendar } from 'lucide-react';
+import { X, FolderKanban, Percent, Hash, Calendar } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './NewInquiryModal.module.css';
 
