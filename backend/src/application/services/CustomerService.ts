@@ -7,6 +7,11 @@ export interface CreateCustomerInput {
   email?: string;
   projects?: string[];
   inquiryId?: string;
+  address?: string;
+  businessType?: string;
+  companyName?: string;
+  nicNumber?: string;
+  status?: 'active' | 'inactive';
 }
 
 export interface UpdateCustomerInput {
@@ -14,6 +19,11 @@ export interface UpdateCustomerInput {
   phoneNumber?: string;
   email?: string;
   projects?: string[];
+  address?: string;
+  businessType?: string;
+  companyName?: string;
+  nicNumber?: string;
+  status?: 'active' | 'inactive';
 }
 
 export class CustomerService {
@@ -34,6 +44,11 @@ export class CustomerService {
       email: data.email?.trim() || undefined,
       projects: Array.isArray(data.projects) ? data.projects : [],
       inquiryId: data.inquiryId || undefined,
+      address: data.address?.trim() || undefined,
+      businessType: data.businessType?.trim() || undefined,
+      companyName: data.companyName?.trim() || undefined,
+      nicNumber: data.nicNumber?.trim() || undefined,
+      status: data.status || 'active',
     });
     return this.toCustomer(doc);
   }
@@ -57,6 +72,8 @@ export class CustomerService {
         { phoneNumber: searchRegex },
         { email: searchRegex },
         { customerId: searchRegex },
+        { companyName: searchRegex },
+        { nicNumber: searchRegex },
       ];
     }
     const docs = await CustomerModel.find(query).sort({ createdAt: -1 });
@@ -67,6 +84,10 @@ export class CustomerService {
     const update: Record<string, unknown> = { ...data };
     if (data.phoneNumber !== undefined) update.phoneNumber = this.normalizePhone(data.phoneNumber);
     if (data.projects !== undefined) update.projects = Array.isArray(data.projects) ? data.projects : [];
+    if (data.address !== undefined) update.address = data.address?.trim() || undefined;
+    if (data.businessType !== undefined) update.businessType = data.businessType?.trim() || undefined;
+    if (data.companyName !== undefined) update.companyName = data.companyName?.trim() || undefined;
+    if (data.nicNumber !== undefined) update.nicNumber = data.nicNumber?.trim() || undefined;
     const doc = await CustomerModel.findByIdAndUpdate(id, update, { new: true });
     return doc ? this.toCustomer(doc) : null;
   }
@@ -86,6 +107,11 @@ export class CustomerService {
       email: o.email as string | undefined,
       projects: (o.projects as string[]) || [],
       inquiryId: o.inquiryId ? (o.inquiryId as { toString: () => string }).toString() : undefined,
+      address: o.address as string | undefined,
+      businessType: o.businessType as string | undefined,
+      companyName: o.companyName as string | undefined,
+      nicNumber: o.nicNumber as string | undefined,
+      status: o.status as 'active' | 'inactive' | undefined,
       createdAt: o.createdAt as Date,
       updatedAt: o.updatedAt as Date,
     };

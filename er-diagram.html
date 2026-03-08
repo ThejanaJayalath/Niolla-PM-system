@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ER Diagram – Client Payment Management System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+
+  :root {
+    --bg: #0a0d12;
+    --surface: #111520;
+    --border: #1e2535;
+    --accent1: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #f59e0b;
+    --accent4: #10b981;
+    --accent5: #ef4444;
+    --accent6: #ec4899;
+    --accent7: #3b82f6;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --line: rgba(0,229,255,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: auto;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 32px 48px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    background: linear-gradient(180deg, rgba(0,229,255,0.04) 0%, transparent 100%);
+  }
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+  header h1 span { color: var(--accent1); }
+  .badge {
+    background: rgba(0,229,255,0.08);
+    border: 1px solid rgba(0,229,255,0.25);
+    color: var(--accent1);
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 18px 48px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.015);
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 2px;
+  }
+
+  /* ── Canvas ── */
+  .canvas {
+    padding: 48px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 32px;
+    position: relative;
+  }
+
+  /* ── Entity card ── */
+  .entity {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .entity:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  }
+  .entity::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  /* colour accent per entity */
+  .e-client::before    { background: var(--accent1); }
+  .e-project::before   { background: var(--accent2); }
+  .e-payment::before   { background: var(--accent3); }
+  .e-invoice::before   { background: var(--accent4); }
+  .e-install::before   { background: var(--accent5); }
+  .e-notif::before     { background: var(--accent6); }
+  .e-user::before      { background: var(--accent7); }
+  .e-role::before      { background: #a855f7; }
+  .e-audit::before     { background: var(--accent3); }
+  .e-gateway::before   { background: var(--accent4); }
+  .e-report::before    { background: var(--accent1); }
+  .e-system::before    { background: var(--accent5); }
+
+  .entity-header {
+    padding: 14px 16px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .entity-icon {
+    font-size: 16px;
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    flex-shrink: 0;
+  }
+  .entity-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #fff;
+  }
+  .entity-type {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-top: 1px;
+  }
+
+  /* field rows */
+  .fields { padding: 8px 0 10px; }
+  .field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 16px;
+    font-size: 11px;
+    color: #94a3b8;
+    transition: background 0.15s;
+  }
+  .field:hover { background: rgba(255,255,255,0.03); }
+  .field-icon { font-size: 9px; width: 14px; text-align: center; flex-shrink: 0; }
+  .field-name { flex: 1; }
+  .field-type {
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    opacity: 0.7;
+  }
+
+  /* key indicators */
+  .pk { color: var(--accent3); font-weight: 600; }
+  .fk { color: var(--accent1); }
+  .uk { color: var(--accent4); }
+  .req { color: #e2e8f0; }
+
+  /* key badges */
+  .key-badge {
+    font-size: 8px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+  }
+  .key-badge.pk { background: rgba(245,158,11,0.15); color: var(--accent3); border: 1px solid rgba(245,158,11,0.3); }
+  .key-badge.fk { background: rgba(0,229,255,0.08); color: var(--accent1); border: 1px solid rgba(0,229,255,0.2); }
+  .key-badge.uk { background: rgba(16,185,129,0.1); color: var(--accent4); border: 1px solid rgba(16,185,129,0.25); }
+
+  /* divider */
+  .field-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 6px 12px;
+    opacity: 0.5;
+  }
+
+  /* ── Relationship SVG overlay ── */
+  .rel-container {
+    position: absolute;
+    top: 0; left: 0;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  /* ── Relationship labels section ── */
+  .relationships {
+    padding: 32px 48px;
+    border-top: 1px solid var(--border);
+    background: rgba(255,255,255,0.015);
+  }
+  .rel-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 20px;
+    letter-spacing: -0.3px;
+  }
+  .rel-title span { color: var(--accent1); }
+  .rel-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 10px;
+  }
+  .rel-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    font-size: 11px;
+  }
+  .rel-from { color: #fff; font-weight: 600; white-space: nowrap; }
+  .rel-arrow { color: var(--muted); flex: 1; text-align: center; font-size: 13px; }
+  .rel-to { color: #fff; font-weight: 600; white-space: nowrap; }
+  .rel-card {
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(124,58,237,0.15);
+    border: 1px solid rgba(124,58,237,0.3);
+    color: #a78bfa;
+    white-space: nowrap;
+  }
+  .rel-label { color: var(--muted); font-size: 10px; white-space: nowrap; }
+
+  /* ── Notes ── */
+  .notes {
+    padding: 24px 48px 48px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px,1fr));
+    gap: 14px;
+  }
+  .note {
+    padding: 14px 16px;
+    border-radius: 8px;
+    border: 1px solid;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .note.info  { background: rgba(0,229,255,0.05); border-color: rgba(0,229,255,0.2); color: #a0e9f5; }
+  .note.warn  { background: rgba(245,158,11,0.05); border-color: rgba(245,158,11,0.2); color: #fbbf24; }
+  .note.ok    { background: rgba(16,185,129,0.05); border-color: rgba(16,185,129,0.2); color: #6ee7b7; }
+  .note strong { display: block; margin-bottom: 5px; font-family: 'Syne', sans-serif; }
+
+  /* ── Responsive ── */
+  @media (max-width: 1400px) { .canvas { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 1000px) { .canvas { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px)  { .canvas { grid-template-columns: 1fr; padding: 24px; } header, .legend, .relationships, .notes { padding-left: 24px; padding-right: 24px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Client <span>&</span> Payment Management System</h1>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">Entity–Relationship Diagram · Internal System Architecture</div>
+  </div>
+  <span class="badge">ER Diagram v1.0</span>
+</header>
+
+<!-- Legend -->
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent3)"></div> PK — Primary Key</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent1)"></div> FK — Foreign Key</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent4)"></div> UK — Unique Key</div>
+  <div class="legend-item" style="gap:4px;"><span style="color:var(--muted);font-size:12px;">1 ──< N</span> One-to-Many</div>
+  <div class="legend-item" style="gap:4px;"><span style="color:var(--muted);font-size:12px;">N >──< N</span> Many-to-Many</div>
+</div>
+
+<!-- Entity Canvas -->
+<div class="canvas">
+
+  <!-- 1. CLIENT -->
+  <div class="entity e-client">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(0,229,255,0.1);color:var(--accent1)">👤</div>
+      <div><div class="entity-name">CLIENT</div><div class="entity-type">Core Entity</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">client_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">full_name</span><span class="field-type">VARCHAR(150)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">email</span><span class="key-badge uk">UK</span><span class="field-type">VARCHAR(200)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">phone</span><span class="field-type">VARCHAR(20)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">address</span><span class="field-type">TEXT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">business_type</span><span class="field-type">ENUM</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">company_name</span><span class="field-type">VARCHAR(200)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">nic_number</span><span class="field-type">VARCHAR(20)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">status</span><span class="field-type">ENUM(active,inactive)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+    </div>
+  </div>
+
+  <!-- 2. PROJECT -->
+  <div class="entity e-project">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(124,58,237,0.15);color:#a78bfa">🗂️</div>
+      <div><div class="entity-name">PROJECT</div><div class="entity-type">Core Entity</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">project_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">client_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">project_name</span><span class="field-type">VARCHAR(200)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">description</span><span class="field-type">TEXT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">system_type</span><span class="field-type">VARCHAR(100)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">total_value</span><span class="field-type">DECIMAL(12,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">start_date</span><span class="field-type">DATE</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">end_date</span><span class="field-type">DATE</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">status</span><span class="field-type">ENUM(active,completed,cancelled)</span></div>
+    </div>
+  </div>
+
+  <!-- 3. PAYMENT_PLAN -->
+  <div class="entity e-payment">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(245,158,11,0.1);color:var(--accent3)">💳</div>
+      <div><div class="entity-name">PAYMENT_PLAN</div><div class="entity-type">Flexible Plans</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">plan_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">project_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">down_payment_pct</span><span class="field-type">DECIMAL(5,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">down_payment_amt</span><span class="field-type">DECIMAL(12,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">total_installments</span><span class="field-type">INT (3–6)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">installment_amt</span><span class="field-type">DECIMAL(12,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">remaining_balance</span><span class="field-type">DECIMAL(12,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">plan_start_date</span><span class="field-type">DATE</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">status</span><span class="field-type">ENUM(active,completed,defaulted)</span></div>
+    </div>
+  </div>
+
+  <!-- 4. INSTALLMENT -->
+  <div class="entity e-install">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(239,68,68,0.1);color:var(--accent5)">📅</div>
+      <div><div class="entity-name">INSTALLMENT</div><div class="entity-type">Schedule Tracking</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">installment_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">plan_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">installment_no</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">due_date</span><span class="field-type">DATE</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">due_amount</span><span class="field-type">DECIMAL(12,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">paid_amount</span><span class="field-type">DECIMAL(12,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">paid_date</span><span class="field-type">DATE</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">partial_paid</span><span class="field-type">DECIMAL(12,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">status</span><span class="field-type">ENUM(pending,paid,partial,overdue)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">overdue_days</span><span class="field-type">INT (auto)</span></div>
+    </div>
+  </div>
+
+  <!-- 5. PAYMENT_TRANSACTION -->
+  <div class="entity e-payment" style="border-top-color: var(--accent4)">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(16,185,129,0.1);color:var(--accent4)">💰</div>
+      <div><div class="entity-name">PAYMENT_TRANSACTION</div><div class="entity-type">Payment Records</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">transaction_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">installment_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">client_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">gateway_id</span><span class="key-badge fk">FK</span><span class="field-type">INT (nullable)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">amount</span><span class="field-type">DECIMAL(12,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">payment_method</span><span class="field-type">ENUM(cash,bank,card,online)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">reference_no</span><span class="key-badge uk">UK</span><span class="field-type">VARCHAR(100)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">payment_date</span><span class="field-type">DATETIME</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">recorded_by</span><span class="key-badge fk">FK</span><span class="field-type">user_id</span></div>
+    </div>
+  </div>
+
+  <!-- 6. INVOICE -->
+  <div class="entity e-invoice">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(16,185,129,0.12);color:var(--accent4)">🧾</div>
+      <div><div class="entity-name">INVOICE</div><div class="entity-type">Document Generation</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">invoice_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">transaction_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">client_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">invoice_number</span><span class="key-badge uk">UK</span><span class="field-type">VARCHAR(50)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">invoice_date</span><span class="field-type">DATE</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">total_amount</span><span class="field-type">DECIMAL(12,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">tax_amount</span><span class="field-type">DECIMAL(10,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">discount_amt</span><span class="field-type">DECIMAL(10,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">status</span><span class="field-type">ENUM(draft,sent,paid)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">pdf_path</span><span class="field-type">TEXT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">emailed_at</span><span class="field-type">TIMESTAMP</span></div>
+    </div>
+  </div>
+
+  <!-- 7. NOTIFICATION -->
+  <div class="entity e-notif">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(236,72,153,0.1);color:var(--accent6)">🔔</div>
+      <div><div class="entity-name">NOTIFICATION</div><div class="entity-type">Alerts & Reminders</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">notif_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">client_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">installment_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">type</span><span class="field-type">ENUM(sms,email,system)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">trigger_type</span><span class="field-type">ENUM(due_reminder,overdue,receipt)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">scheduled_at</span><span class="field-type">DATETIME</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">sent_at</span><span class="field-type">DATETIME</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">status</span><span class="field-type">ENUM(pending,sent,failed)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">message_body</span><span class="field-type">TEXT</span></div>
+    </div>
+  </div>
+
+  <!-- 8. USER -->
+  <div class="entity e-user">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(59,130,246,0.1);color:var(--accent7)">🧑‍💼</div>
+      <div><div class="entity-name">USER</div><div class="entity-type">System User / Staff</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">user_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">role_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">username</span><span class="key-badge uk">UK</span><span class="field-type">VARCHAR(80)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">full_name</span><span class="field-type">VARCHAR(150)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">email</span><span class="key-badge uk">UK</span><span class="field-type">VARCHAR(200)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">password_hash</span><span class="field-type">VARCHAR(255)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">last_login</span><span class="field-type">TIMESTAMP</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">is_active</span><span class="field-type">BOOLEAN</span></div>
+    </div>
+  </div>
+
+  <!-- 9. ROLE -->
+  <div class="entity e-role">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(168,85,247,0.1);color:#c084fc">🛡️</div>
+      <div><div class="entity-name">ROLE</div><div class="entity-type">Access Control</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">role_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">role_name</span><span class="key-badge uk">UK</span><span class="field-type">ENUM(Admin,Accountant,Support)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">permissions</span><span class="field-type">JSON</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">description</span><span class="field-type">TEXT</span></div>
+    </div>
+  </div>
+
+  <!-- 10. AUDIT_LOG -->
+  <div class="entity e-audit">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(245,158,11,0.08);color:var(--accent3)">📋</div>
+      <div><div class="entity-name">AUDIT_LOG</div><div class="entity-type">Security & Traceability</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">log_id</span><span class="key-badge pk">PK</span><span class="field-type">BIGINT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">user_id</span><span class="key-badge fk">FK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">action</span><span class="field-type">VARCHAR(100)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">table_name</span><span class="field-type">VARCHAR(80)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">record_id</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">old_value</span><span class="field-type">JSON</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">new_value</span><span class="field-type">JSON</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">ip_address</span><span class="field-type">VARCHAR(45)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">created_at</span><span class="field-type">TIMESTAMP</span></div>
+    </div>
+  </div>
+
+  <!-- 11. PAYMENT_GATEWAY -->
+  <div class="entity e-gateway">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(16,185,129,0.08);color:var(--accent4)">🌐</div>
+      <div><div class="entity-name">PAYMENT_GATEWAY</div><div class="entity-type">Integration</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">gateway_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">gateway_name</span><span class="field-type">VARCHAR(100)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">provider</span><span class="field-type">VARCHAR(100)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">api_endpoint</span><span class="field-type">TEXT</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">api_key_ref</span><span class="field-type">VARCHAR(200)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">is_active</span><span class="field-type">BOOLEAN</span></div>
+    </div>
+  </div>
+
+  <!-- 12. REPORT -->
+  <div class="entity e-report">
+    <div class="entity-header">
+      <div class="entity-icon" style="background:rgba(0,229,255,0.08);color:var(--accent1)">📊</div>
+      <div><div class="entity-name">REPORT</div><div class="entity-type">Dashboard / Analytics</div></div>
+    </div>
+    <div class="fields">
+      <div class="field"><span class="field-icon">🔑</span><span class="field-name pk">report_id</span><span class="key-badge pk">PK</span><span class="field-type">INT</span></div>
+      <div class="field"><span class="field-icon">🔗</span><span class="field-name fk">generated_by</span><span class="key-badge fk">FK</span><span class="field-type">user_id</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">report_type</span><span class="field-type">ENUM(monthly,client,overdue,collection)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">period_start</span><span class="field-type">DATE</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name req">period_end</span><span class="field-type">DATE</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">total_received</span><span class="field-type">DECIMAL(15,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">total_pending</span><span class="field-type">DECIMAL(15,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">total_overdue</span><span class="field-type">DECIMAL(15,2)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">export_path</span><span class="field-type">TEXT (xlsx/pdf)</span></div>
+      <div class="field"><span class="field-icon">·</span><span class="field-name">created_at</span><span class="field-type">TIMESTAMP</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Relationships Table -->
+<div class="relationships">
+  <div class="rel-title"><span>⇄</span> Entity Relationships</div>
+  <div class="rel-grid">
+
+    <div class="rel-row">
+      <span class="rel-from">CLIENT</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">PROJECT</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">has many projects</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">PROJECT</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">PAYMENT_PLAN</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">has flexible plans</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">PAYMENT_PLAN</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">INSTALLMENT</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">scheduled (3–6)</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">INSTALLMENT</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">PAYMENT_TRANSACTION</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">partial or full payments</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">PAYMENT_TRANSACTION</span>
+      <span class="rel-arrow">──║</span>
+      <span class="rel-to">INVOICE</span>
+      <span class="rel-card">1 : 1</span>
+      <span class="rel-label">auto-generates receipt</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">CLIENT</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">NOTIFICATION</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">SMS / Email alerts</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">INSTALLMENT</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">NOTIFICATION</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">due / overdue triggers</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">ROLE</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">USER</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">admin / accountant / support</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">USER</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">AUDIT_LOG</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">tracks every action</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">USER</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">PAYMENT_TRANSACTION</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">recorded_by staff</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">PAYMENT_GATEWAY</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">PAYMENT_TRANSACTION</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">online payments (optional)</span>
+    </div>
+
+    <div class="rel-row">
+      <span class="rel-from">USER</span>
+      <span class="rel-arrow">──&lt;</span>
+      <span class="rel-to">REPORT</span>
+      <span class="rel-card">1 : N</span>
+      <span class="rel-label">generates monthly reports</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- Notes -->
+<div class="notes">
+  <div class="note info">
+    <strong>💡 Auto-Calculations</strong>
+    <code>remaining_balance</code> in PAYMENT_PLAN auto-updates via trigger after each PAYMENT_TRANSACTION. <code>overdue_days</code> in INSTALLMENT computed daily via scheduled job.
+  </div>
+  <div class="note warn">
+    <strong>⚠️ Partial Payment Handling</strong>
+    A single INSTALLMENT can have multiple PAYMENT_TRANSACTIONs. Status flips from <em>partial</em> → <em>paid</em> when cumulative paid_amount ≥ due_amount.
+  </div>
+  <div class="note ok">
+    <strong>✅ Role-Based Access</strong>
+    ROLE.permissions stores JSON array of allowed routes/actions. Admin has full CRUD; Accountant limited to payment + invoice modules; Support is read-only with notification send access.
+  </div>
+  <div class="note info">
+    <strong>📤 Export & Integration</strong>
+    REPORT.export_path stores generated XLSX/PDF file references. PAYMENT_GATEWAY.gateway_id is nullable in PAYMENT_TRANSACTION — cash/bank payments don't need a gateway record.
+  </div>
+</div>
+
+</body>
+</html>

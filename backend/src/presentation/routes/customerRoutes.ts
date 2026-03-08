@@ -33,6 +33,11 @@ router.post(
     body('projects').optional().isArray(),
     body('projects.*').optional().trim(),
     body('inquiryId').optional().isMongoId(),
+    body('address').optional().trim(),
+    body('businessType').optional().trim(),
+    body('companyName').optional().trim(),
+    body('nicNumber').optional().trim(),
+    body('status').optional().isIn(['active', 'inactive']),
   ],
   validate,
   createCustomer
@@ -49,6 +54,11 @@ router.patch(
     body('email').optional().trim(),
     body('projects').optional().isArray(),
     body('projects.*').optional().trim(),
+    body('address').optional().trim(),
+    body('businessType').optional().trim(),
+    body('companyName').optional().trim(),
+    body('nicNumber').optional().trim(),
+    body('status').optional().isIn(['active', 'inactive']),
   ],
   validate,
   updateCustomer
