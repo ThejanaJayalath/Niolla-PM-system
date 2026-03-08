@@ -3,6 +3,7 @@ import { PaymentTransactionModel } from '../../infrastructure/database/models/Pa
 import { InstallmentModel } from '../../infrastructure/database/models/InstallmentModel';
 import { InstallmentService } from './InstallmentService';
 import { PaymentPlanService } from './PaymentPlanService';
+import { InvoiceService } from './InvoiceService';
 
 export type PaymentMethod = 'cash' | 'bank' | 'card' | 'online';
 
@@ -23,6 +24,7 @@ export interface ListPaymentTransactionsFilters {
 
 const installmentService = new InstallmentService();
 const paymentPlanService = new PaymentPlanService();
+const invoiceService = new InvoiceService();
 
 export class PaymentTransactionService {
   async create(data: CreatePaymentTransactionInput): Promise<PaymentTransaction> {
@@ -63,6 +65,16 @@ export class PaymentTransactionService {
 
     await installmentService.updatePaidAmount(data.installmentId, amount);
     await paymentPlanService.updateRemainingBalance(planId, amount);
+
+    const invoiceNumber = await invoiceService.getNextInvoiceNumber();
+    await invoiceService.create({
+      transactionId: (doc._id as { toString: () => string }).toString(),
+      clientId,
+      invoiceNumber,
+      invoiceDate: new Date(data.paymentDate),
+      totalAmount: amount,
+      status: 'paid',
+    });
 
     const created = await PaymentTransactionModel.findById(doc._id)
       .populate({
