@@ -137,6 +137,26 @@ export class InstallmentService {
     return !!result;
   }
 
+  /** Update overdue_days and set status to overdue for pending/partial installments past due date. Returns count updated. */
+  async updateOverdueInstallments(): Promise<number> {
+    const now = new Date();
+    const docs = await InstallmentModel.find({
+      status: { $in: ['pending', 'partial'] },
+      dueDate: { $lt: now },
+    });
+    let count = 0;
+    for (const doc of docs) {
+      const due = new Date(doc.dueDate).getTime();
+      const overdueDays = Math.max(0, Math.floor((now.getTime() - due) / 86400000));
+      await InstallmentModel.updateOne(
+        { _id: doc._id },
+        { $set: { overdueDays, status: 'overdue' } }
+      );
+      count += 1;
+    }
+    return count;
+  }
+
   private toInstallment(doc: { toObject: () => Record<string, unknown> }): Installment {
     const o = doc.toObject();
     const planObj = o.planId as { _id?: unknown; projectId?: { projectName?: string } } | null;

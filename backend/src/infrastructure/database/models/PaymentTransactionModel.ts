@@ -25,7 +25,7 @@ const paymentTransactionSchema = new Schema<PaymentTransactionDocument>(
       enum: ['cash', 'bank', 'card', 'online'],
       required: true,
     },
-    referenceNo: { type: String, sparse: true },
+    referenceNo: { type: String, sparse: true, unique: true },
     paymentDate: { type: Date, required: true },
     recordedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   },
