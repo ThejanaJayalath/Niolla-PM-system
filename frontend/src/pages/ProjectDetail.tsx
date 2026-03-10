@@ -33,9 +33,9 @@ interface PaymentPlan {
 
 interface Installment {
     _id: string;
-    installmentNumber: number;
+    installmentNo: number;
     dueDate: string;
-    amount: number;
+    dueAmount: number;
     status: string;
 }
 
@@ -288,7 +288,7 @@ export default function ProjectDetail() {
                                     <div key={plan._id} className={styles.listItem}>
                                         <div className="flex-1 overflow-hidden">
                                             <div className="font-medium text-gray-800 text-sm truncate">Plan #{plan._id.slice(-4)}</div>
-                                            <div className="text-xs text-gray-500">Down Pay: Rs. {plan.downPaymentAmt.toLocaleString()}</div>
+                                            <div className="text-xs text-gray-500">Down Pay: Rs. {Number(plan.downPaymentAmt || 0).toLocaleString()}</div>
                                         </div>
                                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${plan.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>
                                             {plan.status}
@@ -325,13 +325,13 @@ export default function ProjectDetail() {
                                 installments.slice(0, 4).map(inst => (
                                     <div key={inst._id} className={styles.listItem}>
                                         <div className="flex-1 overflow-hidden">
-                                            <div className="font-medium text-gray-800 text-sm truncate">Inst. #{inst.installmentNumber}</div>
+                                            <div className="font-medium text-gray-800 text-sm truncate">Inst. #{inst.installmentNo}</div>
                                             <div className="text-xs text-gray-500">
                                                 {inst.dueDate ? new Date(inst.dueDate).toLocaleDateString('en-GB') : 'No Date'}
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <div className="font-medium text-gray-900 text-sm">Rs. {inst.amount.toLocaleString()}</div>
+                                            <div className="font-medium text-gray-900 text-sm">Rs. {Number(inst.dueAmount || 0).toLocaleString()}</div>
                                             <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${inst.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                                                 {inst.status}
                                             </span>

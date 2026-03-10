@@ -233,7 +233,7 @@ export default function CustomerDetail() {
                                     <div key={p._id} className={styles.listItem} onClick={() => navigate('/projects')} style={{ cursor: 'pointer' }}>
                                         <div className="flex-1 overflow-hidden">
                                             <div className="font-medium text-gray-800 text-sm truncate">{p.projectName}</div>
-                                            <div className="text-xs text-gray-500">Rs. {p.totalValue.toLocaleString()}</div>
+                                            <div className="text-xs text-gray-500">Rs. {Number(p.totalValue || 0).toLocaleString()}</div>
                                         </div>
                                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${p.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-700'}`}>
                                             {p.status}
@@ -271,7 +271,7 @@ export default function CustomerDetail() {
                                     <div key={inv._id} className={styles.listItem} onClick={() => navigate('/invoices')} style={{ cursor: 'pointer' }}>
                                         <div className="flex-1 overflow-hidden">
                                             <div className="font-medium text-gray-800 text-sm truncate">{inv.invoiceNumber}</div>
-                                            <div className="text-xs text-gray-500">Rs. {inv.totalAmount.toLocaleString()}</div>
+                                            <div className="text-xs text-gray-500">Rs. {Number(inv.totalAmount || 0).toLocaleString()}</div>
                                         </div>
                                         <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${inv.status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                                             {inv.status}
