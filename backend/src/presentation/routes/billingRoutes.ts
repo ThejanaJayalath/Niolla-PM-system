@@ -13,6 +13,7 @@ import {
   downloadBillingPdf,
   getRemainingAdvance,
 } from '../controllers/BillingController';
+import { generateInvoice } from '../controllers/InvoiceController';
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -59,6 +60,7 @@ router.post(
 );
 
 router.get('/', listBillings);
+router.post('/generate/:transactionId', [param('transactionId').isMongoId()], validate, generateInvoice);
 router.get('/remaining-advance', [query('inquiryId').notEmpty().isMongoId().withMessage('inquiryId is required')], validate, getRemainingAdvance);
 router.get('/template', getBillingTemplateInfo);
 router.post('/template', upload.single('template'), uploadBillingTemplate);

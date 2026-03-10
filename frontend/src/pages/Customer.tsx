@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Rocket } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AddCustomerModal from '../components/AddCustomerModal';
@@ -20,6 +21,7 @@ interface Customer {
 }
 
 export default function Customer() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -134,7 +136,11 @@ export default function Customer() {
             ) : (
               <>
                 {paginated.map((c) => (
-                  <tr key={c._id} className="hover:bg-gray-50 transition-colors group">
+                  <tr
+                    key={c._id}
+                    className="hover:bg-gray-50 transition-colors group cursor-pointer"
+                    onClick={() => navigate(`/customer/${c._id}`)}
+                  >
                     <td className="px-6 py-4 font-medium text-gray-900">{c.customerId}</td>
                     <td className="px-6 py-4 font-medium text-gray-900">{c.name}</td>
                     <td className="px-6 py-4 text-gray-600">{c.phoneNumber}</td>
@@ -151,17 +157,24 @@ export default function Customer() {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                          (c.status ?? 'active') === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-700'
-                        }`}
+                        className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${(c.status ?? 'active') === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-700'
+                          }`}
                       >
                         {(c.status ?? 'active') === 'active' ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-center items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/projects?newProjectForCustomer=${c._id}`)}
+                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Start Project"
+                        >
+                          <Rocket size={18} />
+                        </button>
                         <button
                           type="button"
                           onClick={() => handleEdit(c)}

@@ -1,0 +1,85 @@
+# Niolla Project Management System: 5-Step Master Implementation Plan
+*This document serves as a comprehensive blueprint (prompt) for implementing the completely overhauled CRM, Project, and Billing flow seamlessly blending the user's initial vision with necessary architectural improvements.*
+
+---
+
+## Step 1: Database Schema & Entity Restructuring
+Before touching the UI, we must overhaul the underlying database models to support the new independent flows and relationships.
+
+1. **Payment Plan Templates:** 
+   - Rename/Repurpose [PaymentPlan](file:///c:/Users/Thejana/Desktop/Niolla/Niolla%20project%20manegement%20system/Niolla-PM-system/backend/src/domain/entities/PaymentPlan.ts#1-14) creation away from bare instantiation. 
+   - **Task:** Create `PaymentPlanTemplateModel.ts`. It must store the template name (e.g., "Standard 3-Part") and percentage splits (e.g., 30% Down, 35% Installment 1, 35% Installment 2).
+   - *Why?* To support the logic of creating generic "Payment Plans" inside the Payment Plans tab without needing an assigned Project yet.
+
+2. **Project Model Overhaul:**
+   - **Task:** Update `ProjectModel.ts` to include an `assignedEmployees` array referencing the `User` table (`[{ type: Schema.Types.ObjectId, ref: 'User' }]`).
+   - Setup the capability for a single 1-to-1 relationship with an instantiated [PaymentPlan](file:///c:/Users/Thejana/Desktop/Niolla/Niolla%20project%20manegement%20system/Niolla-PM-system/backend/src/domain/entities/PaymentPlan.ts#1-14). 
+
+3. **Customer Hook:**
+   - **Task:** Map out the exact schema data transfer from `InquiryModel` to `CustomerModel` (Name, Email, Phone, Company) for auto-conversion.
+
+## Step 2: Backend Services & API Adjustments
+Update the business logic services to handle the new automation and decouple the forced invoice generation.
+
+1. **Inquiries to Customer Automation ([InquiryService.ts](file:///c:/Users/Thejana/Desktop/Niolla/Niolla%20project%20manegement%20system/Niolla-PM-system/backend/src/application/services/InquiryService.ts)):**
+   - Inject a hook. When `inquiry.status` is updated to `'confirmed'`, automatically execute a `CustomerService.create()` function using the inquiry's details.
+
+2. **Decouple Billing ([PaymentTransactionService.ts](file:///c:/Users/Thejana/Desktop/Niolla/Niolla%20project%20manegement%20system/Niolla-PM-system/backend/src/application/services/PaymentTransactionService.ts)):**
+   - Remove the code that *automatically* fires `InvoiceService.create()` when a [PaymentTransaction](file:///c:/Users/Thejana/Desktop/Niolla/Niolla%20project%20manegement%20system/Niolla-PM-system/backend/src/domain/entities/PaymentTransaction.ts#1-14) is saved.
+   - Payments should now save and sit in a "pending bill" state.
+
+3. **Explicit Billing API ([InvoiceController.ts](file:///c:/Users/Thejana/Desktop/Niolla/Niolla%20project%20manegement%20system/Niolla-PM-system/backend/src/presentation/controllers/InvoiceController.ts) / API):**
+   - Create a new explicit route: `POST /api/billing/generate/:transactionId`. This will be triggered manually from the UI when the user clicks "Billing" in the Payments tab.
+
+4. **Template Instantiation API ([PaymentPlanService.ts](file:///c:/Users/Thejana/Desktop/Niolla/Niolla%20project%20manegement%20system/Niolla-PM-system/backend/src/application/services/PaymentPlanService.ts)):**
+   - Add a route `POST /api/payment-plans/instantiate`. When a project selects a template, it sends the `totalValue` to the backend. The backend uses the template percentages to calculate hard cash amounts (`downPaymentAmt`, `installmentAmt`) and creates a specific [PaymentPlan](file:///c:/Users/Thejana/Desktop/Niolla/Niolla%20project%20manegement%20system/Niolla-PM-system/backend/src/domain/entities/PaymentPlan.ts#1-14) tied to that `projectId`.
+
+## Step 3: Global Architecture & Customer CRM 360-View (UI)
+Revamp the core tabs to match the "CRM" vision.
+
+1. **Payment Plans Tab:**
+   - Repurpose this tab completely as a "Settings" or "Templates" configuration screen. Users create `PaymentPlanTemplates` here, defining stages and percentages, *not* exact project values.
+
+2. **Customer Tab:**
+   - Create the list view showing all confirmed customers. We add the Action col: **"Start"**. 
+   - Clicking "Start" pushes a modal finding all un-started projects for this customer (or creates a new blank project if none exist), and redirects to the Project Tab.
+
+3. **Customer Detail Page (`CustomerDetail.tsx`):**
+   - Structure the page exactly as requested into 3 clear zones:
+     - **Zone A (General):** Customer Name, Contact, Company, Status.
+     - **Zone B (Projects):** A data table listing all projects assigned to this customer.
+     - **Zone C (Financials & Payments):** Use nested tabs or accordions here because there is too much data to show in one scrolling list. 
+       - *Sub-tab 1:* Active Payment Plans for the customer.
+       - *Sub-tab 2:* Payment History (All transaction records).
+       - *Sub-tab 3:* Overdue Installments alert view.
+       - *Sub-tab 4:* Generated Invoices.
+
+## Step 4: The Core Project Command Center (UI)
+Overhaul the `ProjectDetail.tsx` page to handle resource assignment and financial initiation.
+
+1. **General Details Zone:** Overview of project scope, value, and client link.
+2. **Assign Zone:**
+   - Implement a React-Select (multi-select) dropdown. This pulls in all System Employees (from the `Users` API).
+   - Allow the project owner to assign multiple staff members to this project. Save to `Project.assignedEmployees`.
+3. **Payment Plan Setup Zone:**
+   - If no Payment Plan exists for the project, show a dropdown populated by the `PaymentPlanTemplates` created in Step 3.
+   - Selecting a template displays a preview table (calculated against project `totalValue`).
+   - Clicking "Apply" runs the Instantiate API (from Step 2) and locks the plan to the project, generating its standard installments.
+
+## Step 5: Master Cash Flow Pipeline (Installments & Payments UI)
+Establish the pipeline where money technically moves from "Due" -> "Paid" -> "Billed".
+
+1. **Installments Tab (Accounts Receivable):**
+   - Default view: Filter immediately to only show "Current", "Pending", and "Overdue" installments across all active projects.
+   - Clicking a row routes to `InstallmentDetail`, showing the full schedule for that parent plan.
+   - **Crucial Feature:** Add a **"Mark Paid"** Action button. When clicked, it opens the exact same "New Payment" Modal from the Payments Tab natively in this view. It auto-fills the `projectId` and `installmentId`.
+
+2. **Payments Tab (The Cash Ledger):**
+   - Users can create payments against *any* project manually here via the "New Payment" modal (syncing status back to Installments instantly).
+   - **The new "Billing" function:** On the main table showing all successfully marked Payments, replace the old Invoice auto-flow with a new "Billing Action" column. 
+   - A payment sits in the table until the user clicks an action button labeled **"Generate Bill"**. 
+   - Clicking this fires the API from Step 2, moving the payment to a "Billed" state, and generating the physical PDF/Invoice record simultaneously. 
+
+---
+### Prompt Usage Note:
+*When ready to execute, copy lines 5 to 63 of this document and paste it into the coding agent. Instruct the agent: "Execute this 5-step Master Implementation Plan for our system sequentially. Start with Step 1 and do not proceed to Step 2 until Step 1's backend schemas are verified."* 

@@ -66,16 +66,6 @@ export class PaymentTransactionService {
     await installmentService.updatePaidAmount(data.installmentId, amount);
     await paymentPlanService.updateRemainingBalance(planId, amount);
 
-    const invoiceNumber = await invoiceService.getNextInvoiceNumber();
-    await invoiceService.create({
-      transactionId: (doc._id as { toString: () => string }).toString(),
-      clientId,
-      invoiceNumber,
-      invoiceDate: new Date(data.paymentDate),
-      totalAmount: amount,
-      status: 'paid',
-    });
-
     const created = await PaymentTransactionModel.findById(doc._id)
       .populate({
         path: 'installmentId',

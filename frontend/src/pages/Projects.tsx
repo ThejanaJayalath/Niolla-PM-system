@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Pencil, Trash2 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AddProjectModal from '../components/AddProjectModal';
@@ -25,6 +26,11 @@ interface CustomerOption {
 }
 
 export default function Projects() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
+  const newProjectCustId = searchParams.get('newProjectForCustomer');
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,6 +68,13 @@ export default function Projects() {
   useEffect(() => {
     loadCustomers();
   }, []);
+
+  useEffect(() => {
+    if (newProjectCustId && customers.length > 0) {
+      setEditProject(null);
+      setShowModal(true);
+    }
+  }, [newProjectCustId, customers]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -174,7 +187,11 @@ export default function Projects() {
             ) : (
               <>
                 {paginated.map((p) => (
-                  <tr key={p._id} className="hover:bg-gray-50 transition-colors group">
+                  <tr
+                    key={p._id}
+                    className="hover:bg-gray-50 transition-colors group cursor-pointer"
+                    onClick={() => navigate(`/projects/${p._id}`)}
+                  >
                     <td className="px-6 py-4 font-medium text-gray-900">{p.projectName}</td>
                     <td className="px-6 py-4 text-gray-600">{p.clientName || '—'}</td>
                     <td className="px-6 py-4 text-gray-600">{p.systemType || '—'}</td>
@@ -185,18 +202,17 @@ export default function Projects() {
                     <td className="px-6 py-4 text-gray-600">{formatDate(p.endDate)}</td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${
-                          p.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : p.status === 'completed'
-                              ? 'bg-blue-100 text-blue-800'
-                              : 'bg-gray-100 text-gray-700'
-                        }`}
+                        className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${p.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : p.status === 'completed'
+                            ? 'bg-blue-100 text-blue-800'
+                            : 'bg-gray-100 text-gray-700'
+                          }`}
                       >
                         {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-center items-center gap-2">
                         <button
                           type="button"
@@ -274,10 +290,14 @@ export default function Projects() {
         onClose={() => {
           setShowModal(false);
           setEditProject(null);
+          if (newProjectCustId) {
+            navigate('/projects', { replace: true });
+          }
         }}
         onSuccess={handleCloseModal}
         editProject={editProject}
         customers={customers}
+        initialCustomerId={newProjectCustId}
       />
 
       <ConfirmDialog

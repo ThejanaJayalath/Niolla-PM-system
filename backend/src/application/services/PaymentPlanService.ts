@@ -1,5 +1,7 @@
+import mongoose from 'mongoose';
 import { PaymentPlan } from '../../domain/entities/PaymentPlan';
 import { PaymentPlanModel } from '../../infrastructure/database/models/PaymentPlanModel';
+import { InstallmentService } from './InstallmentService';
 
 export interface CreatePaymentPlanInput {
   projectId: string;
@@ -39,6 +41,37 @@ export class PaymentPlanService {
       planStartDate: data.planStartDate ? new Date(data.planStartDate) : undefined,
       status: data.status || 'active',
     });
+    return this.toPaymentPlan(doc);
+  }
+
+  async instantiate(data: { projectId: string; templateId: string; planStartDate?: string }): Promise<PaymentPlan> {
+    const template = await mongoose.model('PaymentPlanTemplate').findById(data.templateId) as any;
+    if (!template) throw new Error('Template not found');
+
+    const project = await mongoose.model('Project').findById(data.projectId) as any;
+    if (!project) throw new Error('Project not found');
+
+    const totalValue = project.totalValue;
+
+    const downPaymentAmt = (totalValue * template.downPaymentPct) / 100;
+    const remainingAfterDown = totalValue - downPaymentAmt;
+    const totalInstallments = template.installmentsCount;
+    const installmentAmt = (totalValue * template.installmentPct) / 100;
+
+    const doc = await PaymentPlanModel.create({
+      projectId: data.projectId,
+      downPaymentPct: template.downPaymentPct,
+      downPaymentAmt,
+      totalInstallments,
+      installmentAmt,
+      remainingBalance: remainingAfterDown,
+      planStartDate: data.planStartDate ? new Date(data.planStartDate) : new Date(),
+      status: 'active',
+    });
+
+    const installmentService = new InstallmentService();
+    await installmentService.createManyForPlan(String(doc._id));
+
     return this.toPaymentPlan(doc);
   }
 

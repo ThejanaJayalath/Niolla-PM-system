@@ -1,0 +1,71 @@
+# Niolla Project Management System: Billing Flow Logic
+
+This document explains the logic behind the financial and billing tabs in your system and how they interact with each other.
+
+## 1. Projects
+**What it is:** The foundational entity that represents a job for a client.
+**Logic:** A project holds the `totalValue` of the work. It links directly to a [Client](file:///c:/Users/Thejana/Desktop/Niolla/Niolla%20project%20manegement%20system/Niolla-PM-system/backend/src/application/services/PaymentTransactionService.ts#106-113).
+**Interactions:** 
+- A Project is the parent of a **Payment Plan**. You cannot have a Payment Plan without a Project.
+
+## 2. Payment Plans
+**What it is:** Defines how the project's total value will be paid over time.
+**Logic:** It breaks out the payment terms, such as `downPaymentAmt`, `totalInstallments`, `installmentAmt`, and tracks the `remainingBalance` of the project.
+**Interactions:**
+- **Parent:** Linked to a **Project**.
+- **Children:** Generates multiple **Installments** based on the total installments specified.
+- **Updates:** When a Payment is made against its installments, the Payment Plan's `remainingBalance` is automatically reduced.
+
+## 3. Installments
+**What it is:** Individual scheduled payment milestones derived from the Payment Plan.
+**Logic:** Each installment has a `dueAmount`, `dueDate`, and `status` (pending, partial, paid, overdue). It tracks how much has been `paidAmount`.
+**Interactions:**
+- **Parent:** Linked to a **Payment Plan**.
+- **Payments:** When a client makes a **Payment (Transaction)**, it is applied against a specific Installment. The system checks if the payment amount covers the `dueAmount` completely (marking it 'paid') or partially (marking it 'partial').
+- **Notifications:** Overdue or pending installments trigger **Payment Notifications** (reminders).
+- **Reports:** Overdue installments appear on the Overdue List in **Reports**.
+
+## 4. Payments (Payment Transactions)
+**What it is:** Actual records of money received from the client.
+**Logic:** A payment records the `amount`, `paymentMethod` (cash, bank, card, etc.), and the date. The system prevents paying more than the remaining due amount of the installment.
+**Interactions:**
+- **Parent:** Linked directly to an **Installment** and the **Client**.
+- **Upward Updates:** 
+  1. Increases the `paidAmount` and updates the status of the **Installment**.
+  2. Decreases the `remainingBalance` of the parent **Payment Plan**.
+- **Triggers:** Every time a Payment Transaction is successfully recorded, the system automatically generates an **Invoice** for that payment.
+- **Reports:** Contributes to the "Total Collected" and "Monthly Collections" metrics in **Reports**.
+
+## 5. Invoices
+**What it is:** The formal receipt/bill provided to the client for a payment.
+**Logic:** Invoices are automatically generated when a **Payment Transaction** occurs. They are assigned a sequential `invoiceNumber` and standard fields like `totalAmount` and `status` (paid).
+**Interactions:**
+- **Parent:** Linked specifically to a **Payment Transaction** and a **Client**.
+- **Notifications:** When an invoice is generated/sent, it can trigger a receipt **Payment Notification**.
+
+## 6. Payment Notifications
+**What it is:** Automated communication rules (SMS, Email, System).
+**Logic:** Notifications are scheduled based on trigger events: `due_reminder` (upcoming installment), `overdue` (missed installment), or `receipt` (payment received).
+**Interactions:**
+- **Target:** Sent to the **Client**.
+- **Triggers:** Look at the status and dates of **Installments** or the generation of **Payments/Invoices** to know when to trigger and what message to send.
+
+## 7. Reports
+**What it is:** The dashboard for financial overviews.
+**Logic:** It dynamically aggregates data across the entire platform in real-time. It doesn't store its own data; rather, it queries the other entities.
+**Interactions:**
+- **Projects:** Calculates `totalProjectValue` across all projects.
+- **Payments:** Calculates `totalCollected` and builds the Monthly Collection graphs.
+- **Payment Plans:** Calculates the system-wide `pendingBalance`.
+- **Installments:** Counts how many installments are 'overdue' or 'dueToday', and generates the Overdue Installments list for collection follow-ups.
+
+---
+
+### Summary Workflow
+1. Create a **Project** for a Client with a total value.
+2. Create a **Payment Plan** for that Project.
+3. The Payment Plan creates scheduled **Installments**.
+4. Time passes; **Payment Notifications** remind the client their installment is due.
+5. The client submits a **Payment** for that Installment.
+6. The system automatically reduces the installment balance, reduces the Payment Plan remaining balance, and creates an **Invoice**.
+7. All of this financial movement reflects immediately on the **Reports** dashboard.

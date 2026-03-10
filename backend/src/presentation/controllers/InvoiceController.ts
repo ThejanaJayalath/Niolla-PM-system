@@ -23,6 +23,39 @@ export async function getInvoice(req: AuthenticatedRequest, res: Response): Prom
   res.json({ success: true, data: invoice });
 }
 
+export async function generateInvoice(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const transaction = await paymentTransactionService.findById(req.params.transactionId);
+    if (!transaction) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaction not found' } });
+      return;
+    }
+    const existing = await invoiceService.findByTransactionId(req.params.transactionId);
+    if (existing) {
+      res.status(400).json({ success: false, error: { code: 'ALREADY_EXISTS', message: 'Invoice already generated for this transaction' } });
+      return;
+    }
+
+    const invoiceNumber = await invoiceService.getNextInvoiceNumber();
+    const invoice = await invoiceService.create({
+      transactionId: req.params.transactionId,
+      clientId: transaction.clientId,
+      invoiceNumber,
+      invoiceDate: new Date(),
+      totalAmount: transaction.amount,
+      status: 'paid',
+    });
+
+    res.status(201).json({ success: true, data: invoice });
+  } catch (err) {
+    console.error('Generate invoice error:', err);
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: err instanceof Error ? err.message : 'Unknown error' },
+    });
+  }
+}
+
 /** Mark invoice as emailed (sets emailedAt). Actual email can be wired later via nodemailer/SendGrid. */
 export async function sendInvoiceEmail(req: AuthenticatedRequest, res: Response): Promise<void> {
   const invoice = await invoiceService.markEmailed(req.params.id);

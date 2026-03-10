@@ -33,10 +33,15 @@ export default function Installments() {
 
   const loadInstallments = async () => {
     try {
-      const params = new URLSearchParams();
-      if (planFilter) params.append('planId', planFilter);
-      if (statusFilter) params.append('status', statusFilter);
-      const queryString = params.toString() ? `?${params.toString()}` : '';
+      const params = new URLSearchParams(window.location.search);
+      const projectId = params.get('projectId');
+
+      const queryParams = new URLSearchParams();
+      if (planFilter) queryParams.append('planId', planFilter);
+      if (statusFilter) queryParams.append('status', statusFilter);
+      if (projectId) queryParams.append('projectId', projectId);
+
+      const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
       const res = await api.get<Installment[]>(`/installments${queryString}`);
       if (res.success && res.data) setInstallments(res.data);
     } catch (err) {

@@ -7,6 +7,7 @@ export interface Project {
   totalValue: number;
   startDate?: Date;
   endDate?: Date;
+  assignedEmployees?: string[];
   status: 'active' | 'completed' | 'cancelled';
   createdAt?: Date;
   updatedAt?: Date;

@@ -38,6 +38,7 @@ interface AddProjectModalProps {
   onSuccess: () => void;
   editProject: Project | null;
   customers: CustomerOption[];
+  initialCustomerId?: string | null;
 }
 
 export default function AddProjectModal({
@@ -46,6 +47,7 @@ export default function AddProjectModal({
   onSuccess,
   editProject,
   customers,
+  initialCustomerId,
 }: AddProjectModalProps) {
   const [form, setForm] = useState<ProjectFormData>({
     clientId: '',
@@ -88,7 +90,7 @@ export default function AddProjectModal({
       });
     } else {
       setForm({
-        clientId: customers[0]?._id ?? '',
+        clientId: initialCustomerId || (customers[0]?._id ?? ''),
         projectName: '',
         description: '',
         systemType: '',
@@ -98,7 +100,7 @@ export default function AddProjectModal({
         status: 'active',
       });
     }
-  }, [open, editProject, customers]);
+  }, [open, editProject, customers, initialCustomerId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;

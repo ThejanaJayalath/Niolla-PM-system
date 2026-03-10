@@ -139,7 +139,7 @@ export default function Payments() {
             ) : transactions.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                  No payments yet. Record a payment using an installment from Payment Plans → Generate installments.
+                  No payments yet. Record a payment against an active project installment.
                 </td>
               </tr>
             ) : (

@@ -7,6 +7,7 @@ import {
   listPaymentPlans,
   updatePaymentPlan,
   deletePaymentPlan,
+  instantiatePaymentPlan,
 } from '../controllers/PaymentPlanController';
 
 const router = Router();
@@ -38,6 +39,17 @@ router.post(
   ],
   validate,
   createPaymentPlan
+);
+
+router.post(
+  '/instantiate',
+  [
+    body('projectId').isMongoId().withMessage('Valid project ID is required'),
+    body('templateId').isMongoId().withMessage('Valid template ID is required'),
+    body('planStartDate').optional().isISO8601().withMessage('Invalid plan start date'),
+  ],
+  validate,
+  instantiatePaymentPlan
 );
 
 router.get(

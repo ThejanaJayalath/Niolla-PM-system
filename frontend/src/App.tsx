@@ -21,7 +21,9 @@ import Billing from './pages/Billing';
 import BillingDetail from './pages/BillingDetail';
 import CreateBilling from './pages/CreateBilling';
 import Customer from './pages/Customer';
+import CustomerDetail from './pages/CustomerDetail';
 import Projects from './pages/Projects';
+import ProjectDetail from './pages/ProjectDetail';
 import PaymentPlans from './pages/PaymentPlans';
 import Installments from './pages/Installments';
 import Payments from './pages/Payments';
@@ -65,7 +67,9 @@ export default function App() {
         <Route path="billing/new" element={<CreateBilling />} />
         <Route path="billing/:id" element={<BillingDetail />} />
         <Route path="customer" element={<Customer />} />
+        <Route path="customer/:id" element={<CustomerDetail />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="payment-plans" element={<PaymentPlans />} />
         <Route path="installments" element={<Installments />} />
         <Route path="payments" element={<Payments />} />

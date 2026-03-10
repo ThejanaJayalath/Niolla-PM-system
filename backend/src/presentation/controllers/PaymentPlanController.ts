@@ -20,6 +20,19 @@ export async function createPaymentPlan(req: AuthenticatedRequest, res: Response
   res.status(201).json({ success: true, data: plan });
 }
 
+export async function instantiatePaymentPlan(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const { projectId, templateId, planStartDate } = req.body;
+    const plan = await paymentPlanService.instantiate({ projectId, templateId, planStartDate });
+    res.status(201).json({ success: true, data: plan });
+  } catch (err) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'EXECUTION_FAILED', message: err instanceof Error ? err.message : 'Unknown error' }
+    });
+  }
+}
+
 export async function getPaymentPlan(req: AuthenticatedRequest, res: Response): Promise<void> {
   const plan = await paymentPlanService.findById(req.params.id);
   if (!plan) {

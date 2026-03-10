@@ -14,6 +14,7 @@ export interface CreateInstallmentInput {
 
 export interface ListInstallmentsFilters {
   planId?: string;
+  projectId?: string;
   status?: string;
 }
 
@@ -82,6 +83,12 @@ export class InstallmentService {
     const query: Record<string, unknown> = {};
     if (filters?.planId) query.planId = filters.planId;
     if (filters?.status) query.status = filters.status;
+
+    if (filters?.projectId) {
+      const plans = await PaymentPlanModel.find({ projectId: filters.projectId }, '_id');
+      query.planId = { $in: plans.map(p => p._id) };
+    }
+
     const docs = await InstallmentModel.find(query)
       .populate({
         path: 'planId',

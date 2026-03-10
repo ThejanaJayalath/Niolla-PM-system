@@ -9,6 +9,7 @@ export interface ProjectDocument extends Document {
   totalValue: number;
   startDate?: Date;
   endDate?: Date;
+  assignedEmployees?: mongoose.Types.ObjectId[];
   status: 'active' | 'completed' | 'cancelled';
   createdAt: Date;
   updatedAt: Date;
@@ -23,6 +24,7 @@ const projectSchema = new Schema<ProjectDocument>(
     totalValue: { type: Number, required: true },
     startDate: { type: Date },
     endDate: { type: Date },
+    assignedEmployees: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     status: { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
   },
   { timestamps: true }
