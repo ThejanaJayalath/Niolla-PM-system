@@ -39,11 +39,6 @@ interface Installment {
     status: string;
 }
 
-const STATUS_LABELS: Record<string, string> = {
-    active: 'Active',
-    completed: 'Completed',
-    cancelled: 'Cancelled',
-};
 
 const getStatusColor = (status: string) => {
     if (status === 'active') return 'bg-[#dcfce7] text-green-600 border-transparent';
