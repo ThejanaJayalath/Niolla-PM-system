@@ -5,7 +5,7 @@ export interface PaymentPlanTemplateDocument extends Document {
     description?: string;
     downPaymentPct: number;
     installmentsCount: number;
-    installmentPct: number;
+    serviceFeePct: number;
     status: 'active' | 'inactive';
     createdAt: Date;
     updatedAt: Date;
@@ -17,7 +17,7 @@ const templateSchema = new Schema<PaymentPlanTemplateDocument>(
         description: { type: String },
         downPaymentPct: { type: Number, required: true },
         installmentsCount: { type: Number, required: true },
-        installmentPct: { type: Number, required: true },
+        serviceFeePct: { type: Number, required: true, default: 0 },
         status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     },
     { timestamps: true }

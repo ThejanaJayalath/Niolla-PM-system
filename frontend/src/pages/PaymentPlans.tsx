@@ -13,7 +13,7 @@ interface PaymentPlanTemplate {
   description?: string;
   downPaymentPct: number;
   installmentsCount: number;
-  installmentPct: number;
+  serviceFeePct: number;
   status: 'active' | 'inactive';
 }
 
@@ -127,7 +127,7 @@ export default function PaymentPlans() {
               <th className="px-6 py-4 text-orange-500 font-bold text-sm w-[25%]">Description</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm w-[15%]">Down Payment %</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm w-[10%]">Installments</th>
-              <th className="px-6 py-4 text-orange-500 font-bold text-sm w-[10%]">Installment %</th>
+              <th className="px-6 py-4 text-orange-500 font-bold text-sm w-[10%]">Service Fee %</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm w-[10%]">Status</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm w-[10%] !text-center">Action</th>
             </tr>
@@ -153,7 +153,7 @@ export default function PaymentPlans() {
                     <td className="px-6 py-4 text-gray-600 truncate max-w-xs">{t.description || '—'}</td>
                     <td className="px-6 py-4 text-gray-900 font-medium">{t.downPaymentPct}%</td>
                     <td className="px-6 py-4 text-gray-600">{t.installmentsCount}</td>
-                    <td className="px-6 py-4 text-gray-600">{t.installmentPct}%</td>
+                    <td className="px-6 py-4 text-gray-600">{t.serviceFeePct}%</td>
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${t.status === 'active'

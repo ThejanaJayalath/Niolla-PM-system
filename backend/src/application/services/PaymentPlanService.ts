@@ -10,6 +10,8 @@ export interface CreatePaymentPlanInput {
   totalInstallments: number;
   installmentAmt: number;
   remainingBalance: number;
+  serviceFeePct: number;
+  serviceFeeAmt: number;
   planStartDate?: string;
   status?: 'active' | 'completed' | 'defaulted';
 }
@@ -20,6 +22,8 @@ export interface UpdatePaymentPlanInput {
   totalInstallments?: number;
   installmentAmt?: number;
   remainingBalance?: number;
+  serviceFeePct?: number;
+  serviceFeeAmt?: number;
   planStartDate?: string;
   status?: 'active' | 'completed' | 'defaulted';
 }
@@ -38,6 +42,8 @@ export class PaymentPlanService {
       totalInstallments: Number(data.totalInstallments),
       installmentAmt: Number(data.installmentAmt),
       remainingBalance: Number(data.remainingBalance),
+      serviceFeePct: Number(data.serviceFeePct ?? 0),
+      serviceFeeAmt: Number(data.serviceFeeAmt ?? 0),
       planStartDate: data.planStartDate ? new Date(data.planStartDate) : undefined,
       status: data.status || 'active',
     });
@@ -56,7 +62,12 @@ export class PaymentPlanService {
     const downPaymentAmt = (totalValue * template.downPaymentPct) / 100;
     const remainingAfterDown = totalValue - downPaymentAmt;
     const totalInstallments = template.installmentsCount;
-    const installmentAmt = (totalValue * template.installmentPct) / 100;
+    const serviceFeePct = Number(template.serviceFeePct ?? 0);
+    const serviceFeeAmt = (totalValue * serviceFeePct) / 100;
+    // Each installment = (remaining balance + service fee) split equally
+    const installmentAmt = totalInstallments > 0
+      ? (remainingAfterDown + serviceFeeAmt) / totalInstallments
+      : 0;
 
     const doc = await PaymentPlanModel.create({
       projectId: data.projectId,
@@ -65,6 +76,8 @@ export class PaymentPlanService {
       totalInstallments,
       installmentAmt,
       remainingBalance: remainingAfterDown,
+      serviceFeePct,
+      serviceFeeAmt,
       planStartDate: data.planStartDate ? new Date(data.planStartDate) : new Date(),
       status: 'active',
     });
@@ -104,6 +117,8 @@ export class PaymentPlanService {
     if (data.totalInstallments !== undefined) update.totalInstallments = Number(data.totalInstallments);
     if (data.installmentAmt !== undefined) update.installmentAmt = Number(data.installmentAmt);
     if (data.remainingBalance !== undefined) update.remainingBalance = Number(data.remainingBalance);
+    if (data.serviceFeePct !== undefined) update.serviceFeePct = Number(data.serviceFeePct);
+    if (data.serviceFeeAmt !== undefined) update.serviceFeeAmt = Number(data.serviceFeeAmt);
     if (data.planStartDate !== undefined) update.planStartDate = data.planStartDate ? new Date(data.planStartDate) : undefined;
     const doc = await PaymentPlanModel.findByIdAndUpdate(id, update, { new: true }).populate(
       'projectId',
@@ -139,6 +154,8 @@ export class PaymentPlanService {
       totalInstallments: Number(o.totalInstallments),
       installmentAmt: Number(o.installmentAmt),
       remainingBalance: Number(o.remainingBalance),
+      serviceFeePct: Number(o.serviceFeePct ?? 0),
+      serviceFeeAmt: Number(o.serviceFeeAmt ?? 0),
       planStartDate: o.planStartDate as Date | undefined,
       status: o.status as 'active' | 'completed' | 'defaulted',
       createdAt: o.createdAt as Date,

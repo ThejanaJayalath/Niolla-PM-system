@@ -4,7 +4,7 @@ export interface PaymentPlanTemplate {
     description?: string;
     downPaymentPct: number;
     installmentsCount: number;
-    installmentPct: number;
+    serviceFeePct: number;
     status: 'active' | 'inactive';
     createdAt?: Date;
     updatedAt?: Date;

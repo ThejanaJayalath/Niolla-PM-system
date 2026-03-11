@@ -5,7 +5,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 const paymentPlanService = new PaymentPlanService();
 
 export async function createPaymentPlan(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { projectId, downPaymentPct, downPaymentAmt, totalInstallments, installmentAmt, remainingBalance, planStartDate, status } =
+  const { projectId, downPaymentPct, downPaymentAmt, totalInstallments, installmentAmt, remainingBalance, serviceFeePct, serviceFeeAmt, planStartDate, status } =
     req.body;
   const plan = await paymentPlanService.create({
     projectId,
@@ -14,6 +14,8 @@ export async function createPaymentPlan(req: AuthenticatedRequest, res: Response
     totalInstallments,
     installmentAmt,
     remainingBalance,
+    serviceFeePct: serviceFeePct ?? 0,
+    serviceFeeAmt: serviceFeeAmt ?? 0,
     planStartDate,
     status,
   });

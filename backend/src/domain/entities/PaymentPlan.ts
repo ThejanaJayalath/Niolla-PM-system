@@ -6,6 +6,8 @@ export interface PaymentPlan {
   totalInstallments: number;
   installmentAmt: number;
   remainingBalance: number;
+  serviceFeePct: number;
+  serviceFeeAmt: number;
   planStartDate?: Date;
   status: 'active' | 'completed' | 'defaulted';
   createdAt?: Date;

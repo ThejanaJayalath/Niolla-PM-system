@@ -8,6 +8,8 @@ export interface PaymentPlanDocument extends Document {
   totalInstallments: number;
   installmentAmt: number;
   remainingBalance: number;
+  serviceFeePct: number;
+  serviceFeeAmt: number;
   planStartDate?: Date;
   status: 'active' | 'completed' | 'defaulted';
   createdAt: Date;
@@ -22,6 +24,8 @@ const paymentPlanSchema = new Schema<PaymentPlanDocument>(
     totalInstallments: { type: Number, required: true },
     installmentAmt: { type: Number, required: true },
     remainingBalance: { type: Number, required: true },
+    serviceFeePct: { type: Number, required: true, default: 0 },
+    serviceFeeAmt: { type: Number, required: true, default: 0 },
     planStartDate: { type: Date },
     status: { type: String, enum: ['active', 'completed', 'defaulted'], default: 'active' },
   },

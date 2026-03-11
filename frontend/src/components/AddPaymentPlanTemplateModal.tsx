@@ -9,7 +9,7 @@ interface PaymentPlanTemplate {
     description?: string;
     downPaymentPct: number;
     installmentsCount: number;
-    installmentPct: number;
+    serviceFeePct: number;
     status: 'active' | 'inactive';
 }
 
@@ -30,7 +30,7 @@ export default function AddPaymentPlanTemplateModal({
     const [description, setDescription] = useState('');
     const [downPaymentPct, setDownPaymentPct] = useState('');
     const [installmentsCount, setInstallmentsCount] = useState('');
-    const [installmentPct, setInstallmentPct] = useState('');
+    const [serviceFeePct, setServiceFeePct] = useState('');
     const [status, setStatus] = useState<'active' | 'inactive'>('active');
     const [error, setError] = useState('');
     const [submitting, setSubmitting] = useState(false);
@@ -43,7 +43,7 @@ export default function AddPaymentPlanTemplateModal({
             setDescription('');
             setDownPaymentPct('');
             setInstallmentsCount('');
-            setInstallmentPct('');
+            setServiceFeePct('');
             setStatus('active');
             setError('');
         } else if (editTemplate) {
@@ -51,7 +51,7 @@ export default function AddPaymentPlanTemplateModal({
             setDescription(editTemplate.description || '');
             setDownPaymentPct(String(editTemplate.downPaymentPct));
             setInstallmentsCount(String(editTemplate.installmentsCount));
-            setInstallmentPct(String(editTemplate.installmentPct));
+            setServiceFeePct(String(editTemplate.serviceFeePct));
             setStatus(editTemplate.status);
         }
     }, [open, editTemplate]);
@@ -66,7 +66,7 @@ export default function AddPaymentPlanTemplateModal({
             description,
             downPaymentPct: Number(downPaymentPct),
             installmentsCount: Number(installmentsCount),
-            installmentPct: Number(installmentPct),
+            serviceFeePct: Number(serviceFeePct),
             status
         };
 
@@ -170,21 +170,21 @@ export default function AddPaymentPlanTemplateModal({
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label htmlFor="installmentPct">
+                        <label htmlFor="serviceFeePct">
                             <Percent size={18} />
-                            Each Installment %
+                            Service Fee %
                         </label>
                         <input
-                            id="installmentPct"
+                            id="serviceFeePct"
                             type="number"
                             min="0"
                             max="100"
                             step="0.01"
-                            value={installmentPct}
-                            onChange={(e) => setInstallmentPct(e.target.value)}
+                            value={serviceFeePct}
+                            onChange={(e) => setServiceFeePct(e.target.value)}
                             required
                             className={styles.input}
-                            placeholder="e.g. 20"
+                            placeholder="e.g. 5"
                         />
                     </div>
 
