@@ -106,8 +106,24 @@ export default function Installments() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 8;
-  const totalPages = Math.ceil(installments.length / rowsPerPage);
-  const paginated = installments.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  // When showing current/pending: only show the NEXT (lowest installmentNo) per plan.
+  // For any other filter, show all matching installments.
+  const displayedInstallments = (() => {
+    if (statusFilter !== 'pending') return installments;
+    // Group by planId, pick the one with the smallest installmentNo
+    const planMap = new Map<string, Installment>();
+    for (const inst of installments) {
+      const existing = planMap.get(inst.planId);
+      if (!existing || inst.installmentNo < existing.installmentNo) {
+        planMap.set(inst.planId, inst);
+      }
+    }
+    return Array.from(planMap.values());
+  })();
+
+  const totalPages = Math.ceil(displayedInstallments.length / rowsPerPage);
+  const paginated = displayedInstallments.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
   return (
     <div className={`${styles.page} font-sans`}>
@@ -236,9 +252,9 @@ export default function Installments() {
           </div>
           <div className="flex items-center gap-2">
             <span>
-              {installments.length === 0
+              {displayedInstallments.length === 0
                 ? '0-0 of 0'
-                : `${(currentPage - 1) * rowsPerPage + 1}-${Math.min(currentPage * rowsPerPage, installments.length)} of ${installments.length}`}
+                : `${(currentPage - 1) * rowsPerPage + 1}-${Math.min(currentPage * rowsPerPage, displayedInstallments.length)} of ${displayedInstallments.length}`}
             </span>
             <div className="flex gap-1">
               <button
