@@ -29,7 +29,7 @@ router.post(
         body('name').notEmpty().withMessage('Template name is required'),
         body('downPaymentPct').isNumeric(),
         body('installmentsCount').isInt({ min: 1 }),
-        body('installmentPct').isNumeric(),
+        body('serviceFeePct').isNumeric(),
     ],
     validate,
     createTemplate
