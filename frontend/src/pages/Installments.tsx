@@ -79,10 +79,17 @@ export default function Installments() {
     const id = deleteId;
     if (!id) return;
     setDeleting(true);
-    setDeleteId(null);
     try {
       const res = await api.delete(`/installments/${id}`);
-      if (res?.success !== false) await loadInstallments();
+      if (res?.success === false) {
+        alert(res.error?.message || 'Failed to delete installment');
+      } else {
+        await loadInstallments();
+        setDeleteId(null);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('An unexpected error occurred while deleting');
     } finally {
       setDeleting(false);
     }
@@ -287,6 +294,7 @@ export default function Installments() {
         danger
         onConfirm={handleDelete}
         onCancel={() => !deleting && setDeleteId(null)}
+        isLoading={deleting}
       />
 
       <RecordPaymentModal

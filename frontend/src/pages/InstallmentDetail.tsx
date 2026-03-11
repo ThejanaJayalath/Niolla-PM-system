@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, AlertTriangle, Clock, DollarSign, Calendar, ChevronRight } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertTriangle, Clock, DollarSign, Calendar, ChevronRight, Trash2 } from 'lucide-react';
 import { api } from '../api/client';
 import RecordPaymentModal from '../components/RecordPaymentModal';
+import ConfirmDialog from '../components/ConfirmDialog';
 import styles from './CustomerDetail.module.css';
 
 interface PaymentPlan {
@@ -39,8 +40,11 @@ export default function InstallmentDetail() {
     const [installments, setInstallments] = useState<Installment[]>([]);
     const [loading, setLoading] = useState(true);
 
+
     const [payModalOpen, setPayModalOpen] = useState(false);
     const [payInstId, setPayInstId] = useState<string | undefined>(undefined);
+    const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
 
     const load = async () => {
         if (!planId) return;
@@ -59,6 +63,25 @@ export default function InstallmentDetail() {
     };
 
     useEffect(() => { load(); }, [planId]);
+
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        setDeleting(true);
+        try {
+            const res = await api.delete(`/installments/${deleteId}`);
+            if (res?.success === false) {
+                alert(res.error?.message || 'Failed to delete installment');
+            } else {
+                await load();
+                setDeleteId(null);
+            }
+        } catch (err) {
+            console.error(err);
+            alert('An unexpected error occurred while deleting');
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     const fmtDate = (d?: string) =>
         d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -194,7 +217,7 @@ export default function InstallmentDetail() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex justify-center">
+                                            <div className="flex justify-center items-center gap-2">
                                                 {isCurrentRow ? (
                                                     <button
                                                         type="button"
@@ -206,6 +229,14 @@ export default function InstallmentDetail() {
                                                 ) : (
                                                     <span className="text-xs text-gray-400">—</span>
                                                 )}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => { e.stopPropagation(); setDeleteId(inst._id); }}
+                                                    className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
+                                                    title="Delete Installment"
+                                                >
+                                                    <Trash2 size={14} />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -231,6 +262,18 @@ export default function InstallmentDetail() {
                     status: i.status,
                 }))}
                 initialInstallmentId={payInstId}
+            />
+
+            <ConfirmDialog
+                open={!!deleteId}
+                title="Delete Installment"
+                message="Are you sure you want to delete this installment? This might affect the payment plan balance."
+                confirmLabel={deleting ? 'Deleting…' : 'Delete'}
+                cancelLabel="Cancel"
+                danger
+                onConfirm={handleDelete}
+                onCancel={() => !deleting && setDeleteId(null)}
+                isLoading={deleting}
             />
         </div>
     );
