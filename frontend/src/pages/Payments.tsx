@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, FileText } from 'lucide-react';
 import { api } from '../api/client';
 import RecordPaymentModal, { InstallmentOption } from '../components/RecordPaymentModal';
 import styles from './Inquiries.module.css';
@@ -32,6 +32,23 @@ export default function Payments() {
   const [loading, setLoading] = useState(true);
   const [clientFilter, setClientFilter] = useState<string>('');
   const [showModal, setShowModal] = useState(false);
+  const [generatingBillId, setGeneratingBillId] = useState<string | null>(null);
+
+  const generateBill = async (txId: string) => {
+    setGeneratingBillId(txId);
+    try {
+      const res = await api.post<{ _id: string }>(`/billing/generate/${txId}`, {});
+      if (res.success) {
+        alert('Invoice generated successfully!');
+      } else {
+        alert('Failed to generate invoice: ' + (res.error?.message || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Failed to generate invoice');
+    } finally {
+      setGeneratingBillId(null);
+    }
+  };
 
   const loadTransactions = async () => {
     try {
@@ -127,6 +144,7 @@ export default function Payments() {
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Method</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Reference</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Recorded By</th>
+              <th className="px-6 py-4 text-orange-500 font-bold text-sm !text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y-0">
@@ -157,11 +175,24 @@ export default function Payments() {
                     <td className="px-6 py-4 text-gray-600">{methodLabel(tx.paymentMethod)}</td>
                     <td className="px-6 py-4 text-gray-600">{tx.referenceNo || '—'}</td>
                     <td className="px-6 py-4 text-gray-600">{tx.recordedByName || tx.recordedBy}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-center">
+                        <button
+                          type="button"
+                          onClick={() => generateBill(tx._id)}
+                          disabled={generatingBillId === tx._id}
+                          title="Generate Invoice"
+                          className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <FileText size={18} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
                 {Array.from({ length: Math.max(0, rowsPerPage - paginated.length) }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="h-[60px]">
-                    {Array.from({ length: 7 }).map((_, i) => (
+                    {Array.from({ length: 8 }).map((_, i) => (
                       <td key={i} className="px-6 py-4">&nbsp;</td>
                     ))}
                   </tr>

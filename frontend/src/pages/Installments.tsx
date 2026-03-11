@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Trash2 } from 'lucide-react';
+import { Trash2, CheckCircle } from 'lucide-react';
 import { api } from '../api/client';
+import { useNavigate } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
+import RecordPaymentModal from '../components/RecordPaymentModal';
 import styles from './Inquiries.module.css';
 
 interface Installment {
@@ -23,13 +25,17 @@ interface PaymentPlanOption {
 }
 
 export default function Installments() {
+  const navigate = useNavigate();
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [plans, setPlans] = useState<PaymentPlanOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [planFilter, setPlanFilter] = useState<string>('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentInstId, setPaymentInstId] = useState<string | undefined>(undefined);
 
   const loadInstallments = async () => {
     try {
@@ -165,7 +171,10 @@ export default function Installments() {
             ) : (
               <>
                 {paginated.map((inst) => (
-                  <tr key={inst._id} className="hover:bg-gray-50 transition-colors group">
+                  <tr key={inst._id}
+                    className="hover:bg-orange-50 transition-colors group cursor-pointer"
+                    onClick={() => navigate(`/installments/${inst.planId}`)}
+                  >
                     <td className="px-6 py-4 font-medium text-gray-900">{inst.projectName || '—'}</td>
                     <td className="px-6 py-4 text-gray-600">{inst.installmentNo}</td>
                     <td className="px-6 py-4 text-gray-600">{formatDate(inst.dueDate)}</td>
@@ -181,8 +190,21 @@ export default function Installments() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-gray-600">{inst.overdueDays ?? 0}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                       <div className="flex justify-center items-center gap-2">
+                        {inst.status !== 'paid' && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaymentInstId(inst._id);
+                              setPaymentModalOpen(true);
+                            }}
+                            className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Mark Paid"
+                          >
+                            <CheckCircle size={18} />
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={() => setDeleteId(inst._id)}
@@ -249,6 +271,17 @@ export default function Installments() {
         danger
         onConfirm={handleDelete}
         onCancel={() => !deleting && setDeleteId(null)}
+      />
+
+      <RecordPaymentModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        onSuccess={() => {
+          setPaymentModalOpen(false);
+          loadInstallments();
+        }}
+        installments={installments}
+        initialInstallmentId={paymentInstId}
       />
     </div>
   );

@@ -19,6 +19,7 @@ interface RecordPaymentModalProps {
   onClose: () => void;
   onSuccess: () => void;
   installments: InstallmentOption[];
+  initialInstallmentId?: string;
 }
 
 const PAYMENT_METHODS: { value: 'cash' | 'bank' | 'card' | 'online'; label: string }[] = [
@@ -33,6 +34,7 @@ export default function RecordPaymentModal({
   onClose,
   onSuccess,
   installments,
+  initialInstallmentId,
 }: RecordPaymentModalProps) {
   const [installmentId, setInstallmentId] = useState('');
   const [amount, setAmount] = useState('');
@@ -48,7 +50,7 @@ export default function RecordPaymentModal({
 
   useEffect(() => {
     if (open) {
-      setInstallmentId('');
+      setInstallmentId(initialInstallmentId || '');
       setAmount('');
       setPaymentMethod('cash');
       setReferenceNo('');
@@ -56,7 +58,7 @@ export default function RecordPaymentModal({
       setPaymentDate(today);
       setError('');
     }
-  }, [open]);
+  }, [open, initialInstallmentId]);
 
   useEffect(() => {
     if (selected && amount) {

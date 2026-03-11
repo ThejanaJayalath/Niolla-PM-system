@@ -26,6 +26,7 @@ import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
 import PaymentPlans from './pages/PaymentPlans';
 import Installments from './pages/Installments';
+import InstallmentDetail from './pages/InstallmentDetail';
 import Payments from './pages/Payments';
 import Invoices from './pages/Invoices';
 import PaymentNotifications from './pages/PaymentNotifications';
@@ -72,6 +73,7 @@ export default function App() {
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="payment-plans" element={<PaymentPlans />} />
         <Route path="installments" element={<Installments />} />
+        <Route path="installments/:planId" element={<InstallmentDetail />} />
         <Route path="payments" element={<Payments />} />
         <Route path="invoices" element={<Invoices />} />
         <Route path="notifications" element={<PaymentNotifications />} />

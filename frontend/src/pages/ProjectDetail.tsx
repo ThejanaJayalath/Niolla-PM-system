@@ -6,7 +6,8 @@ import {
     Edit3,
     Trash2,
     List,
-    DollarSign
+    DollarSign,
+    CheckSquare
 } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -22,7 +23,21 @@ interface Project {
     totalValue: number;
     startDate?: string;
     endDate?: string;
+    assignedEmployees?: string[];
     status: 'active' | 'completed' | 'cancelled';
+}
+
+interface UserOption {
+    _id: string;
+    name: string;
+    email: string;
+}
+
+interface PaymentPlanTemplate {
+    _id: string;
+    name: string;
+    templateType: string;
+    description?: string;
 }
 
 interface PaymentPlan {
@@ -54,10 +69,15 @@ export default function ProjectDetail() {
     const [project, setProject] = useState<Project | null>(null);
     const [paymentPlans, setPaymentPlans] = useState<PaymentPlan[]>([]);
     const [installments, setInstallments] = useState<Installment[]>([]);
+    const [users, setUsers] = useState<UserOption[]>([]);
+    const [templates, setTemplates] = useState<PaymentPlanTemplate[]>([]);
     const [loading, setLoading] = useState(true);
 
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<Partial<Project>>({});
+    
+    const [selectedTemplate, setSelectedTemplate] = useState('');
+    const [generatingPlan, setGeneratingPlan] = useState(false);
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
@@ -65,7 +85,13 @@ export default function ProjectDetail() {
     const load = async () => {
         if (!id) return;
         try {
-            const projRes = await api.get<Project>(`/projects/${id}`);
+            const [projRes, planRes, usersRes, tplRes] = await Promise.all([
+                api.get<Project>(`/projects/${id}`),
+                api.get<PaymentPlan[]>(`/payment-plans?projectId=${id}`),
+                api.get<UserOption[]>('/users'),
+                api.get<PaymentPlanTemplate[]>('/payment-plan-templates')
+            ]);
+            
             if (projRes.success && projRes.data) {
                 setProject(projRes.data);
                 setEditForm({
@@ -76,14 +102,16 @@ export default function ProjectDetail() {
                     startDate: projRes.data.startDate ? projRes.data.startDate.slice(0, 10) : '',
                     endDate: projRes.data.endDate ? projRes.data.endDate.slice(0, 10) : '',
                     status: projRes.data.status,
+                    assignedEmployees: projRes.data.assignedEmployees || [],
                 });
             }
 
-            const planRes = await api.get<PaymentPlan[]>(`/payment-plans?projectId=${id}`);
+            if (usersRes.success && usersRes.data) setUsers(usersRes.data);
+            if (tplRes.success && tplRes.data) setTemplates(tplRes.data);
+
             if (planRes.success && planRes.data) {
                 setPaymentPlans(planRes.data);
                 if (planRes.data.length > 0) {
-                    // fetch installments for the first active plan
                     const activePlan = planRes.data.find(p => p.status !== 'cancelled') || planRes.data[0];
                     const instRes = await api.get<Installment[]>(`/installments?paymentPlanId=${activePlan._id}`);
                     if (instRes.success && instRes.data) {
@@ -117,6 +145,7 @@ export default function ProjectDetail() {
                 totalValue: editForm.totalValue ? Number(editForm.totalValue) : undefined,
                 startDate: editForm.startDate,
                 endDate: editForm.endDate,
+                assignedEmployees: editForm.assignedEmployees,
             };
             const res = await api.patch<Project>(`/projects/${id}`, payload);
             if (res.success && res.data) {
@@ -126,6 +155,38 @@ export default function ProjectDetail() {
         } catch (err) {
             console.error('Failed to save', err);
             alert('Failed to save project details');
+        }
+    };
+
+    const toggleEmployee = (empId: string) => {
+        if (!isEditing) return;
+        const current = editForm.assignedEmployees || [];
+        if (current.includes(empId)) {
+            setEditForm({ ...editForm, assignedEmployees: current.filter(id => id !== empId) });
+        } else {
+            setEditForm({ ...editForm, assignedEmployees: [...current, empId] });
+        }
+    };
+
+    const handleGeneratePlan = async () => {
+        if (!selectedTemplate) return alert('Please select a template');
+        setGeneratingPlan(true);
+        try {
+            const res = await api.post<any>('/payment-plans/instantiate', {
+                projectId: id,
+                templateId: selectedTemplate,
+                planStartDate: new Date().toISOString()
+            });
+            if (res.success) {
+                alert('Payment Plan generated!');
+                load();
+            } else {
+                alert('Error generating template: ' + JSON.stringify(res.error));
+            }
+        } catch (err) {
+            alert('Failed to generate payment plan');
+        } finally {
+            setGeneratingPlan(false);
         }
     };
 
@@ -254,6 +315,32 @@ export default function ProjectDetail() {
                     </div>
 
                     <div className={styles.formGroup}>
+                        <label>Assign Employees</label>
+                        <div className="flex flex-col gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl overflow-y-auto max-h-48">
+                            {users.length === 0 ? <p className="text-gray-500 text-sm">No employees found.</p> : users.map(u => {
+                                const isAssigned = isEditing 
+                                    ? (editForm.assignedEmployees || []).includes(u._id)
+                                    : (project.assignedEmployees || []).includes(u._id);
+                                return (
+                                    <div 
+                                        key={u._id} 
+                                        className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${!isEditing ? 'opacity-80 cursor-default' : 'cursor-pointer hover:bg-gray-100'} ${isAssigned ? 'bg-orange-50 bg-opacity-50' : ''}`}
+                                        onClick={() => toggleEmployee(u._id)}
+                                    >
+                                        <div className={`w-5 h-5 rounded border flex items-center justify-center ${isAssigned ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-300 bg-white'}`}>
+                                            {isAssigned && <CheckSquare size={14} />}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-medium text-gray-800">{u.name}</div>
+                                            <div className="text-xs text-gray-500">{u.email}</div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className={styles.formGroup}>
                         <label>Description</label>
                         <textarea
                             value={isEditing ? editForm.description || '' : project.description || ''}
@@ -298,12 +385,28 @@ export default function ProjectDetail() {
                             )}
                         </div>
 
-                        <button
-                            onClick={() => navigate(`/payment-plans?instantiateFor=${project._id}`)}
-                            className={styles.orangeBtn}
-                        >
-                            Attach a Payment Plan
-                        </button>
+                        {paymentPlans.length === 0 && (
+                            <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
+                                <label className="text-xs font-bold text-gray-700 uppercase tracking-wide">Generate from Template</label>
+                                <select 
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-orange-500"
+                                    value={selectedTemplate}
+                                    onChange={e => setSelectedTemplate(e.target.value)}
+                                >
+                                    <option value="">-- Select Template --</option>
+                                    {templates.map(t => (
+                                        <option key={t._id} value={t._id}>{t.name} ({t.templateType})</option>
+                                    ))}
+                                </select>
+                                <button
+                                    onClick={handleGeneratePlan}
+                                    disabled={generatingPlan || !selectedTemplate}
+                                    className={`${styles.orangeBtn} ${(!selectedTemplate || generatingPlan) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    {generatingPlan ? 'Generating...' : 'Generate Plan'}
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Cash Flow Pipeline Zone */}
