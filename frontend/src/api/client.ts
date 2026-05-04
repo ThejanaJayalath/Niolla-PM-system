@@ -1,3 +1,5 @@
+import { pushSystemToast } from '../lib/systemToast';
+
 const API_BASE = '/api/v1';
 
 function getToken(): string | null {
@@ -136,7 +138,9 @@ export const api = {
     }, 500);
 
     const serverMessage = res.headers.get('X-Message');
-    if (serverMessage) setTimeout(() => alert(serverMessage), 300);
+    if (serverMessage) {
+      setTimeout(() => pushSystemToast(serverMessage, 'warning'), 300);
+    }
   },
 };
 

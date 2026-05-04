@@ -255,6 +255,7 @@ Create a new inquiry. Response may include `meta.duplicatePhone` if the phone al
 ```json
 {
   "customerName": "Acme Corp",
+  "companyName": "Acme Retail (Pvt) Ltd",
   "phoneNumber": "0771234567",
   "projectDescription": "Need a web app for inventory management.",
   "requiredFeatures": ["Dashboard", "Reports", "Export"],
@@ -265,6 +266,7 @@ Create a new inquiry. Response may include `meta.duplicatePhone` if the phone al
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | customerName | string | Yes | Customer full name |
+| companyName | string | No | Business or shop name |
 | phoneNumber | string | Yes | Contact number |
 | projectDescription | string | Yes | Project description |
 | requiredFeatures | string[] | Yes | Array of feature names |
@@ -277,6 +279,7 @@ Create a new inquiry. Response may include `meta.duplicatePhone` if the phone al
   "data": {
     "_id": "...",
     "customerName": "Acme Corp",
+    "companyName": "Acme Retail (Pvt) Ltd",
     "phoneNumber": "0771234567",
     "projectDescription": "...",
     "requiredFeatures": ["Dashboard", "Reports", "Export"],
@@ -512,6 +515,159 @@ Download the proposal as a PDF file. Same as other endpoints: send `Authorizatio
 - Body: PDF binary
 
 **Error (404):** Proposal not found.
+
+---
+
+## 5b. Customers (profile fields)
+
+All customer CRUD routes are under `/api/v1/customers` and require `Authorization: Bearer <token>`.
+
+Customer documents may include **`serviceCategories`**: an array of strings linking software product lines to the profile (for example `POS`, `ERP`, `Website`, `Mobile App`, `E-Commerce`, `CRM`, `Custom Software`, `Other`). Send them on **`POST /customers`** and **`PATCH /customers/:id`**:
+
+```json
+{
+  "name": "Acme Retail",
+  "phoneNumber": "0771234567",
+  "serviceCategories": ["POS", "ERP", "Mobile App"]
+}
+```
+
+### GET `/customers` (list)
+
+Optional query parameters:
+
+- **`search`** — case-insensitive match on name, phone, email, `customerId`, company name, or NIC.
+- **`serviceCategory`** — return only customers whose `serviceCategories` array includes this value. Must be one of: `POS`, `ERP`, `Website`, `Mobile App`, `E-Commerce`, `CRM`, `Custom Software`, `Other`. Omit or leave empty to list all.
+
+Example: `GET /customers?search=acme&serviceCategory=POS`
+
+---
+
+## 6. Customer Interaction History, Call Logs, and Requirements
+
+All endpoints below require `Authorization: Bearer <token>`.
+
+### GET `/customers/:id/interactions`
+
+List timeline entries for a customer. Optional query: `type` (`CALL`, `MEETING`, `NOTE`, `STATUS_CHANGE`, `REQUIREMENT_UPDATE`).
+
+**Response (200):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "_id": "6816f8...",
+      "customerRef": "6816f7...",
+      "inquiryRef": "6816f6...",
+      "type": "MEETING",
+      "summary": "Project kickoff meeting",
+      "details": "Discussed scope and milestones",
+      "occurredAt": "2026-05-04T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+### POST `/customers/:id/interactions`
+
+Create a timeline entry.
+
+**Body:**
+```json
+{
+  "inquiryRef": "6816f6...",
+  "type": "NOTE",
+  "summary": "Client requested dashboard changes",
+  "details": "Add analytics widgets",
+  "occurredAt": "2026-05-04T10:00:00.000Z"
+}
+```
+
+### PATCH `/interactions/:interactionId`
+
+Update interaction fields (`summary`, `details`, `occurredAt`, `callMeta`).
+
+---
+
+### GET `/customers/:id/call-logs`
+
+Return only `CALL` interactions for the customer.
+
+### POST `/customers/:id/call-logs`
+
+Create a call log entry.
+
+**Body:**
+```json
+{
+  "summary": "Follow-up call",
+  "details": "Confirmed phase-1 signoff",
+  "callMeta": {
+    "direction": "OUTBOUND",
+    "durationSec": 420,
+    "outcome": "ANSWERED",
+    "nextFollowUpAt": "2026-05-10T09:00:00.000Z"
+  }
+}
+```
+
+### PATCH `/customers/:id/call-logs/:interactionId`
+
+Update a call log for the customer. The interaction must exist, belong to `:id`, and have `type` `CALL`. Optional fields: `summary`, `details`, `occurredAt`, `callMeta` (same shape as POST). If `callMeta` is sent without `durationSec`, any stored duration is cleared.
+
+### DELETE `/customers/:id/call-logs/:interactionId`
+
+Delete a call log. The interaction must belong to the customer and be type `CALL`.
+
+---
+
+### GET `/customers/:id/requirements`
+
+List software requirements discussed for a customer.
+
+### POST `/customers/:id/requirements`
+
+Create a requirement item.
+
+**Body:**
+```json
+{
+  "inquiryRef": "6816f6...",
+  "title": "Role-based access control",
+  "description": "Owner / PM / Staff permissions",
+  "priority": "HIGH",
+  "status": "OPEN",
+  "source": "INQUIRY"
+}
+```
+
+### PATCH `/requirements/:requirementId`
+
+Update requirement fields (`title`, `description`, `priority`, `status`, `source`).
+
+---
+
+### DELETE `/customers/:id/requirements/:requirementId`
+
+Delete a software requirement for the given customer. The requirement must belong to that customer (`customerRef` match).
+
+**Response (200):** `{ "success": true }`  
+**Error (404):** Customer or requirement not found, or requirement does not belong to this customer.
+
+---
+
+## 7. Validation and flow tests (manual checklist)
+
+- Create inquiry with `requiredFeatures`, confirm it, and verify:
+  - a customer is auto-created
+  - an interaction entry of `STATUS_CHANGE` exists
+  - requirement rows are seeded from `requiredFeatures`
+- Create a meeting/reminder linked to inquiry and verify a customer interaction entry appears.
+- Add call log from customer profile and verify it appears in both `Call Logs` and `Interaction History`.
+- Add requirement from customer profile and verify it appears in `Software Requirements`.
+- Edit interaction/requirement by PATCH endpoints and verify persisted updates.
+- Delete a requirement via DELETE `/customers/:customerId/requirements/:requirementId` (or customer profile UI) and verify it disappears from the list.
 
 ---
 

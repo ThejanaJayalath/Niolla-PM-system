@@ -249,3 +249,232 @@
 .orangeBtn:hover {
     background: #ea580c;
 }
+
+.timelineList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.timelineItem {
+    border: 1px solid #f3f4f6;
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    background: #fff;
+}
+
+.timelineType {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #b45309;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+}
+
+.timelineSummary {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.timelineDetails {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    color: #4b5563;
+}
+
+.timelineMeta {
+    margin-top: 0.5rem;
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    font-size: 0.78rem;
+    color: #6b7280;
+}
+
+.timelineDate {
+    margin-top: 0.45rem;
+    font-size: 0.78rem;
+    color: #9ca3af;
+}
+
+.emptyText {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.entryForm {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+}
+
+.inlineGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+
+.durationField {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+    min-width: 0;
+}
+
+.durationField input.inputParam {
+    flex: 1 1 auto;
+    min-width: 10rem;
+    flex-grow: 3;
+}
+
+.durationField select.inputParam {
+    flex: 0 0 3.75rem;
+    width: 3.75rem;
+    min-width: 3.75rem;
+    max-width: 3.75rem;
+    padding-left: 0.35rem;
+    padding-right: 1.25rem;
+    font-size: 0.8rem;
+}
+
+@media (max-width: 900px) {
+    .inlineGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.productChipRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+
+.productChip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+}
+
+.productChipMuted {
+    font-size: 0.8rem;
+    color: #9ca3af;
+}
+
+.productChipBtn {
+    padding: 0.45rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #4b5563;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.productChipBtn:hover {
+    border-color: #fed7aa;
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.productChipBtnActive {
+    border-color: #fb923c;
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.chipRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chip {
+    padding: 0.45rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #4b5563;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.chip:hover {
+    border-color: #fed7aa;
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.chipActive {
+    border-color: #fb923c;
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.chipReadonly {
+    cursor: default;
+    background: #fff7ed;
+    border-color: #fed7aa;
+    color: #c2410c;
+}
+
+.subtitleChips {
+    margin-top: 0.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.requirementRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.requirementRowBody {
+    flex: 1;
+    min-width: 0;
+}
+
+.requirementActions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.requirementIconBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.requirementIconBtn:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.requirementIconBtnDanger:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}

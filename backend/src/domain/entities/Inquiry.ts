@@ -2,6 +2,8 @@ export interface Inquiry {
   _id?: string;
   customerId?: string;
   customerName: string;
+  /** Business / shop name (optional). */
+  companyName?: string;
   phoneNumber: string;
   projectDescription: string;
   requiredFeatures: string[];

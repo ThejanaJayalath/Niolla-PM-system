@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FileDown, Mail } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 import styles from './Inquiries.module.css';
 
 interface Invoice {
@@ -74,6 +75,7 @@ export default function Invoices() {
       await api.download(`/invoices/${inv._id}/pdf`, `invoice-${inv.invoiceNumber}.pdf`);
     } catch (err) {
       console.error(err);
+      pushSystemToast(err instanceof Error ? err.message : 'Failed to download invoice PDF', 'error');
     } finally {
       setDownloadingId(null);
     }

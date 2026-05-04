@@ -12,6 +12,8 @@ export interface Customer {
   companyName?: string;
   nicNumber?: string;
   status?: 'active' | 'inactive';
+  /** NIOLLA NEXA: Web, Mobile App, ERP, POS, Other */
+  serviceCategories?: string[];
   createdAt?: Date;
   updatedAt?: Date;
 }

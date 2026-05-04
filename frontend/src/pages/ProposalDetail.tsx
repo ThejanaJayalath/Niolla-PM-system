@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, FileText, Info, Flag, DollarSign, Trash2, Edit3, Plus, Download } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import styles from './ProposalDetail.module.css';
 
@@ -114,11 +115,11 @@ export default function ProposalDetail() {
         setIsEditing(false);
         initializeForm(res.data);
       } else {
-        alert('Failed to update proposal');
+        pushSystemToast('Failed to update proposal', 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to update proposal');
+      pushSystemToast('Failed to update proposal', 'error');
     } finally {
       setSaving(false);
     }
@@ -136,7 +137,7 @@ export default function ProposalDetail() {
       navigate('/proposals');
     } catch (err) {
       console.error(err);
-      alert('Failed to delete proposal');
+      pushSystemToast('Failed to delete proposal', 'error');
       setDeleting(false);
       setShowDeleteConfirm(false);
     }
@@ -159,7 +160,7 @@ export default function ProposalDetail() {
       await api.download(`/proposals/${proposal._id}/pdf`, `proposal-${proposal.customerName.replace(/\s+/g, '-')}.pdf`);
     } catch (err) {
       console.error('Download failed', err);
-      alert(err instanceof Error ? err.message : 'Failed to download proposal');
+      pushSystemToast(err instanceof Error ? err.message : 'Failed to download proposal', 'error');
     } finally {
       setDownloading(false);
     }
