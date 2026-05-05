@@ -5,11 +5,12 @@ import { AuthenticatedRequest } from '../middleware/auth';
 const inquiryService = new InquiryService();
 
 export async function createInquiry(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { customerName, phoneNumber, projectDescription, requiredFeatures, internalNotes } = req.body;
+  const { customerName, companyName, phoneNumber, projectDescription, requiredFeatures, internalNotes } = req.body;
   const createdBy = req.user?.userId;
 
   const { inquiry, duplicatePhone } = await inquiryService.create({
     customerName,
+    companyName,
     phoneNumber,
     projectDescription,
     requiredFeatures: Array.isArray(requiredFeatures) ? requiredFeatures : [requiredFeatures].filter(Boolean),

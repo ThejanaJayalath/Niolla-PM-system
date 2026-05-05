@@ -13,6 +13,7 @@ export interface CustomerDocument extends Document {
   companyName?: string;
   nicNumber?: string;
   status?: 'active' | 'inactive';
+  serviceCategories?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -30,6 +31,7 @@ const customerSchema = new Schema<CustomerDocument>(
     companyName: { type: String },
     nicNumber: { type: String },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    serviceCategories: [{ type: String }],
   },
   { timestamps: true }
 );

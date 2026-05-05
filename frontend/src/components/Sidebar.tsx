@@ -95,7 +95,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                     )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto pt-2 pb-4 no-scrollbar">
+                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-2 pb-4 pr-1 sidebar-scrollbar">
                     <nav className="px-4 space-y-1">
                         {navItems.map((item) => (
                             <NavLink
@@ -245,7 +245,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto pt-2 pb-4 no-scrollbar">
+                <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden pt-2 pb-4 pr-1 sidebar-scrollbar">
                     <nav className="px-4 space-y-1">
                         {navItems.map((item) => (
                             <NavLink

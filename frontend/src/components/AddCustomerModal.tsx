@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { X, User, Phone, Mail, FolderOpen, Building2, MapPin, Briefcase, Hash } from 'lucide-react';
+import { X, User, Phone, Mail, FolderOpen, Building2, MapPin, Briefcase, Hash, Layers } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './NewInquiryModal.module.css';
+import { SOFTWARE_PRODUCT_OPTIONS } from '../constants/customerServiceProducts';
 
 export interface CustomerFormData {
   name: string;
   phoneNumber: string;
   email: string;
   projects: string[];
+  serviceCategories: string[];
   address: string;
   businessType: string;
   companyName: string;
@@ -31,6 +33,7 @@ interface AddCustomerModalProps {
     companyName?: string;
     nicNumber?: string;
     status?: 'active' | 'inactive';
+    serviceCategories?: string[];
   } | null;
 }
 
@@ -40,6 +43,7 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
     phoneNumber: '',
     email: '',
     projects: [],
+    serviceCategories: [],
     address: '',
     businessType: '',
     companyName: '',
@@ -59,6 +63,7 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
         phoneNumber: '',
         email: '',
         projects: [],
+        serviceCategories: [],
         address: '',
         businessType: '',
         companyName: '',
@@ -73,6 +78,7 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
         phoneNumber: editCustomer.phoneNumber,
         email: editCustomer.email || '',
         projects: editCustomer.projects || [],
+        serviceCategories: editCustomer.serviceCategories || [],
         address: editCustomer.address || '',
         businessType: editCustomer.businessType || '',
         companyName: editCustomer.companyName || '',
@@ -86,6 +92,7 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
         phoneNumber: '',
         email: '',
         projects: [],
+        serviceCategories: [],
         address: '',
         businessType: '',
         companyName: '',
@@ -99,6 +106,15 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const toggleServiceCategory = (value: string) => {
+    setForm((prev) => {
+      const set = new Set(prev.serviceCategories || []);
+      if (set.has(value)) set.delete(value);
+      else set.add(value);
+      return { ...prev, serviceCategories: [...set] };
+    });
   };
 
   useEffect(() => {
@@ -115,6 +131,7 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
       phoneNumber: form.phoneNumber.trim(),
       email: form.email.trim() || undefined,
       projects: form.projects,
+      serviceCategories: form.serviceCategories,
       address: form.address.trim() || undefined,
       businessType: form.businessType.trim() || undefined,
       companyName: form.companyName.trim() || undefined,
@@ -205,6 +222,29 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
               className={styles.input}
               placeholder="Enter email (optional)"
             />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>
+              <Layers size={18} />
+              Software products
+            </label>
+            <p className="text-xs text-gray-500 mb-2">Link POS, ERP, website, mobile app, and other offerings to this profile.</p>
+            <div className={styles.chipRow}>
+              {SOFTWARE_PRODUCT_OPTIONS.map(({ value, label }) => {
+                const active = (form.serviceCategories || []).includes(value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`${styles.chip} ${active ? styles.chipActive : ''}`}
+                    onClick={() => toggleServiceCategory(value)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           <div className={styles.formGroup}>

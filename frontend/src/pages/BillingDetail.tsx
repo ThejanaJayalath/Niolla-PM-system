@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, FileText, Building2, CreditCard, Trash2, Edit3, Plus, Download } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import styles from './ProposalDetail.module.css';
 
@@ -157,11 +158,11 @@ export default function BillingDetail() {
         setIsEditing(false);
         initializeForm(res.data);
       } else {
-        alert('Failed to update billing');
+        pushSystemToast('Failed to update billing', 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to update billing');
+      pushSystemToast('Failed to update billing', 'error');
     } finally {
       setSaving(false);
     }
@@ -181,7 +182,7 @@ export default function BillingDetail() {
       navigate('/billing');
     } catch (err) {
       console.error(err);
-      alert('Failed to delete billing');
+      pushSystemToast('Failed to delete billing', 'error');
       setDeleting(false);
       setShowDeleteConfirm(false);
     }
@@ -212,7 +213,7 @@ export default function BillingDetail() {
       );
     } catch (err) {
       console.error('Download failed', err);
-      alert(err instanceof Error ? err.message : 'Failed to download invoice');
+      pushSystemToast(err instanceof Error ? err.message : 'Failed to download invoice', 'error');
     } finally {
       setDownloading(false);
     }

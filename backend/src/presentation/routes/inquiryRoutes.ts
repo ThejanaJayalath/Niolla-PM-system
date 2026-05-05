@@ -26,6 +26,7 @@ router.post(
   '/',
   [
     body('customerName').trim().notEmpty().withMessage('Customer name is required'),
+    body('companyName').optional().trim(),
     body('phoneNumber').trim().notEmpty().withMessage('Phone number is required'),
     body('projectDescription').trim().notEmpty().withMessage('Project description is required'),
     body('requiredFeatures').isArray().withMessage('Required features must be an array'),
@@ -53,6 +54,7 @@ router.patch(
   [
     param('id').isMongoId(),
     body('customerName').optional().trim().notEmpty(),
+    body('companyName').optional().trim(),
     body('phoneNumber').optional().trim().notEmpty(),
     body('projectDescription').optional().trim().notEmpty(),
     body('requiredFeatures').optional().isArray(),

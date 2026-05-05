@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { X, User, Phone, FileText } from 'lucide-react';
+import { X, User, Phone, FileText, Building2 } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './NewInquiryModal.module.css';
 
 interface FormState {
   customerName: string;
+  companyName: string;
   phoneNumber: string;
   projectDescription: string;
   requiredFeatures: string[];
@@ -21,6 +22,7 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
   const featureInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<FormState>({
     customerName: '',
+    companyName: '',
     phoneNumber: '',
     projectDescription: '',
     requiredFeatures: [],
@@ -35,6 +37,7 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
     if (!open) {
       setForm({
         customerName: '',
+        companyName: '',
         phoneNumber: '',
         projectDescription: '',
         requiredFeatures: [],
@@ -80,6 +83,7 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
     setSubmitting(true);
     const payload = {
       customerName: form.customerName,
+      companyName: form.companyName.trim() || undefined,
       phoneNumber: form.phoneNumber,
       projectDescription: form.projectDescription,
       requiredFeatures: form.requiredFeatures,
@@ -147,6 +151,21 @@ export default function NewInquiryModal({ open, onClose, onSuccess }: NewInquiry
               required
               className={styles.input}
               placeholder="Enter Customer Name"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="companyName">
+              <Building2 size={18} />
+              Company name
+            </label>
+            <input
+              id="companyName"
+              name="companyName"
+              value={form.companyName}
+              onChange={handleChange}
+              className={styles.input}
+              placeholder="Business or shop name (optional)"
             />
           </div>
 

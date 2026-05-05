@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
+import { CUSTOMER_SERVICE_CATEGORY_VALUES } from '../../constants/customerServiceProducts';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import {
   createCustomer,
@@ -38,12 +39,25 @@ router.post(
     body('companyName').optional().trim(),
     body('nicNumber').optional().trim(),
     body('status').optional().isIn(['active', 'inactive']),
+    body('serviceCategories').optional().isArray(),
+    body('serviceCategories.*').optional().trim(),
   ],
   validate,
   createCustomer
 );
 
-router.get('/', [query('search').optional().isString().trim()], validate, listCustomers);
+router.get(
+  '/',
+  [
+    query('search').optional().isString().trim(),
+    query('serviceCategory')
+      .optional({ values: 'falsy' })
+      .isIn([...CUSTOMER_SERVICE_CATEGORY_VALUES])
+      .withMessage('Invalid service category'),
+  ],
+  validate,
+  listCustomers
+);
 router.get('/:id', [param('id').isMongoId()], validate, getCustomer);
 router.patch(
   '/:id',
@@ -59,6 +73,8 @@ router.patch(
     body('companyName').optional().trim(),
     body('nicNumber').optional().trim(),
     body('status').optional().isIn(['active', 'inactive']),
+    body('serviceCategories').optional().isArray(),
+    body('serviceCategories.*').optional().trim(),
   ],
   validate,
   updateCustomer

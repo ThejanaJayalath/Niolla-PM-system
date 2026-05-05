@@ -18,6 +18,7 @@ import paymentNotificationRoutes from './routes/paymentNotificationRoutes';
 import reportRoutes from './routes/reportRoutes';
 import jobRoutes from './routes/jobRoutes';
 import auditLogRoutes from './routes/auditLogRoutes';
+import interactionRoutes from './routes/interactionRoutes';
 import { getOAuthStartRouter, handleOAuthCallback } from './routes/googleOAuthRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { connectDatabase } from '../infrastructure/database/mongo';
@@ -31,7 +32,11 @@ app.use((_req: Request, _res: Response, next: NextFunction) => {
   dbPromise.then(() => next()).catch(next);
 });
 
-app.use(cors());
+app.use(
+  cors({
+    exposedHeaders: ['X-Message', 'Content-Disposition'],
+  })
+);
 // Allow larger payloads for profile photo upload (base64); default is 100kb
 app.use(express.json({ limit: '4mb' }));
 
@@ -57,6 +62,7 @@ app.use('/api/v1/payment-notifications', paymentNotificationRoutes);
 app.use('/api/v1/reports', reportRoutes);
 app.use('/api/v1/jobs', jobRoutes);
 app.use('/api/v1/audit', auditLogRoutes);
+app.use('/api/v1', interactionRoutes);
 app.use('/api/v1/google-oauth', getOAuthStartRouter());
 app.get('/oauth2callback', handleOAuthCallback);
 app.get('/api/oauth2callback', handleOAuthCallback);

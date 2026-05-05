@@ -4,6 +4,7 @@ import { Plus, Search, FileText, DownloadCloud, Trash2 } from 'lucide-react';
 import ConfirmDialog from '../components/ConfirmDialog';
 import styles from './Inquiries.module.css';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 
 interface BillingRecord {
   _id: string;
@@ -168,7 +169,7 @@ export default function Billing() {
                             e.stopPropagation();
                             api.download(`/billing/${b._id}/pdf`, `invoice-${b.customerName.replace(/\s+/g, '-')}.pdf`).catch((err) => {
                               console.error(err);
-                              alert(err instanceof Error ? err.message : 'Failed to download invoice');
+                              pushSystemToast(err instanceof Error ? err.message : 'Failed to download invoice', 'error');
                             });
                           }}
                           className="text-gray-900 hover:text-primary transition-colors"

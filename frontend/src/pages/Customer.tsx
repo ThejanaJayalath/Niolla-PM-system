@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AddCustomerModal from '../components/AddCustomerModal';
+import { SOFTWARE_PRODUCT_OPTIONS } from '../constants/customerServiceProducts';
 import styles from './Inquiries.module.css';
 
 interface Customer {
@@ -13,6 +14,7 @@ interface Customer {
   phoneNumber: string;
   email?: string;
   projects: string[];
+  serviceCategories?: string[];
   address?: string;
   businessType?: string;
   companyName?: string;
@@ -25,15 +27,18 @@ export default function Customer() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [productFilter, setProductFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const load = async () => {
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.append('search', search.trim());
+      if (productFilter.trim()) params.append('serviceCategory', productFilter.trim());
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const res = await api.get<Customer[]>(`/customers${queryString}`);
       if (res.success && res.data) setCustomers(res.data);
@@ -50,7 +55,11 @@ export default function Customer() {
       load();
     }, 300);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, productFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, productFilter]);
 
   const handleAdd = () => {
     setEditCustomer(null);
@@ -81,7 +90,6 @@ export default function Customer() {
     }
   };
 
-  const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 8;
   const totalPages = Math.ceil(customers.length / rowsPerPage);
   const paginated = customers.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
@@ -100,15 +108,30 @@ export default function Customer() {
       </div>
 
       <div className={styles.filtersRow}>
-        <div className="relative w-64 md:w-64 sm:w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            placeholder="Search by Name, Phone, Email, ID, Company"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-          />
+        <div className={styles.customerFiltersBar}>
+          <div className={styles.customerSearchWrap}>
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={18} />
+            <input
+              type="text"
+              placeholder="Search by Name, Phone, Email, ID, Company"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <select
+            className={styles.customerProductFilter}
+            value={productFilter}
+            onChange={(e) => setProductFilter(e.target.value)}
+            aria-label="Filter by product type"
+          >
+            <option value="">All customers</option>
+            {SOFTWARE_PRODUCT_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label} customers
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -120,8 +143,9 @@ export default function Customer() {
               <th className="px-6 py-4 w-[14%] text-orange-500 font-bold text-sm">Name</th>
               <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Phone Number</th>
               <th className="px-6 py-4 w-[14%] text-orange-500 font-bold text-sm">Email</th>
-              <th className="px-6 py-4 w-[14%] text-orange-500 font-bold text-sm">Company Name</th>
-              <th className="px-6 py-4 w-[14%] text-orange-500 font-bold text-sm">Projects</th>
+              <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Company Name</th>
+              <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Products</th>
+              <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Projects</th>
               <th className="px-6 py-4 w-[8%] text-orange-500 font-bold text-sm">Status</th>
               <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm !text-center">Action</th>
             </tr>
@@ -129,7 +153,7 @@ export default function Customer() {
           <tbody className="divide-y-0">
             {loading ? (
               <tr>
-                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                   Loading...
                 </td>
               </tr>
@@ -147,6 +171,13 @@ export default function Customer() {
                     <td className="px-6 py-4 text-gray-600">{c.email || '—'}</td>
                     <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={c.companyName || ''}>
                       {c.companyName || '—'}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 truncate max-w-[140px]" title={(c.serviceCategories || []).join(', ')}>
+                      {(c.serviceCategories && c.serviceCategories.length)
+                        ? c.serviceCategories.length <= 2
+                          ? c.serviceCategories.join(' · ')
+                          : `${c.serviceCategories.slice(0, 2).join(' · ')} · +${c.serviceCategories.length - 2}`
+                        : '—'}
                     </td>
                     <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={(c.projects || []).join(', ')}>
                       {(c.projects && c.projects.length)
@@ -197,6 +228,7 @@ export default function Customer() {
                 ))}
                 {Array.from({ length: Math.max(0, rowsPerPage - paginated.length) }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="h-[60px]">
+                    <td className="px-6 py-4">&nbsp;</td>
                     <td className="px-6 py-4">&nbsp;</td>
                     <td className="px-6 py-4">&nbsp;</td>
                     <td className="px-6 py-4">&nbsp;</td>
