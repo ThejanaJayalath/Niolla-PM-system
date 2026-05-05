@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import CreateMeetingModal from '../components/CreateMeetingModal';
 import styles from './InquiryDetail.module.css';
@@ -22,6 +23,7 @@ interface Inquiry {
   _id: string;
   customerId?: string;
   customerName: string;
+  companyName?: string;
   phoneNumber: string;
   projectDescription: string;
   requiredFeatures: string[];
@@ -88,6 +90,7 @@ export default function InquiryDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     customerName: '',
+    companyName: '',
     phoneNumber: '',
     projectDescription: '',
     requiredFeatures: [] as string[],
@@ -113,6 +116,7 @@ export default function InquiryDetail() {
         setInquiry(inqRes.data);
         setEditForm({
           customerName: inqRes.data.customerName,
+          companyName: inqRes.data.companyName || '',
           phoneNumber: inqRes.data.phoneNumber,
           projectDescription: inqRes.data.projectDescription,
           requiredFeatures: inqRes.data.requiredFeatures || [],
@@ -143,6 +147,7 @@ export default function InquiryDetail() {
     try {
       const res = await api.patch<Inquiry>(`/inquiries/${id}`, {
         customerName: editForm.customerName,
+        companyName: editForm.companyName.trim() || undefined,
         phoneNumber: editForm.phoneNumber,
         projectDescription: editForm.projectDescription,
         requiredFeatures: editForm.requiredFeatures,
@@ -155,7 +160,7 @@ export default function InquiryDetail() {
       }
     } catch (err) {
       console.error('Failed to save', err);
-      alert('Failed to save inquiry details');
+      pushSystemToast('Failed to save inquiry details', 'error');
     }
   };
 
@@ -171,7 +176,7 @@ export default function InquiryDetail() {
       window.location.href = '/inquiries';
     } catch (err) {
       console.error('Failed to delete', err);
-      alert('Failed to delete inquiry');
+      pushSystemToast('Failed to delete inquiry', 'error');
       setDeleting(false);
       setShowDeleteInquiry(false);
     }
@@ -202,7 +207,7 @@ export default function InquiryDetail() {
       await api.download(`/proposals/${proposalId}/pdf`, `proposal-${proposalId}.pdf`);
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : 'Failed to download proposal');
+      pushSystemToast(err instanceof Error ? err.message : 'Failed to download proposal', 'error');
     }
   };
 
@@ -270,7 +275,7 @@ export default function InquiryDetail() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.pageTitle}>{inquiry.customerName}</h1>
-          <p className={styles.subTitle}>E-commerce web site</p>
+          <p className={styles.subTitle}>{inquiry.companyName?.trim() || '—'}</p>
         </div>
         <button onClick={handleDelete} className={styles.deleteBtn}>
           <Trash2 size={16} /> Delete Inquiries
@@ -316,6 +321,17 @@ export default function InquiryDetail() {
               onChange={e => setEditForm({ ...editForm, customerName: e.target.value })}
               readOnly={!isEditing}
               className={isEditing ? styles.inputParam : styles.inputReadonly}
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Company name</label>
+            <input
+              value={isEditing ? editForm.companyName : (inquiry.companyName || '')}
+              onChange={e => setEditForm({ ...editForm, companyName: e.target.value })}
+              readOnly={!isEditing}
+              className={isEditing ? styles.inputParam : styles.inputReadonly}
+              placeholder="Business or shop name"
             />
           </div>
 

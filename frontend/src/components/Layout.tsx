@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import SystemToastStack from './SystemToastStack';
 
 const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -26,6 +27,7 @@ const Layout = () => {
 
   return (
     <div className="flex h-screen bg-background">
+      <SystemToastStack />
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div

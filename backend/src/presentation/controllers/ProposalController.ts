@@ -104,27 +104,27 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
       return;
     }
 
-    // Conversion failed. If we used the user's template, send the filled DOCX so they can open in Word and Save as PDF.
-    if (usedTemplate) {
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
-      res.setHeader('X-Message', 'Template could not be converted to PDF on this server. You received your filled template as Word - open it and use File > Save As > PDF for a PDF that matches your design.');
-      res.send(docxBuffer);
-      return;
-    }
-
-    // No template (or template failed): use generated PDF.
+    // DOCX→PDF needs LibreOffice (unavailable on many hosts, e.g. Vercel). Fall back to data-driven PDF (pdf-lib).
     try {
       const generatedPdf = await buildProposalPdf(proposal);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
       res.send(generatedPdf);
+      return;
     } catch (pdfErr) {
-      console.warn('Generated PDF failed, sending docx:', (pdfErr as Error)?.message);
-      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
-      res.send(docxBuffer);
+      console.warn('Generated PDF failed after DOCX conversion failed:', (pdfErr as Error)?.message);
     }
+
+    // Last resort: proposal as Word (user can Save as PDF locally).
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
+    res.setHeader(
+      'X-Message',
+      usedTemplate
+        ? 'Could not build a PDF on this server. You received your filled template as Word — open it and use File > Save As > PDF. For server-side PDF from your template, deploy the API where LibreOffice is installed.'
+        : 'Could not build a PDF on this server. You received the proposal as Word — use File > Save As > PDF if needed.'
+    );
+    res.send(docxBuffer);
   } catch (err) {
     console.error('Download proposal error:', err);
     const message = err instanceof Error ? err.message : 'Failed to generate proposal document';

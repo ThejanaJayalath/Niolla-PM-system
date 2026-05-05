@@ -20,6 +20,46 @@
   flex-wrap: wrap;
 }
 
+/* Customer list: search + product-type filter on one bar */
+.customerFiltersBar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.customerSearchWrap {
+  position: relative;
+  flex: 1;
+  min-width: min(100%, 12rem);
+  max-width: 32rem;
+}
+
+.customerProductFilter {
+  flex-shrink: 0;
+  min-width: 11rem;
+  padding: 0.5rem 2rem 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: #374151;
+  background-color: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.6rem center;
+}
+
+.customerProductFilter:focus {
+  outline: none;
+  border-color: var(--color-primary, #ea580c);
+  box-shadow: 0 0 0 1px var(--color-primary, #ea580c);
+}
+
 @media (max-width: 768px) {
   .headerRow {
     flex-direction: column;
@@ -42,6 +82,15 @@
 
   .filtersRow > div {
     width: 100% !important;
+  }
+
+  .customerSearchWrap {
+    max-width: none;
+  }
+
+  .customerProductFilter {
+    width: 100%;
+    min-width: 0;
   }
 }
 

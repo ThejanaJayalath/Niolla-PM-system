@@ -2,9 +2,12 @@ import { Inquiry, InquiryStatus } from '../../domain/entities/Inquiry';
 import { InquiryModel } from '../../infrastructure/database/models/InquiryModel';
 import { CustomerService } from './CustomerService';
 import { ProposalService } from './ProposalService';
+import { InteractionService } from './InteractionService';
+import { CustomerRequirementService } from './CustomerRequirementService';
 
 export interface CreateInquiryInput {
   customerName: string;
+  companyName?: string;
   phoneNumber: string;
   projectDescription: string;
   requiredFeatures: string[];
@@ -14,6 +17,7 @@ export interface CreateInquiryInput {
 
 export interface UpdateInquiryInput {
   customerName?: string;
+  companyName?: string;
   phoneNumber?: string;
   projectDescription?: string;
   requiredFeatures?: string[];
@@ -24,6 +28,8 @@ export interface UpdateInquiryInput {
 export class InquiryService {
   private customerService = new CustomerService();
   private proposalService = new ProposalService();
+  private interactionService = new InteractionService();
+  private customerRequirementService = new CustomerRequirementService();
 
   async create(data: CreateInquiryInput): Promise<{ inquiry: Inquiry; duplicatePhone: boolean }> {
     const normalizedPhone = this.normalizePhone(data.phoneNumber);
@@ -32,6 +38,7 @@ export class InquiryService {
 
     const inquiry = await InquiryModel.create({
       ...data,
+      companyName: data.companyName?.trim() || undefined,
       phoneNumber: normalizedPhone,
       status: 'NEW' as InquiryStatus,
       createdBy: data.createdBy,
@@ -59,6 +66,7 @@ export class InquiryService {
       const searchRegex = { $regex: filters.search, $options: 'i' };
       query.$or = [
         { customerName: searchRegex },
+        { companyName: searchRegex },
         { phoneNumber: searchRegex },
         { projectDescription: searchRegex }
       ];
@@ -70,6 +78,7 @@ export class InquiryService {
 
   async update(id: string, data: UpdateInquiryInput): Promise<Inquiry | null> {
     const update: Record<string, unknown> = { ...data };
+    if (data.companyName !== undefined) update.companyName = data.companyName?.trim() || undefined;
     if (data.phoneNumber) update.phoneNumber = this.normalizePhone(data.phoneNumber);
     const doc = await InquiryModel.findByIdAndUpdate(id, update, { new: true, runValidators: false });
     const inquiry = doc ? (doc.toObject() as unknown as Inquiry) : null;
@@ -90,12 +99,35 @@ export class InquiryService {
         const projects = projectTitles.length > 0
           ? projectTitles
           : [inquiry.projectDescription].filter(Boolean);
-        await this.customerService.create({
+        const customer = await this.customerService.create({
           name: inquiry.customerName,
           phoneNumber: inquiry.phoneNumber,
           projects,
           inquiryId: String(inquiry._id),
+          companyName: inquiry.companyName?.trim() || undefined,
         });
+        await this.interactionService.create({
+          customerRef: String(customer._id),
+          inquiryRef: String(inquiry._id),
+          type: 'STATUS_CHANGE',
+          summary: 'Inquiry confirmed and converted to customer profile',
+          details: inquiry.internalNotes || inquiry.projectDescription,
+          occurredAt: new Date(),
+        });
+        const reqItems = (inquiry.requiredFeatures || []).filter(Boolean);
+        await Promise.all(
+          reqItems.map((feature) =>
+            this.customerRequirementService.create({
+              customerRef: String(customer._id),
+              inquiryRef: String(inquiry._id),
+              title: feature,
+              description: inquiry.projectDescription,
+              source: 'INQUIRY',
+              priority: 'MEDIUM',
+              status: 'OPEN',
+            })
+          )
+        );
       }
     }
     return inquiry;

@@ -4,6 +4,7 @@ import { InquiryStatus } from '../../../domain/entities/Inquiry';
 export interface InquiryDocument extends Document {
   customerId: string;
   customerName: string;
+  companyName?: string;
   phoneNumber: string;
   projectDescription: string;
   requiredFeatures: string[];
@@ -30,6 +31,7 @@ const inquirySchema = new Schema<InquiryDocument>(
       index: true
     },
     customerName: { type: String, required: true },
+    companyName: { type: String, trim: true, index: true },
     phoneNumber: { type: String, required: true, index: true },
     projectDescription: { type: String, required: true },
     requiredFeatures: [{ type: String }],

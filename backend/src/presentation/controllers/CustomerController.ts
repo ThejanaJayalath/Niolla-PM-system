@@ -5,13 +5,19 @@ import { AuthenticatedRequest } from '../middleware/auth';
 const customerService = new CustomerService();
 
 export async function createCustomer(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { name, phoneNumber, email, projects, inquiryId } = req.body;
+  const { name, phoneNumber, email, projects, inquiryId, address, businessType, companyName, nicNumber, status, serviceCategories } = req.body;
   const customer = await customerService.create({
     name,
     phoneNumber,
     email,
     projects: Array.isArray(projects) ? projects : [],
     inquiryId,
+    address,
+    businessType,
+    companyName,
+    nicNumber,
+    status,
+    serviceCategories: Array.isArray(serviceCategories) ? serviceCategories : [],
   });
   res.status(201).json({ success: true, data: customer });
 }
@@ -27,7 +33,8 @@ export async function getCustomer(req: AuthenticatedRequest, res: Response): Pro
 
 export async function listCustomers(req: AuthenticatedRequest, res: Response): Promise<void> {
   const search = req.query.search as string | undefined;
-  const customers = await customerService.findAll({ search });
+  const serviceCategory = req.query.serviceCategory as string | undefined;
+  const customers = await customerService.findAll({ search, serviceCategory });
   res.json({ success: true, data: customers });
 }
 

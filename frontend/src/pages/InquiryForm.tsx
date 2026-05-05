@@ -6,6 +6,7 @@ import styles from './InquiryForm.module.css';
 
 interface FormState {
   customerName: string;
+  companyName: string;
   phoneNumber: string;
   projectDescription: string;
   requiredFeatures: string[];
@@ -19,6 +20,7 @@ export default function InquiryForm() {
   const featureInputRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState<FormState>({
     customerName: '',
+    companyName: '',
     phoneNumber: '',
     projectDescription: '',
     requiredFeatures: [],
@@ -32,10 +34,11 @@ export default function InquiryForm() {
 
   useEffect(() => {
     if (!id) return;
-    api.get<FormState & { requiredFeatures?: string[] }>(`/inquiries/${id}`).then((res) => {
+    api.get<FormState & { requiredFeatures?: string[]; companyName?: string }>(`/inquiries/${id}`).then((res) => {
       if (res.success && res.data) {
         setForm({
           customerName: res.data.customerName,
+          companyName: res.data.companyName || '',
           phoneNumber: res.data.phoneNumber,
           projectDescription: res.data.projectDescription,
           requiredFeatures: res.data.requiredFeatures || [],
@@ -76,6 +79,7 @@ export default function InquiryForm() {
     setSubmitting(true);
     const payload = {
       customerName: form.customerName,
+      companyName: form.companyName.trim() || undefined,
       phoneNumber: form.phoneNumber,
       projectDescription: form.projectDescription,
       requiredFeatures: form.requiredFeatures,
@@ -124,6 +128,16 @@ export default function InquiryForm() {
               required
               className={styles.input}
               placeholder="Enter customer name"
+            />
+          </label>
+          <label>
+            Company name <span className={styles.optional}>(optional)</span>
+            <input
+              name="companyName"
+              value={form.companyName}
+              onChange={handleChange}
+              className={styles.input}
+              placeholder="Business or shop name"
             />
           </label>
           <label>

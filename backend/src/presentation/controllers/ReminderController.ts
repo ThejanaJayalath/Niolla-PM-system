@@ -5,9 +5,38 @@ import {
   updateGoogleMeetEvent,
   deleteGoogleMeetEvent,
 } from '../../application/services/GoogleCalendarService';
+import { CustomerService } from '../../application/services/CustomerService';
+import { InteractionService } from '../../application/services/InteractionService';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 const reminderService = new ReminderService();
+const customerService = new CustomerService();
+const interactionService = new InteractionService();
+
+async function mirrorReminderInteraction(
+  reminder: {
+    inquiryId?: string;
+    type: 'reminder' | 'meeting';
+    title: string;
+    description?: string;
+    notes?: string;
+    scheduledAt: Date;
+  },
+  createdBy?: string
+): Promise<void> {
+  if (!reminder.inquiryId) return;
+  const customer = await customerService.findByInquiryId(reminder.inquiryId);
+  if (!customer?._id) return;
+  await interactionService.create({
+    customerRef: String(customer._id),
+    inquiryRef: reminder.inquiryId,
+    type: reminder.type === 'meeting' ? 'MEETING' : 'NOTE',
+    summary: reminder.title,
+    details: [reminder.description, reminder.notes].filter(Boolean).join(' | ') || undefined,
+    occurredAt: new Date(reminder.scheduledAt),
+    createdBy,
+  });
+}
 
 function handleGoogleCalendarError(err: unknown, res: Response): boolean {
   const message = err instanceof Error ? err.message : 'Unknown error';
@@ -102,6 +131,7 @@ export async function createReminder(req: AuthenticatedRequest, res: Response): 
     notes,
     status,
   });
+  await mirrorReminderInteraction(reminder, req.user?.userId);
   res.status(201).json({ success: true, data: reminder });
 }
 
@@ -168,6 +198,7 @@ export async function updateReminder(req: AuthenticatedRequest, res: Response): 
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Reminder not found' } });
     return;
   }
+  await mirrorReminderInteraction(reminder, req.user?.userId);
   res.json({ success: true, data: reminder });
 }
 

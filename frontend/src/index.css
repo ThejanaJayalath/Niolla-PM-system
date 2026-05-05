@@ -19,7 +19,7 @@
   }
 }
 
-/* Custom Scrollbar for Sidebar */
+/* Hide scrollbar (use where overflow still scrolls) */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -27,4 +27,30 @@
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Sidebar: visible scrollbar aligned with peach / orange theme */
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) #fed7aa;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  margin: 4px 0;
+  background: #fed7aa;
+  border-radius: 9999px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  border-radius: 9999px;
+  border: 2px solid #fed7aa;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-hover);
 }

@@ -12,6 +12,7 @@ export interface CreateCustomerInput {
   companyName?: string;
   nicNumber?: string;
   status?: 'active' | 'inactive';
+  serviceCategories?: string[];
 }
 
 export interface UpdateCustomerInput {
@@ -24,6 +25,7 @@ export interface UpdateCustomerInput {
   companyName?: string;
   nicNumber?: string;
   status?: 'active' | 'inactive';
+  serviceCategories?: string[];
 }
 
 export class CustomerService {
@@ -49,6 +51,7 @@ export class CustomerService {
       companyName: data.companyName?.trim() || undefined,
       nicNumber: data.nicNumber?.trim() || undefined,
       status: data.status || 'active',
+      serviceCategories: Array.isArray(data.serviceCategories) ? data.serviceCategories : [],
     });
     return this.toCustomer(doc);
   }
@@ -63,7 +66,7 @@ export class CustomerService {
     return doc ? this.toCustomer(doc) : null;
   }
 
-  async findAll(filters?: { search?: string }): Promise<Customer[]> {
+  async findAll(filters?: { search?: string; serviceCategory?: string }): Promise<Customer[]> {
     const query: Record<string, unknown> = {};
     if (filters?.search?.trim()) {
       const searchRegex = { $regex: filters.search.trim(), $options: 'i' };
@@ -75,6 +78,10 @@ export class CustomerService {
         { companyName: searchRegex },
         { nicNumber: searchRegex },
       ];
+    }
+    const cat = filters?.serviceCategory?.trim();
+    if (cat) {
+      query.serviceCategories = cat;
     }
     const docs = await CustomerModel.find(query).sort({ createdAt: -1 });
     return docs.map((d) => this.toCustomer(d));
@@ -88,6 +95,9 @@ export class CustomerService {
     if (data.businessType !== undefined) update.businessType = data.businessType?.trim() || undefined;
     if (data.companyName !== undefined) update.companyName = data.companyName?.trim() || undefined;
     if (data.nicNumber !== undefined) update.nicNumber = data.nicNumber?.trim() || undefined;
+    if (data.serviceCategories !== undefined) {
+      update.serviceCategories = Array.isArray(data.serviceCategories) ? data.serviceCategories : [];
+    }
     const doc = await CustomerModel.findByIdAndUpdate(id, update, { new: true });
     return doc ? this.toCustomer(doc) : null;
   }
@@ -112,6 +122,7 @@ export class CustomerService {
       companyName: o.companyName as string | undefined,
       nicNumber: o.nicNumber as string | undefined,
       status: o.status as 'active' | 'inactive' | undefined,
+      serviceCategories: (o.serviceCategories as string[]) || [],
       createdAt: o.createdAt as Date,
       updatedAt: o.updatedAt as Date,
     };

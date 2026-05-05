@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, ChevronDown, Download } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import NewInquiryModal from '../components/NewInquiryModal';
 import styles from './Inquiries.module.css';
@@ -11,6 +12,7 @@ interface Inquiry {
   _id: string;
   customerId?: string;
   customerName: string;
+  companyName?: string;
   phoneNumber: string;
   projectDescription: string;
   status: string;
@@ -57,16 +59,6 @@ const getNormalizedStatus = (status: string) => {
 };
 
 export default function Inquiries() {
-  // ... existing state ...
-  // ... load function ...
-  // ... useEffect ...
-  // ... handleCreateProposal ...
-  // ... handleDownloadProposal ...
-  // ... handleDelete ...
-  /* (Note: skipping function bodies for brevity, replace only `getStatusColor` and add `getNormalizedStatus` before export default, then locate the select usage) */
-  /* Wait, replace_file_content replaces a chunk. I will replace getStatusColor definition and add getNormalizedStatus there. Then initiate a 2nd replacement for the select usage. */
-  /* First replacement: Update getStatusColor and add getNormalizedStatus */
-
   const navigate = useNavigate();
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,10 +102,10 @@ export default function Inquiries() {
 
   const handleDownloadProposal = async (proposalId: string) => {
     try {
-      await (api as any).download(`/proposals/${proposalId}/pdf`, `proposal-${proposalId}.pdf`);
+      await api.download(`/proposals/${proposalId}/pdf`, `proposal-${proposalId}.pdf`);
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : 'Failed to download proposal');
+      pushSystemToast(err instanceof Error ? err.message : 'Failed to download proposal', 'error');
     }
   };
 
@@ -141,9 +133,16 @@ export default function Inquiries() {
     if (!res.success) load();
   };
 
-  const filteredInquiries = inquiries.filter(inq =>
-    inq.customerName.toLowerCase().includes(search.toLowerCase())
-  );
+  const q = search.toLowerCase().trim();
+  const filteredInquiries = inquiries.filter((inq) => {
+    if (!q) return true;
+    return (
+      inq.customerName.toLowerCase().includes(q) ||
+      (inq.companyName || '').toLowerCase().includes(q) ||
+      inq.phoneNumber.toLowerCase().includes(q) ||
+      inq.projectDescription.toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className={`${styles.page} font-sans`}>
@@ -163,7 +162,7 @@ export default function Inquiries() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Search by Name"
+            placeholder="Search by name, company, phone, description"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -209,7 +208,14 @@ export default function Inquiries() {
                     onClick={() => navigate(`/inquiries/${inq._id}`)}
                     className="hover:bg-gray-50 transition-colors group cursor-pointer"
                   >
-                    <td className="px-6 py-4 font-medium text-gray-900">{inq.customerName}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">
+                      <div>{inq.customerName}</div>
+                      {inq.companyName?.trim() && (
+                        <div className="text-xs text-gray-500 font-normal mt-0.5 truncate max-w-[200px]" title={inq.companyName}>
+                          {inq.companyName}
+                        </div>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-gray-600">{inq.customerId || 'N/A'}</td>
                     <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={inq.projectDescription}>
                       {inq.projectDescription}

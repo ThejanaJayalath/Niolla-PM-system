@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, FileText, DownloadCloud, Trash2 } from 'lucide-react';
 import { api, getPdfDownloadUrl } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import styles from './Inquiries.module.css';
 
@@ -55,7 +56,7 @@ export default function Proposals() {
       await api.download(`/proposals/${id}/pdf`, `proposal-${customerName.replace(/\s+/g, '-')}.pdf`);
     } catch (err) {
       console.error(err);
-      alert(err instanceof Error ? err.message : 'Failed to download proposal');
+      pushSystemToast(err instanceof Error ? err.message : 'Failed to download proposal', 'error');
     }
   };
 

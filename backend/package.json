@@ -4,7 +4,7 @@
   "description": "Niolla Project Management System - Backend API",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "npx ts-node-dev --respawn --transpile-only src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
     "seed": "npx ts-node scripts/seedAdmin.ts",
