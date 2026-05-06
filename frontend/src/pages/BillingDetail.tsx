@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, FileText, Building2, CreditCard, Trash2, Edit3, Plus, Download } from 'lucide-react';
+import { ArrowLeft, Save, FileText, Building2, CreditCard, Trash2, Edit3, Plus, Download, Send, Copy, X } from 'lucide-react';
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -38,6 +38,20 @@ interface ItemRow {
   amount: string;
 }
 
+interface SystemInvoice {
+  _id: string;
+  invoiceNumber: string;
+  sourceType?: 'PAYMENT' | 'PROPOSAL_ADVANCE';
+  status: string;
+}
+
+interface NotifyCustomerResponse {
+  pdfUrl: string;
+  queuedEmail: boolean;
+  queuedSms: boolean;
+  invoice: SystemInvoice & { invoiceNumber: string };
+}
+
 export default function BillingDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -49,6 +63,15 @@ export default function BillingDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [linkedInvoice, setLinkedInvoice] = useState<SystemInvoice | null>(null);
+  const [loadingLinkedInvoice, setLoadingLinkedInvoice] = useState(false);
+  const [notifying, setNotifying] = useState(false);
+  const [notifyModal, setNotifyModal] = useState<{
+    pdfUrl: string;
+    invoiceNumber: string;
+    queuedEmail: boolean;
+    queuedSms: boolean;
+  } | null>(null);
 
   const [companyName, setCompanyName] = useState('');
   const [address, setAddress] = useState('');
@@ -80,6 +103,32 @@ export default function BillingDetail() {
       else setRemainingAdvance(0);
     })();
   }, [inquiryId, isEditing]);
+
+  useEffect(() => {
+    if (!inquiryId) {
+      setLinkedInvoice(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingLinkedInvoice(true);
+    (async () => {
+      try {
+        const res = await api.get<SystemInvoice[]>(`/invoices?inquiryId=${inquiryId}`);
+        if (cancelled) return;
+        const list = res.success && res.data ? res.data : [];
+        const pick =
+          list.find((i) => i.sourceType === 'PROPOSAL_ADVANCE') || (list.length > 0 ? list[0] : null);
+        setLinkedInvoice(pick);
+      } catch {
+        if (!cancelled) setLinkedInvoice(null);
+      } finally {
+        if (!cancelled) setLoadingLinkedInvoice(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [inquiryId]);
 
   const loadBilling = async () => {
     if (!id) return;
@@ -219,6 +268,43 @@ export default function BillingDetail() {
     }
   };
 
+  const handleSendInvoiceToCustomer = async () => {
+    if (!linkedInvoice) return;
+    setNotifying(true);
+    try {
+      const res = await api.post<NotifyCustomerResponse>(`/invoices/${linkedInvoice._id}/notify-customer`, {});
+      if (res.success && res.data) {
+        setNotifyModal({
+          pdfUrl: res.data.pdfUrl,
+          invoiceNumber: res.data.invoice.invoiceNumber,
+          queuedEmail: res.data.queuedEmail,
+          queuedSms: res.data.queuedSms,
+        });
+        const channels = [res.data.queuedEmail && 'email', res.data.queuedSms && 'SMS'].filter(Boolean).join(' & ');
+        pushSystemToast(
+          channels ? `Notification queued (${channels}) with PDF download link.` : 'Notification queued.',
+          'success'
+        );
+      } else {
+        pushSystemToast(res.error?.message || 'Could not queue notification.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      pushSystemToast(err instanceof Error ? err.message : 'Could not queue notification.', 'error');
+    } finally {
+      setNotifying(false);
+    }
+  };
+
+  const copyPdfLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      pushSystemToast('Download link copied.', 'success');
+    } catch {
+      pushSystemToast('Could not copy link.', 'warning');
+    }
+  };
+
   if (loading) return <div className={styles.container}>Loading...</div>;
   if (!billing) return <div className={styles.container}>Billing not found</div>;
 
@@ -250,6 +336,26 @@ export default function BillingDetail() {
           </p>
         </div>
         <div className={styles.headerActions}>
+          {inquiryId && linkedInvoice ? (
+            <button
+              type="button"
+              onClick={handleSendInvoiceToCustomer}
+              disabled={notifying || loadingLinkedInvoice}
+              className={styles.sendNotifyBtn}
+              title={`Email & SMS: ${linkedInvoice.invoiceNumber} with secure PDF link`}
+            >
+              <Send size={16} />
+              {notifying ? 'Sending...' : 'Send invoice link'}
+            </button>
+          ) : null}
+          {inquiryId && !loadingLinkedInvoice && !linkedInvoice ? (
+            <span className="text-sm text-gray-500 max-w-xs text-right">
+              No linked system invoice for this inquiry.{' '}
+              <Link to="/invoices" className="text-primary font-medium underline">
+                Open Invoices
+              </Link>
+            </span>
+          ) : null}
           <button
             type="button"
             onClick={downloadPdf}
@@ -561,6 +667,71 @@ export default function BillingDetail() {
         onCancel={() => setShowDeleteConfirm(false)}
         danger
       />
+
+      {notifyModal ? (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/45"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="billing-notify-modal-title"
+        >
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full border border-orange-100 overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <h2 id="billing-notify-modal-title" className="text-lg font-semibold text-gray-900">
+                Invoice link sent
+              </h2>
+              <button
+                type="button"
+                onClick={() => setNotifyModal(null)}
+                className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3 text-sm text-gray-600">
+              <p>
+                <span className="font-medium text-gray-800">{notifyModal.invoiceNumber}</span>
+                {' — '}
+                Queued{' '}
+                {notifyModal.queuedEmail && notifyModal.queuedSms
+                  ? 'email and SMS'
+                  : notifyModal.queuedEmail
+                    ? 'email'
+                    : 'SMS'}{' '}
+                with the secure PDF link.
+              </p>
+              <div>
+                <span className="block text-xs font-medium text-gray-500 mb-1">Public download link</span>
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    className="flex-1 min-w-0 px-3 py-2 border border-gray-200 rounded-lg text-xs bg-gray-50 font-mono"
+                    value={notifyModal.pdfUrl}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => copyPdfLink(notifyModal.pdfUrl)}
+                    className="shrink-0 px-3 py-2 bg-primary text-white rounded-lg hover:opacity-90 flex items-center gap-1.5 text-xs font-medium"
+                  >
+                    <Copy size={14} />
+                    Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setNotifyModal(null)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -12,10 +12,14 @@ export interface ProposalDocument extends Document {
   advancePayment?: number;
   projectCost?: number;
   totalAmount: number;
+  paymentPlan?: 'FULL_PAYMENT' | 'THREE_MONTH' | 'SIX_MONTH';
+  installmentMonths?: number;
+  monthlyInstallment?: number;
   maintenanceCostPerMonth?: number;
   maintenanceNote?: string;
   validUntil?: string;
   notes?: string;
+  status?: 'DRAFT' | 'SENT' | 'CONFIRMED' | 'LOST';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,10 +47,19 @@ const proposalSchema = new Schema<ProposalDocument>(
     advancePayment: { type: Number },
     projectCost: { type: Number },
     totalAmount: { type: Number, required: true },
+    paymentPlan: { type: String, enum: ['FULL_PAYMENT', 'THREE_MONTH', 'SIX_MONTH'] },
+    installmentMonths: { type: Number },
+    monthlyInstallment: { type: Number },
     maintenanceCostPerMonth: { type: Number },
     maintenanceNote: { type: String },
     validUntil: { type: String },
     notes: { type: String },
+    status: {
+      type: String,
+      enum: ['DRAFT', 'SENT', 'CONFIRMED', 'LOST'],
+      default: 'SENT',
+      index: true,
+    },
   },
   { timestamps: true }
 );

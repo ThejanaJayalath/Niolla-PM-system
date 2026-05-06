@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, FileText, Info, Flag, DollarSign, Trash2, Upload, Check } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 import styles from './CreateProposal.module.css';
 
 interface Inquiry {
@@ -18,6 +19,8 @@ interface Milestone {
     time: string;
 }
 
+type PaymentPlan = 'FULL_PAYMENT' | 'THREE_MONTH' | 'SIX_MONTH';
+
 export default function CreateProposal() {
     const navigate = useNavigate();
     const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -27,8 +30,8 @@ export default function CreateProposal() {
 
     const [projectTitle, setProjectTitle] = useState('');
     const [milestones, setMilestones] = useState<Milestone[]>([]);
-    const [advancePayment, setAdvancePayment] = useState('');
-    const [projectCost, setProjectCost] = useState('');
+    const [paymentPlan, setPaymentPlan] = useState<PaymentPlan>('FULL_PAYMENT');
+    const [basePrice, setBasePrice] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [templateInfo, setTemplateInfo] = useState<{ hasTemplate: boolean; fileName?: string }>({ hasTemplate: false });
     const [templateUploading, setTemplateUploading] = useState(false);
@@ -108,20 +111,33 @@ export default function CreateProposal() {
         setMilestones(updated);
     };
 
-    const calculateTotal = () => {
-        const advance = parseFloat(advancePayment) || 0;
-        const project = parseFloat(projectCost) || 0;
-        return advance + project;
+    const parseAmount = (v: string) => {
+        const n = parseFloat(v);
+        return Number.isFinite(n) && n >= 0 ? n : 0;
     };
+
+    const installmentMonths = paymentPlan === 'THREE_MONTH' ? 3 : paymentPlan === 'SIX_MONTH' ? 6 : 0;
+    const calculatedTotal = paymentPlan === 'FULL_PAYMENT'
+        ? parseAmount(basePrice)
+        : parseAmount(basePrice) * 1.1;
+    const calculatedAdvance = calculatedTotal * 0.4;
+    const calculatedMonthly = installmentMonths > 0
+        ? (calculatedTotal - calculatedAdvance) / installmentMonths
+        : 0;
 
     const handleSubmit = async () => {
         if (!selectedInquiry) {
-            alert('Please select an inquiry');
+            pushSystemToast('Please select an inquiry', 'warning');
             return;
         }
 
         if (!projectTitle.trim()) {
-            alert('Please enter a project title');
+            pushSystemToast('Please enter a project title', 'warning');
+            return;
+        }
+        const parsedBasePrice = parseAmount(basePrice);
+        if (parsedBasePrice <= 0) {
+            pushSystemToast('Please enter a valid base price', 'warning');
             return;
         }
 
@@ -139,19 +155,22 @@ export default function CreateProposal() {
                 inquiryId: selectedInquiry._id,
                 projectName: projectTitle,
                 milestones: mappedMilestones,
-                advancePayment: parseFloat(advancePayment) || 0,
-                projectCost: parseFloat(projectCost) || 0,
-                totalAmount: calculateTotal()
+                paymentPlan,
+                projectCost: parsedBasePrice,
+                totalAmount: calculatedTotal,
+                advancePayment: calculatedAdvance,
+                installmentMonths: installmentMonths || undefined,
+                monthlyInstallment: installmentMonths > 0 ? calculatedMonthly : undefined,
             });
 
             if (res.success) {
                 navigate('/proposals');
             } else {
-                alert(res.error?.message || 'Failed to create proposal');
+                pushSystemToast(res.error?.message || 'Failed to create proposal', 'error');
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to create proposal');
+            pushSystemToast('Failed to create proposal', 'error');
         } finally {
             setSubmitting(false);
         }
@@ -393,30 +412,61 @@ export default function CreateProposal() {
                                     <h3>Pricing</h3>
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Advance Payment</label>
+                                    <label>Payment Plan</label>
+                                    <select
+                                        value={paymentPlan}
+                                        onChange={(e) => setPaymentPlan(e.target.value as PaymentPlan)}
+                                        className={styles.inputParam}
+                                    >
+                                        <option value="FULL_PAYMENT">Full Payment</option>
+                                        <option value="THREE_MONTH">3-Month Plan</option>
+                                        <option value="SIX_MONTH">6-Month Plan</option>
+                                    </select>
+                                </div>
+                                <div className={styles.formGroup}>
+                                    <label>Base Price</label>
                                     <input
                                         type="number"
-                                        value={advancePayment}
-                                        onChange={(e) => setAdvancePayment(e.target.value)}
-                                        placeholder="Add advance payment"
+                                        value={basePrice}
+                                        onChange={(e) => setBasePrice(e.target.value)}
+                                        placeholder="Enter base project price"
                                         className={styles.inputParam}
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Project Cost</label>
+                                    <label>Total Price (Auto)</label>
                                     <input
                                         type="number"
-                                        value={projectCost}
-                                        onChange={(e) => setProjectCost(e.target.value)}
-                                        placeholder="Enter Project Cost"
-                                        className={styles.inputParam}
+                                        value={calculatedTotal.toFixed(2)}
+                                        readOnly
+                                        className={styles.inputReadonly}
                                     />
                                 </div>
+                                <div className={styles.formGroup}>
+                                    <label>Advance Amount (40%)</label>
+                                    <input
+                                        type="number"
+                                        value={calculatedAdvance.toFixed(2)}
+                                        readOnly
+                                        className={styles.inputReadonly}
+                                    />
+                                </div>
+                                {installmentMonths > 0 && (
+                                    <div className={styles.formGroup}>
+                                        <label>Monthly Installment ({installmentMonths} months)</label>
+                                        <input
+                                            type="number"
+                                            value={calculatedMonthly.toFixed(2)}
+                                            readOnly
+                                            className={styles.inputReadonly}
+                                        />
+                                    </div>
+                                )}
                                 <div className={styles.totalCostContainer}>
                                     <div className={styles.totalCostLabel}>Total Cost</div>
                                     <div className={styles.totalCostDisplay}>
                                         <div className={styles.totalCostAmount}>
-                                            LKR {calculateTotal().toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            LKR {calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>
                                     </div>
                                 </div>

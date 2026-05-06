@@ -2,25 +2,36 @@ import { PaymentNotification } from '../../domain/entities/PaymentNotification';
 import { PaymentNotificationModel } from '../../infrastructure/database/models/PaymentNotificationModel';
 
 export interface CreatePaymentNotificationInput {
-  clientId: string;
+  clientId?: string;
+  userId?: string;
   installmentId?: string;
   type: 'sms' | 'email' | 'system';
-  triggerType: 'due_reminder' | 'overdue' | 'receipt';
+  triggerType: 'due_reminder' | 'overdue' | 'receipt' | 'assignment';
   scheduledAt: string | Date;
   messageBody?: string;
 }
 
 export interface ListPaymentNotificationsFilters {
   clientId?: string;
+  userId?: string;
   status?: string;
   triggerType?: string;
 }
 
+const userPopulate = 'name email phone';
+const clientPopulate = 'name companyName email';
+
 export class PaymentNotificationService {
   async create(data: CreatePaymentNotificationInput): Promise<PaymentNotification> {
+    const hasClient = Boolean(data.clientId?.trim());
+    const hasUser = Boolean(data.userId?.trim());
+    if (!hasClient && !hasUser) {
+      throw new Error('Either clientId or userId is required');
+    }
     const doc = await PaymentNotificationModel.create({
-      clientId: data.clientId,
-      installmentId: data.installmentId,
+      ...(hasClient ? { clientId: data.clientId!.trim() } : {}),
+      ...(hasUser ? { userId: data.userId!.trim() } : {}),
+      ...(data.installmentId ? { installmentId: data.installmentId } : {}),
       type: data.type,
       triggerType: data.triggerType,
       scheduledAt: data.scheduledAt instanceof Date ? data.scheduledAt : new Date(data.scheduledAt),
@@ -32,7 +43,8 @@ export class PaymentNotificationService {
 
   async findById(id: string): Promise<PaymentNotification | null> {
     const doc = await PaymentNotificationModel.findById(id)
-      .populate('clientId', 'name companyName email')
+      .populate('clientId', clientPopulate)
+      .populate('userId', userPopulate)
       .populate('installmentId', 'installmentNo dueDate dueAmount paidAmount status');
     return doc ? this.toNotification(doc) : null;
   }
@@ -46,12 +58,13 @@ export class PaymentNotificationService {
 
   async findPending(limit = 100): Promise<PaymentNotification[]> {
     const docs = await PaymentNotificationModel.find({ status: 'pending' })
-      .populate('clientId', 'name companyName email')
+      .populate('clientId', clientPopulate)
+      .populate('userId', userPopulate)
       .populate('installmentId', 'installmentNo dueDate dueAmount status planId')
       .sort({ scheduledAt: 1 })
       .limit(limit)
       .lean();
-    return docs.map((d) => this.toNotification(d as { toObject: () => Record<string, unknown> }));
+    return docs.map((d) => this.toNotification(d));
   }
 
   async markSent(id: string): Promise<PaymentNotification | null> {
@@ -60,7 +73,8 @@ export class PaymentNotificationService {
       { status: 'sent', sentAt: new Date() },
       { new: true }
     )
-      .populate('clientId', 'name companyName email')
+      .populate('clientId', clientPopulate)
+      .populate('userId', userPopulate)
       .populate('installmentId', 'installmentNo dueDate dueAmount status');
     return doc ? this.toNotification(doc) : null;
   }
@@ -73,10 +87,12 @@ export class PaymentNotificationService {
   async findAll(filters?: ListPaymentNotificationsFilters): Promise<PaymentNotification[]> {
     const query: Record<string, unknown> = {};
     if (filters?.clientId) query.clientId = filters.clientId;
+    if (filters?.userId) query.userId = filters.userId;
     if (filters?.status) query.status = filters.status;
     if (filters?.triggerType) query.triggerType = filters.triggerType;
     const docs = await PaymentNotificationModel.find(query)
-      .populate('clientId', 'name companyName email')
+      .populate('clientId', clientPopulate)
+      .populate('userId', userPopulate)
       .populate({
         path: 'installmentId',
         select: 'installmentNo dueDate dueAmount status planId',
@@ -88,15 +104,37 @@ export class PaymentNotificationService {
 
   private toNotification(doc: { toObject?: () => Record<string, unknown> }): PaymentNotification {
     const o = typeof doc.toObject === 'function' ? doc.toObject() : (doc as Record<string, unknown>);
-    const client = o.clientId as { _id?: unknown } | null;
+    const client = o.clientId as { _id?: unknown; name?: string; companyName?: string } | null;
+    const user = o.userId as { _id?: unknown; name?: string; email?: string } | null;
     const inst = o.installmentId as { _id?: unknown; planId?: { projectId?: { projectName?: string } } } | null;
-    const notif: PaymentNotification & { clientName?: string; projectName?: string; installmentNo?: number } = {
+
+    let clientId: string | undefined;
+    if (client && typeof client === 'object' && client._id) {
+      clientId = (client._id as { toString: () => string }).toString();
+    } else if (o.clientId) {
+      const raw = o.clientId as { toString?: () => string };
+      clientId = typeof raw?.toString === 'function' ? raw.toString() : String(o.clientId);
+    }
+
+    let userId: string | undefined;
+    if (user && typeof user === 'object' && user._id) {
+      userId = (user._id as { toString: () => string }).toString();
+    } else if (o.userId) {
+      const raw = o.userId as { toString?: () => string };
+      userId = typeof raw?.toString === 'function' ? raw.toString() : String(o.userId);
+    }
+
+    const notif: PaymentNotification & {
+      clientName?: string;
+      userName?: string;
+      projectName?: string;
+      installmentNo?: number;
+    } = {
       _id: (o._id as { toString: () => string })?.toString?.(),
-      clientId: client && typeof client === 'object' && client._id
-        ? (client._id as { toString: () => string }).toString()
-        : (o.clientId as string),
+      ...(clientId !== undefined ? { clientId } : {}),
+      ...(userId !== undefined ? { userId } : {}),
       type: o.type as 'sms' | 'email' | 'system',
-      triggerType: o.triggerType as 'due_reminder' | 'overdue' | 'receipt',
+      triggerType: o.triggerType as 'due_reminder' | 'overdue' | 'receipt' | 'assignment',
       scheduledAt: o.scheduledAt as Date,
       status: o.status as 'pending' | 'sent' | 'failed',
       createdAt: o.createdAt as Date,
@@ -115,9 +153,13 @@ export class PaymentNotificationService {
     if (o.sentAt) notif.sentAt = o.sentAt as Date;
     if (o.messageBody) notif.messageBody = o.messageBody as string;
     if (client && typeof client === 'object' && 'companyName' in client) {
-      notif.clientName = (client as { companyName?: string }).companyName || (client as { name?: string }).name as string;
+      notif.clientName =
+        (client as { companyName?: string }).companyName || ((client as { name?: string }).name as string);
     } else if (client && typeof client === 'object' && 'name' in client) {
       notif.clientName = (client as { name?: string }).name as string;
+    }
+    if (user && typeof user === 'object' && user.name) {
+      notif.userName = user.name;
     }
     return notif;
   }

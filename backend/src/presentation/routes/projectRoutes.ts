@@ -62,6 +62,8 @@ router.patch(
     body('startDate').optional().isISO8601(),
     body('endDate').optional().isISO8601(),
     body('status').optional().isIn(['active', 'completed', 'cancelled']),
+    body('assignedEmployees').optional().isArray(),
+    body('assignedEmployees.*').optional().isMongoId(),
   ],
   validate,
   updateProject

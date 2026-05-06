@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { FileText, MessageSquare, Bell, ClipboardList, Users, FolderKanban, Banknote, Wallet, AlertCircle, CalendarClock } from 'lucide-react';
+import { FileText, MessageSquare, Bell, ClipboardList, Users, FolderKanban, Banknote, Wallet, Receipt, AlertCircle, CalendarClock } from 'lucide-react';
 import { api } from '../api/client';
 import styles from './Dashboard.module.css';
 
@@ -16,6 +16,7 @@ interface PaymentSummary {
   totalClients: number;
   totalProjectValue: number;
   totalCollected: number;
+  accountsReceivablePending: number;
   pendingBalance: number;
   overdueCount: number;
   dueTodayCount: number;
@@ -59,7 +60,7 @@ export default function Dashboard() {
       api.get<unknown[]>('/inquiries'),
       api.get<ReminderRow[]>('/reminders/upcoming?limit=10'),
       api.get<unknown[]>('/proposals'),
-      api.get<{ totalClients: number; totalProjectValue: number; totalCollected: number; pendingBalance: number; overdueCount: number; dueTodayCount: number }>('/reports/summary'),
+      api.get<PaymentSummary>('/reports/summary'),
     ]).then(([inqRes, remRes, propRes, summaryRes]) => {
       const inquiries = (inqRes.success && inqRes.data ? inqRes.data : []) as { status?: string }[];
       const total = inquiries.length;
@@ -73,7 +74,16 @@ export default function Dashboard() {
       });
       if (remRes.success && remRes.data) setReminders(remRes.data);
       if (summaryRes.success && summaryRes.data) setPaymentSummary(summaryRes.data);
-      else setPaymentSummary({ totalClients: 0, totalProjectValue: 0, totalCollected: 0, pendingBalance: 0, overdueCount: 0, dueTodayCount: 0 });
+      else
+        setPaymentSummary({
+          totalClients: 0,
+          totalProjectValue: 0,
+          totalCollected: 0,
+          accountsReceivablePending: 0,
+          pendingBalance: 0,
+          overdueCount: 0,
+          dueTodayCount: 0,
+        });
       setLoading(false);
     });
   }, []);
@@ -153,16 +163,29 @@ export default function Dashboard() {
                 <Banknote size={24} />
               </div>
               <div className={styles.cardContent}>
-                <span className={styles.cardLabel}>Total collected</span>
+                <span className={styles.cardLabel}>Business receipts (collected)</span>
                 <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.totalCollected).toLocaleString()}`}</span>
               </div>
             </div>
+            <Link to="/invoices?status=pending" className={styles.cardLink}>
+              <div className={styles.card}>
+                <div className={styles.cardIcon} style={{ background: '#fff7ed', color: '#c2410c' }}>
+                  <Receipt size={24} />
+                </div>
+                <div className={styles.cardContent}>
+                  <span className={styles.cardLabel}>Accounts receivable (pending income)</span>
+                  <span className={styles.cardValue}>
+                    {loading ? '—' : `Rs. ${Number(paymentSummary.accountsReceivablePending).toLocaleString()}`}
+                  </span>
+                </div>
+              </div>
+            </Link>
             <div className={styles.card}>
               <div className={styles.cardIcon} style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
                 <Wallet size={24} />
               </div>
               <div className={styles.cardContent}>
-                <span className={styles.cardLabel}>Pending balance</span>
+                <span className={styles.cardLabel}>Installment pending balance</span>
                 <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.pendingBalance).toLocaleString()}`}</span>
               </div>
             </div>

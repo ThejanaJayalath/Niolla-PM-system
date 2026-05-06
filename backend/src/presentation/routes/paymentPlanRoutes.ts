@@ -56,6 +56,7 @@ router.get(
   '/',
   [
     query('projectId').optional().isMongoId(),
+    query('clientId').optional().isMongoId(),
     query('status').optional().isIn(['active', 'completed', 'defaulted']),
   ],
   validate,
