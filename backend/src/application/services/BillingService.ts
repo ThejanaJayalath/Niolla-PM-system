@@ -32,6 +32,11 @@ export interface UpdateBillingInput {
 }
 
 export class BillingService {
+  async hasAdvanceBillingForInquiry(inquiryId: string): Promise<boolean> {
+    const existing = await BillingModel.findOne({ inquiryId, billingType: 'ADVANCE' }).select('_id').lean();
+    return !!existing;
+  }
+
   async getNextBillingId(): Promise<string> {
     const last = await BillingModel.findOne().sort({ createdAt: -1 }).select('billingId').lean();
     let nextNum = 1;

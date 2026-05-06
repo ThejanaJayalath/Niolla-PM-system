@@ -11,7 +11,7 @@ export interface Inquiry {
   proposals?: {
     _id: string;
     createdAt: Date;
-    status: 'CREATED' | 'DOWNLOADED';
+    status: 'CREATED' | 'DOWNLOADED' | 'CONFIRMED';
     projectName?: string;
   }[];
   status: InquiryStatus;
@@ -24,4 +24,10 @@ export interface Inquiry {
   createdBy?: string;
 }
 
-export type InquiryStatus = 'NEW' | 'PROPOSAL_SENT' | 'NEGOTIATING' | 'CONFIRMED' | 'LOST';
+export type InquiryStatus =
+  | 'NEW'
+  | 'PROPOSAL_SENT'
+  | 'NEGOTIATING'
+  | 'PENDING_ADVANCE'
+  | 'CONFIRMED'
+  | 'LOST';

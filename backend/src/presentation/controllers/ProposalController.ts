@@ -10,7 +10,21 @@ import { AuthenticatedRequest } from '../middleware/auth';
 const proposalService = new ProposalService();
 
 export async function createProposal(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { inquiryId, projectName, milestones, advancePayment, projectCost, totalAmount, maintenanceCostPerMonth, maintenanceNote, validUntil, notes } = req.body;
+  const {
+    inquiryId,
+    projectName,
+    milestones,
+    advancePayment,
+    projectCost,
+    totalAmount,
+    paymentPlan,
+    installmentMonths,
+    monthlyInstallment,
+    maintenanceCostPerMonth,
+    maintenanceNote,
+    validUntil,
+    notes,
+  } = req.body;
   const proposal = await proposalService.create({
     inquiryId,
     projectName,
@@ -18,6 +32,9 @@ export async function createProposal(req: AuthenticatedRequest, res: Response): 
     advancePayment,
     projectCost,
     totalAmount,
+    paymentPlan,
+    installmentMonths,
+    monthlyInstallment,
     maintenanceCostPerMonth,
     maintenanceNote,
     validUntil,

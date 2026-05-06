@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, FileText } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 
 interface CreateProposalModalProps {
     open: boolean;
@@ -81,12 +82,12 @@ export default function CreateProposalModal({ open, onClose, onSuccess }: Create
 
     const handleSubmit = async () => {
         if (!selectedInquiry) {
-            alert('Please select an inquiry');
+            pushSystemToast('Please select an inquiry', 'warning');
             return;
         }
 
         if (!projectTitle.trim()) {
-            alert('Please enter a project title');
+            pushSystemToast('Please enter a project title', 'warning');
             return;
         }
 
@@ -106,11 +107,11 @@ export default function CreateProposalModal({ open, onClose, onSuccess }: Create
                 onClose();
                 resetForm();
             } else {
-                alert('Failed to create proposal');
+                pushSystemToast('Failed to create proposal', 'error');
             }
         } catch (err) {
             console.error(err);
-            alert('Failed to create proposal');
+            pushSystemToast('Failed to create proposal', 'error');
         } finally {
             setSubmitting(false);
         }

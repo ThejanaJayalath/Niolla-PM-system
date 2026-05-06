@@ -21,6 +21,7 @@ import {
     UserCircle,
     Wallet,
     ScrollText,
+    Receipt,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -47,6 +48,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
         { icon: CalendarCheck, label: 'Installments', path: '/installments' },
         { icon: Banknote, label: 'Payments', path: '/payments' },
         { icon: CreditCard, label: 'Billing', path: '/billing' },
+        { icon: Receipt, label: 'Invoices', path: '/invoices' },
     ];
 
     const leadsItems = [

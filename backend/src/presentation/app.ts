@@ -19,6 +19,7 @@ import reportRoutes from './routes/reportRoutes';
 import jobRoutes from './routes/jobRoutes';
 import auditLogRoutes from './routes/auditLogRoutes';
 import interactionRoutes from './routes/interactionRoutes';
+import publicInvoiceRoutes from './routes/publicInvoiceRoutes';
 import { getOAuthStartRouter, handleOAuthCallback } from './routes/googleOAuthRoutes';
 import { errorHandler } from './middleware/errorHandler';
 import { connectDatabase } from '../infrastructure/database/mongo';
@@ -43,6 +44,9 @@ app.use(express.json({ limit: '4mb' }));
 app.get('/health', (_req, res) => {
   res.json({ success: true, message: 'Niolla PM API is running' });
 });
+
+/** Signed PDF links for customers (no auth). */
+app.use('/api/v1/public/invoices', publicInvoiceRoutes);
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/users', userRoutes);

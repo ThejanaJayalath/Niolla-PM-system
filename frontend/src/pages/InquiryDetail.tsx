@@ -53,6 +53,7 @@ const STATUS_LABELS: Record<string, string> = {
   NEW: 'New',
   PROPOSAL_SENT: 'Proposal Sent',
   NEGOTIATING: 'Negotiating',
+  PENDING_ADVANCE: 'Pending Advance',
   CONFIRMED: 'Confirmed',
   LOST: 'Lost',
   // Compat
@@ -70,6 +71,7 @@ const getStatusColor = (status: string) => {
   if (s === 'new') return 'bg-white text-orange-500 border-orange-200 hover:border-orange-300';
   if (s === 'proposal_sent') return 'bg-[#d1d5db] text-gray-700 border-transparent'; // Proposal Sent (Gray pill)
   if (s === 'negotiating') return 'bg-[#f3e8ff] text-purple-600 border-transparent'; // Negotiating (Purple pill)
+  if (s === 'pending_advance') return 'bg-amber-50 text-amber-900 border-amber-200';
   if (s === 'confirmed') return 'bg-[#dcfce7] text-green-600 border-transparent'; // Confirmed (Green pill)
   if (s === 'lost') return 'bg-[#fee2e2] text-red-600 border-transparent'; // Lost (Red pill)
   return 'bg-white text-gray-700 border-gray-200';

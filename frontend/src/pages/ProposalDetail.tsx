@@ -23,6 +23,12 @@ interface Proposal {
   validUntil?: string;
   notes?: string;
   createdAt: string;
+  status?: 'DRAFT' | 'SENT' | 'CONFIRMED' | 'LOST';
+}
+
+interface InquiryLite {
+  _id: string;
+  status: string;
 }
 
 interface Milestone {
@@ -44,6 +50,8 @@ export default function ProposalDetail() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [confirmingDeal, setConfirmingDeal] = useState(false);
+  const [inquiryStatus, setInquiryStatus] = useState<string>('');
 
   // Form State
   const [projectTitle, setProjectTitle] = useState('');
@@ -55,18 +63,24 @@ export default function ProposalDetail() {
     loadProposal();
   }, [id]);
 
-  const loadProposal = async () => {
+  const loadProposal = async (options?: { showLoading?: boolean }) => {
     if (!id) return;
+    const showLoading = options?.showLoading ?? true;
+    if (showLoading) setLoading(true);
     try {
       const res = await api.get<Proposal>(`/proposals/${id}`);
       if (res.success && res.data) {
         setProposal(res.data);
         initializeForm(res.data);
+        const inqRes = await api.get<InquiryLite>(`/inquiries/${res.data.inquiryId}`);
+        if (inqRes.success && inqRes.data?.status) {
+          setInquiryStatus(inqRes.data.status);
+        }
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -166,6 +180,26 @@ export default function ProposalDetail() {
     }
   };
 
+  const handleConfirmDeal = async () => {
+    if (!proposal || inquiryStatus === 'PENDING_ADVANCE' || inquiryStatus === 'CONFIRMED') return;
+    setConfirmingDeal(true);
+    try {
+      const res = await api.patch<InquiryLite>(`/inquiries/${proposal.inquiryId}`, { status: 'PENDING_ADVANCE' });
+      if (res.success) {
+        setInquiryStatus('PENDING_ADVANCE');
+        await loadProposal({ showLoading: false });
+        pushSystemToast('Deal confirmed. Project is Pending Advance; advance invoice queued to the client.', 'success');
+      } else {
+        pushSystemToast(res.error?.message || 'Failed to confirm deal', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      pushSystemToast('Failed to confirm deal', 'error');
+    } finally {
+      setConfirmingDeal(false);
+    }
+  };
+
   if (loading) return <div className={styles.container}>Loading...</div>;
   if (!proposal) return <div className={styles.container}>Proposal not found</div>;
 
@@ -188,9 +222,32 @@ export default function ProposalDetail() {
           <h1 className={styles.pageTitle}>{proposal.customerName}</h1>
           <p className={styles.subTitle}>
             {proposal.proposalId ? `${proposal.proposalId} • ` : ''}Proposal Details
+            {inquiryStatus === 'CONFIRMED' ? (
+              <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                Active client
+              </span>
+            ) : null}
+            {inquiryStatus === 'PENDING_ADVANCE' ? (
+              <span className="ml-2 inline-flex px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-900">
+                Pending advance
+              </span>
+            ) : null}
           </p>
         </div>
         <div className={styles.headerActions}>
+          <button
+            onClick={handleConfirmDeal}
+            disabled={confirmingDeal || inquiryStatus === 'PENDING_ADVANCE' || inquiryStatus === 'CONFIRMED'}
+            className={styles.saveBtn}
+          >
+            {inquiryStatus === 'CONFIRMED'
+              ? 'Confirmed'
+              : inquiryStatus === 'PENDING_ADVANCE'
+                ? 'Pending advance'
+                : confirmingDeal
+                  ? 'Confirming...'
+                  : 'Confirm Deal'}
+          </button>
           <button
             onClick={downloadPdf}
             disabled={downloading}

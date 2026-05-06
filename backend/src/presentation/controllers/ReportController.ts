@@ -4,12 +4,16 @@ import { ProjectModel } from '../../infrastructure/database/models/ProjectModel'
 import { PaymentPlanModel } from '../../infrastructure/database/models/PaymentPlanModel';
 import { PaymentTransactionModel } from '../../infrastructure/database/models/PaymentTransactionModel';
 import { InstallmentModel } from '../../infrastructure/database/models/InstallmentModel';
+import { InvoiceModel } from '../../infrastructure/database/models/InvoiceModel';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 export interface PaymentSummary {
   totalClients: number;
   totalProjectValue: number;
+  /** Cash/collected: payment ledger + invoice payments recorded without a payment transaction. */
   totalCollected: number;
+  /** Unpaid proposal advance invoices (pending income / A/R). */
+  accountsReceivablePending: number;
   pendingBalance: number;
   overdueCount: number;
   dueTodayCount: number;
@@ -43,6 +47,8 @@ export async function getPaymentSummary(_req: AuthenticatedRequest, res: Respons
       pendingResult,
       overdueCount,
       dueTodayCount,
+      arPendingResult,
+      invoicePaidStandaloneResult,
     ] = await Promise.all([
       CustomerModel.countDocuments(),
       ProjectModel.aggregate<{ total: number }>([{ $group: { _id: null, total: { $sum: '$totalValue' } } }]),
@@ -59,12 +65,34 @@ export async function getPaymentSummary(_req: AuthenticatedRequest, res: Respons
           dueDate: { $gte: start, $lt: end },
         });
       })(),
+      InvoiceModel.aggregate<{ total: number }>([
+        {
+          $match: {
+            status: { $in: ['pending', 'sent', 'draft'] },
+            sourceType: 'PROPOSAL_ADVANCE',
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+      ]),
+      InvoiceModel.aggregate<{ total: number }>([
+        {
+          $match: {
+            status: 'paid',
+            $or: [{ transactionId: { $exists: false } }, { transactionId: null }],
+          },
+        },
+        { $group: { _id: null, total: { $sum: '$totalAmount' } } },
+      ]),
     ]);
+
+    const txCollected = collectedResult[0]?.total ?? 0;
+    const invoiceCollected = invoicePaidStandaloneResult[0]?.total ?? 0;
 
     const summary: PaymentSummary = {
       totalClients,
       totalProjectValue: projectValueResult[0]?.total ?? 0,
-      totalCollected: collectedResult[0]?.total ?? 0,
+      totalCollected: txCollected + invoiceCollected,
+      accountsReceivablePending: arPendingResult[0]?.total ?? 0,
       pendingBalance: pendingResult[0]?.total ?? 0,
       overdueCount,
       dueTodayCount,

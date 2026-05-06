@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { InquiryStatus } from '../../../domain/entities/Inquiry';
+import { SequenceModel } from './SequenceModel';
 
 export interface InquiryDocument extends Document {
   customerId: string;
@@ -12,7 +13,7 @@ export interface InquiryDocument extends Document {
   proposals?: {
     _id: string;
     createdAt: Date;
-    status: 'CREATED' | 'DOWNLOADED';
+    status: 'CREATED' | 'DOWNLOADED' | 'CONFIRMED';
     projectName?: string;
   }[];
   status: InquiryStatus;
@@ -40,13 +41,13 @@ const inquirySchema = new Schema<InquiryDocument>(
       {
         _id: { type: String, required: true },
         createdAt: { type: Date, default: Date.now },
-        status: { type: String, enum: ['CREATED', 'DOWNLOADED'], default: 'CREATED' },
+        status: { type: String, enum: ['CREATED', 'DOWNLOADED', 'CONFIRMED'], default: 'CREATED' },
         projectName: { type: String },
       },
     ],
     status: {
       type: String,
-      enum: ['NEW', 'PROPOSAL_SENT', 'NEGOTIATING', 'CONFIRMED', 'LOST'] as InquiryStatus[],
+      enum: ['NEW', 'PROPOSAL_SENT', 'NEGOTIATING', 'PENDING_ADVANCE', 'CONFIRMED', 'LOST'] as InquiryStatus[],
       default: 'NEW',
     },
     totalAdvancePaid: { type: Number, default: 0 },
@@ -56,11 +57,56 @@ const inquirySchema = new Schema<InquiryDocument>(
   { timestamps: true }
 );
 
-// Auto-generate customerId before saving
+const INQUIRY_SEQUENCE_KEY = 'inquiry_customer_id';
+
+async function getCurrentMaxInquiryNumber(): Promise<number> {
+  const [row] = await InquiryModel.aggregate<{ maxNum: number }>([
+    {
+      $match: {
+        customerId: { $type: 'string' },
+      },
+    },
+    {
+      $project: {
+        parsed: {
+          $cond: [
+            { $regexMatch: { input: '$customerId', regex: /^INQ-\d+$/ } },
+            { $toInt: { $substrBytes: ['$customerId', 4, -1] } },
+            0,
+          ],
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        maxNum: { $max: '$parsed' },
+      },
+    },
+  ]);
+  return Number.isFinite(row?.maxNum) ? row.maxNum : 0;
+}
+
+async function getNextInquiryNumber(): Promise<number> {
+  const maxExisting = await getCurrentMaxInquiryNumber();
+  await SequenceModel.findOneAndUpdate(
+    { _id: INQUIRY_SEQUENCE_KEY },
+    { $setOnInsert: { seq: maxExisting } },
+    { upsert: true, new: true }
+  );
+  const counter = await SequenceModel.findOneAndUpdate(
+    { _id: INQUIRY_SEQUENCE_KEY },
+    { $inc: { seq: 1 } },
+    { new: true }
+  );
+  return counter?.seq || maxExisting + 1;
+}
+
+// Auto-generate customerId before saving (atomic, safe for concurrent requests)
 inquirySchema.pre('save', async function (next) {
   if (!this.customerId) {
-    const count = await mongoose.model('Inquiry').countDocuments();
-    this.customerId = `INQ-${String(count + 1).padStart(5, '0')}`;
+    const nextNum = await getNextInquiryNumber();
+    this.customerId = `INQ-${String(nextNum).padStart(5, '0')}`;
   }
   next();
 });

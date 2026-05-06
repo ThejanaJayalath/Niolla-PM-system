@@ -28,6 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
   NEW: 'New',
   PROPOSAL_SENT: 'Proposal Sent',
   NEGOTIATING: 'Negotiating',
+  PENDING_ADVANCE: 'Pending Advance',
   CONFIRMED: 'Confirmed',
   LOST: 'Lost',
   // Keep compatibility with old data just in case
@@ -39,6 +40,9 @@ const STATUS_LABELS: Record<string, string> = {
   lost: 'Lost',
 };
 
+/** API / filter values only (no duplicate labels from legacy lowercase keys). */
+const INQUIRY_FILTER_STATUSES = ['NEW', 'PROPOSAL_SENT', 'NEGOTIATING', 'PENDING_ADVANCE', 'CONFIRMED', 'LOST'] as const;
+
 // Helper for status colors
 const getStatusColor = (status: string) => {
   const s = status.toLowerCase();
@@ -46,6 +50,7 @@ const getStatusColor = (status: string) => {
   if (s === 'new') return 'bg-white text-orange-500 border-orange-200 hover:border-orange-300';
   if (s === 'proposal_sent') return 'bg-[#d1d5db] text-gray-700 border-transparent'; // Proposal Sent (Gray pill)
   if (s === 'negotiating') return 'bg-[#f3e8ff] text-purple-600 border-transparent'; // Negotiating (Purple pill)
+  if (s === 'pending_advance') return 'bg-amber-50 text-amber-900 border-amber-200';
   if (s === 'confirmed' || s === 'won') return 'bg-[#dcfce7] text-green-600 border-transparent'; // Confirmed (Green pill)
   if (s === 'lost') return 'bg-[#fee2e2] text-red-600 border-transparent'; // Lost (Red pill)
   return 'bg-white text-gray-700 border-gray-200';
@@ -55,6 +60,7 @@ const getNormalizedStatus = (status: string) => {
   if (!status) return 'new';
   const s = status.toLowerCase();
   if (s === 'won') return 'CONFIRMED';
+  if (s === 'pending_advance') return 'PENDING_ADVANCE';
   return s.toUpperCase();
 };
 
@@ -176,8 +182,10 @@ export default function Inquiries() {
             className="w-full pl-4 pr-10 py-2 bg-white border border-gray-200 rounded-lg text-sm appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
           >
             <option value="">All Status</option>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
+            {INQUIRY_FILTER_STATUSES.map((value) => (
+              <option key={value} value={value}>
+                {STATUS_LABELS[value]}
+              </option>
             ))}
           </select>
           <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
