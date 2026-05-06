@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { PaymentPlan } from '../../domain/entities/PaymentPlan';
 import { PaymentPlanModel } from '../../infrastructure/database/models/PaymentPlanModel';
+import { ProjectModel } from '../../infrastructure/database/models/ProjectModel';
 import { InstallmentService } from './InstallmentService';
 
 export interface CreatePaymentPlanInput {
@@ -30,6 +31,8 @@ export interface UpdatePaymentPlanInput {
 
 export interface ListPaymentPlansFilters {
   projectId?: string;
+  /** Customer (Mongo) id — returns plans for all projects owned by this client. */
+  clientId?: string;
   status?: string;
 }
 
@@ -102,7 +105,16 @@ export class PaymentPlanService {
 
   async findAll(filters?: ListPaymentPlansFilters): Promise<PaymentPlan[]> {
     const query: Record<string, unknown> = {};
-    if (filters?.projectId) query.projectId = filters.projectId;
+    if (filters?.projectId) {
+      query.projectId = filters.projectId;
+    } else if (filters?.clientId) {
+      const projectDocs = await ProjectModel.find({ clientId: filters.clientId }).select('_id').lean();
+      const projectIds = projectDocs.map((p) => p._id);
+      if (projectIds.length === 0) {
+        return [];
+      }
+      query.projectId = { $in: projectIds };
+    }
     if (filters?.status) query.status = filters.status;
     const docs = await PaymentPlanModel.find(query)
       .populate('projectId', 'projectName totalValue clientId')

@@ -6,9 +6,10 @@ const paymentNotificationService = new PaymentNotificationService();
 
 export async function listPaymentNotifications(req: AuthenticatedRequest, res: Response): Promise<void> {
   const clientId = req.query.clientId as string | undefined;
+  const userId = req.query.userId as string | undefined;
   const status = req.query.status as string | undefined;
   const triggerType = req.query.triggerType as string | undefined;
-  const notifications = await paymentNotificationService.findAll({ clientId, status, triggerType });
+  const notifications = await paymentNotificationService.findAll({ clientId, userId, status, triggerType });
   res.json({ success: true, data: notifications });
 }
 
@@ -32,9 +33,10 @@ export async function markNotificationSent(req: AuthenticatedRequest, res: Respo
 
 export async function createPaymentNotification(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
-    const { clientId, installmentId, type, triggerType, scheduledAt, messageBody } = req.body;
+    const { clientId, userId, installmentId, type, triggerType, scheduledAt, messageBody } = req.body;
     const notification = await paymentNotificationService.create({
       clientId,
+      userId,
       installmentId,
       type,
       triggerType,

@@ -46,8 +46,9 @@ export async function getPaymentPlan(req: AuthenticatedRequest, res: Response): 
 
 export async function listPaymentPlans(req: AuthenticatedRequest, res: Response): Promise<void> {
   const projectId = req.query.projectId as string | undefined;
+  const clientId = req.query.clientId as string | undefined;
   const status = req.query.status as string | undefined;
-  const plans = await paymentPlanService.findAll({ projectId, status });
+  const plans = await paymentPlanService.findAll({ projectId, clientId, status });
   res.json({ success: true, data: plans });
 }
 

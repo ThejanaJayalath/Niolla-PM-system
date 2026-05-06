@@ -28,7 +28,8 @@ router.get(
   [
     query('clientId').optional().isMongoId(),
     query('status').optional().isIn(['pending', 'sent', 'failed']),
-    query('triggerType').optional().isIn(['due_reminder', 'overdue', 'receipt']),
+    query('userId').optional().isMongoId(),
+    query('triggerType').optional().isIn(['due_reminder', 'overdue', 'receipt', 'assignment']),
   ],
   validate,
   listPaymentNotifications
@@ -38,10 +39,19 @@ router.patch('/:id/sent', [param('id').isMongoId()], validate, markNotificationS
 router.post(
   '/',
   [
-    body('clientId').isMongoId().withMessage('Valid client ID is required'),
+    body('clientId').optional().isMongoId(),
+    body('userId').optional().isMongoId(),
+    body().custom((_v, { req }) => {
+      if (!req.body?.clientId && !req.body?.userId) {
+        throw new Error('Either clientId or userId is required');
+      }
+      return true;
+    }),
     body('installmentId').optional().isMongoId(),
     body('type').isIn(['sms', 'email', 'system']).withMessage('Invalid type'),
-    body('triggerType').isIn(['due_reminder', 'overdue', 'receipt']).withMessage('Invalid trigger type'),
+    body('triggerType')
+      .isIn(['due_reminder', 'overdue', 'receipt', 'assignment'])
+      .withMessage('Invalid trigger type'),
     body('scheduledAt').isISO8601().withMessage('Valid scheduled date is required'),
     body('messageBody').optional().trim(),
   ],

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Search } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 
 interface NewProposalModalProps {
     open: boolean;
@@ -63,7 +64,10 @@ export default function NewProposalModal({ open, onClose, onSuccess }: NewPropos
     const totalMaintenance = maintenanceItems.reduce((sum, m) => sum + (Number(m.cost) || 0), 0);
 
     const handleSubmit = async () => {
-        if (!selectedInquiry) return alert('Please select an inquiry');
+        if (!selectedInquiry) {
+            pushSystemToast('Please select an inquiry', 'warning');
+            return;
+        }
 
         setSubmitting(true);
         try {
@@ -86,11 +90,11 @@ export default function NewProposalModal({ open, onClose, onSuccess }: NewPropos
                 onSuccess();
                 onClose();
             } else {
-                alert('Failed: ' + (res.error?.message || 'Unknown error'));
+                pushSystemToast('Failed: ' + (res.error?.message || 'Unknown error'), 'error');
             }
         } catch (err) {
             console.error(err);
-            alert('Error creating proposal');
+            pushSystemToast('Error creating proposal', 'error');
         } finally {
             setSubmitting(false);
         }

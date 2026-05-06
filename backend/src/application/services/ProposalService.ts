@@ -1,7 +1,8 @@
-import { Proposal, ProposalMilestone } from '../../domain/entities/Proposal';
+import { Proposal, ProposalMilestone, ProposalStatus } from '../../domain/entities/Proposal';
 import { InquiryModel } from '../../infrastructure/database/models/InquiryModel';
 import { ProposalModel } from '../../infrastructure/database/models/ProposalModel';
 import { CustomerService } from './CustomerService';
+import { InvoiceService } from './InvoiceService';
 
 export interface CreateProposalInput {
   inquiryId: string;
@@ -10,14 +11,19 @@ export interface CreateProposalInput {
   advancePayment?: number;
   projectCost?: number;
   totalAmount: number;
+  paymentPlan?: 'FULL_PAYMENT' | 'THREE_MONTH' | 'SIX_MONTH';
+  installmentMonths?: number;
+  monthlyInstallment?: number;
   maintenanceCostPerMonth?: number;
   maintenanceNote?: string;
   validUntil?: string;
   notes?: string;
+  status?: ProposalStatus;
 }
 
 export class ProposalService {
   private customerService = new CustomerService();
+  private invoiceService = new InvoiceService();
 
   async create(data: CreateProposalInput): Promise<Proposal> {
     const inquiry = await InquiryModel.findById(data.inquiryId);
@@ -45,10 +51,14 @@ export class ProposalService {
       advancePayment: data.advancePayment,
       projectCost: data.projectCost,
       totalAmount: data.totalAmount,
+      paymentPlan: data.paymentPlan,
+      installmentMonths: data.installmentMonths,
+      monthlyInstallment: data.monthlyInstallment,
       maintenanceCostPerMonth: data.maintenanceCostPerMonth,
       maintenanceNote: data.maintenanceNote,
       validUntil: data.validUntil,
       notes: data.notes,
+      status: 'SENT',
     });
 
     // Link proposal to Inquiry (include Project Title so it's stored in inquiry tab)
@@ -101,6 +111,15 @@ export class ProposalService {
     const docs = await ProposalModel.find().sort({ createdAt: -1 });
     return docs.map((d) => d.toObject() as unknown as Proposal);
   }
+
+  /** Contract value still owed after the advance (total − advance on latest proposal). */
+  async getRemainingContractBalanceAfterAdvance(inquiryId: string): Promise<number> {
+    const doc = await ProposalModel.findOne({ inquiryId }).sort({ createdAt: -1 }).lean();
+    if (!doc) return 0;
+    const total = Number(doc.totalAmount ?? 0);
+    const adv = Number(doc.advancePayment ?? 0);
+    return Math.max(0, total - adv);
+  }
   async delete(id: string): Promise<boolean> {
     const proposal = await ProposalModel.findById(id);
     if (!proposal) return false;
@@ -115,31 +134,86 @@ export class ProposalService {
   }
 
   async update(id: string, data: Partial<CreateProposalInput>): Promise<Proposal | null> {
-    const proposal = await ProposalModel.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          projectName: data.projectName,
-          milestones: data.milestones,
-          advancePayment: data.advancePayment,
-          projectCost: data.projectCost,
-          totalAmount: data.totalAmount,
-          maintenanceCostPerMonth: data.maintenanceCostPerMonth,
-          maintenanceNote: data.maintenanceNote,
-          validUntil: data.validUntil,
-          notes: data.notes,
-        },
-      },
-      { new: true }
-    );
-    if (proposal && data.projectName !== undefined) {
-      const proposalIdStr = String(proposal._id);
+    const doc = await ProposalModel.findById(id);
+    if (!doc) return null;
+
+    const prevStatus: ProposalStatus = (doc.status as ProposalStatus) || 'SENT';
+
+    if (data.projectName !== undefined) doc.projectName = data.projectName;
+    if (data.milestones !== undefined) doc.milestones = data.milestones;
+    if (data.advancePayment !== undefined) doc.advancePayment = data.advancePayment;
+    if (data.projectCost !== undefined) doc.projectCost = data.projectCost;
+    if (data.totalAmount !== undefined) doc.totalAmount = data.totalAmount;
+    if (data.paymentPlan !== undefined) doc.paymentPlan = data.paymentPlan;
+    if (data.installmentMonths !== undefined) doc.installmentMonths = data.installmentMonths;
+    if (data.monthlyInstallment !== undefined) doc.monthlyInstallment = data.monthlyInstallment;
+    if (data.maintenanceCostPerMonth !== undefined) doc.maintenanceCostPerMonth = data.maintenanceCostPerMonth;
+    if (data.maintenanceNote !== undefined) doc.maintenanceNote = data.maintenanceNote;
+    if (data.validUntil !== undefined) doc.validUntil = data.validUntil;
+    if (data.notes !== undefined) doc.notes = data.notes;
+    if (data.status !== undefined) doc.status = data.status;
+
+    await doc.save();
+    const o = doc.toObject() as unknown as Proposal;
+
+    if (data.status === 'CONFIRMED' && prevStatus !== 'CONFIRMED') {
+      await this.onProposalConfirmed(o);
+    }
+
+    if (data.projectName !== undefined) {
+      const proposalIdStr = String(doc._id);
       await InquiryModel.updateOne(
         { 'proposals._id': proposalIdStr },
         { $set: { 'proposals.$[p].projectName': data.projectName } },
         { arrayFilters: [{ 'p._id': proposalIdStr }] }
       );
     }
-    return proposal ? (proposal.toObject() as unknown as Proposal) : null;
+    return o;
+  }
+
+  /**
+   * When the inquiry is set to CONFIRMED, align the latest proposal row + embedded stub (no duplicate invoice — already created in inquiry flow).
+   */
+  async syncLatestProposalConfirmedForInquiry(inquiryId: string): Promise<void> {
+    const doc = await ProposalModel.findOne({ inquiryId }).sort({ createdAt: -1 });
+    if (!doc) return;
+    doc.status = 'CONFIRMED';
+    await doc.save();
+    const pid = String(doc._id);
+    await InquiryModel.updateOne(
+      { 'proposals._id': pid },
+      { $set: { 'proposals.$.status': 'CONFIRMED' } }
+    );
+  }
+
+  /** Insert advance invoice row; requires customer profile linked to inquiry (client_id). Shop name = inquiry.companyName. */
+  private async onProposalConfirmed(proposal: Proposal): Promise<void> {
+    if (!proposal._id) return;
+    const inquiryId = String(proposal.inquiryId);
+    const inquiry = await InquiryModel.findById(inquiryId).lean();
+    if (!inquiry) return;
+
+    const shopName = inquiry.companyName?.trim() || undefined;
+    const customer = await this.customerService.findByInquiryId(inquiryId);
+    if (!customer?._id) return;
+
+    const projectLabel =
+      proposal.projectName?.trim() || inquiry.projectDescription?.trim() || 'Project';
+
+    await this.invoiceService.ensureProposalAdvanceInvoice({
+      inquiryId,
+      proposalId: String(proposal._id),
+      clientId: String(customer._id),
+      advanceAmount: Number(proposal.advancePayment ?? 0),
+      projectLabel,
+      companyName: shopName,
+      projectName: proposal.projectName?.trim() || undefined,
+    });
+
+    const proposalIdStr = String(proposal._id);
+    await InquiryModel.updateOne(
+      { 'proposals._id': proposalIdStr },
+      { $set: { 'proposals.$.status': 'CONFIRMED' } }
+    );
   }
 }
