@@ -31,6 +31,9 @@ export interface UpdateBillingInput {
   billingType?: BillingType;
 }
 
+/** First numeric segment in `INV ###` billing ids (aligned with invoice sequence floor). */
+const BILLING_ID_SEQUENCE_START = 789;
+
 export class BillingService {
   async hasAdvanceBillingForInquiry(inquiryId: string): Promise<boolean> {
     const existing = await BillingModel.findOne({ inquiryId, billingType: 'ADVANCE' }).select('_id').lean();

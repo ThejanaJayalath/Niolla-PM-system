@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { Check } from 'lucide-react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import styles from './Reminders.module.css';
 
 interface PaymentNotificationRow {
   _id: string;
-  clientId: string;
+  clientId?: string;
   clientName?: string;
+  userName?: string;
   installmentId?: string;
   installmentNo?: number;
   projectName?: string;
@@ -20,6 +22,7 @@ interface PaymentNotificationRow {
 }
 
 export default function PaymentNotifications() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<PaymentNotificationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('');
@@ -54,14 +57,21 @@ export default function PaymentNotifications() {
       due_reminder: 'Due reminder',
       overdue: 'Overdue',
       receipt: 'Receipt',
+      assignment: 'Project assignment',
+      payout_review: 'Payout review',
+      requirement_addon: 'Add-on feature payment',
     };
     return map[t] || t;
   };
 
   return (
     <div>
-      <h1 className={styles.title}>Payment Notifications</h1>
-      <p className={styles.muted}>Due reminders, overdue alerts, and payment receipts. Separate from inquiry Reminders.</p>
+      <h1 className={styles.title}>Notifications</h1>
+      <p className={styles.muted}>
+        {user?.role === 'employee'
+          ? 'Assignments, payout updates, and other messages for your account.'
+          : 'Due reminders, overdue alerts, payment receipts, and staff assignment alerts.'}
+      </p>
       <div className="flex gap-3 mb-4 mt-2 flex-wrap">
         <select
           value={statusFilter}
@@ -82,6 +92,9 @@ export default function PaymentNotifications() {
           <option value="due_reminder">Due reminder</option>
           <option value="overdue">Overdue</option>
           <option value="receipt">Receipt</option>
+          <option value="assignment">Project assignment</option>
+          <option value="payout_review">Payout review</option>
+          <option value="requirement_addon">Add-on feature payment</option>
         </select>
       </div>
       {loading ? (
@@ -89,7 +102,11 @@ export default function PaymentNotifications() {
       ) : notifications.length === 0 ? (
         <div className={styles.empty}>
           <p>No payment notifications.</p>
-          <p className={styles.emptyHint}>They are created by the system for due/overdue installments or when payments are recorded.</p>
+          <p className={styles.emptyHint}>
+            {user?.role === 'employee'
+              ? 'When an admin assigns you to a project, you will see an in-app message here with payout details. Check your Dashboard for the proposal PDF.'
+              : 'They are created for installments, payments, project assignments, and payout reviews.'}
+          </p>
         </div>
       ) : (
         <div className={styles.tableWrap}>
@@ -97,22 +114,30 @@ export default function PaymentNotifications() {
             <thead>
               <tr>
                 <th>Scheduled</th>
-                <th>Client</th>
+                <th>Client / Staff</th>
                 <th>Project / Installment</th>
+                <th>Message</th>
                 <th>Type</th>
                 <th>Trigger</th>
                 <th>Status</th>
-                <th>Actions</th>
+                {user?.role !== 'employee' ? <th>Actions</th> : null}
               </tr>
             </thead>
             <tbody>
               {notifications.map((n) => (
                 <tr key={n._id}>
                   <td>{format(new Date(n.scheduledAt), 'MMM d, yyyy · HH:mm')}</td>
-                  <td className={styles.cellName}>{n.clientName || n.clientId}</td>
+                  <td className={styles.cellName}>{n.clientName || n.userName || n.clientId || '—'}</td>
                   <td>
                     {n.projectName || '—'}
                     {n.installmentNo != null ? ` #${n.installmentNo}` : ''}
+                  </td>
+                  <td className={styles.cellMuted} title={n.messageBody}>
+                    {n.messageBody
+                      ? n.messageBody.length > 120
+                        ? `${n.messageBody.slice(0, 120)}…`
+                        : n.messageBody
+                      : '—'}
                   </td>
                   <td>
                     <span className={`${styles.badge} ${styles.badgeReminder}`}>{n.type}</span>
@@ -127,19 +152,21 @@ export default function PaymentNotifications() {
                       {n.status}
                     </span>
                   </td>
-                  <td>
-                    {n.status === 'pending' && (
-                      <button
-                        type="button"
-                        className={styles.iconBtn}
-                        title="Mark as sent"
-                        onClick={() => markSent(n._id)}
-                        disabled={markingId === n._id}
-                      >
-                        <Check size={18} />
-                      </button>
-                    )}
-                  </td>
+                  {user?.role !== 'employee' ? (
+                    <td>
+                      {n.status === 'pending' && (
+                        <button
+                          type="button"
+                          className={styles.iconBtn}
+                          title="Mark as sent"
+                          onClick={() => markSent(n._id)}
+                          disabled={markingId === n._id}
+                        >
+                          <Check size={18} />
+                        </button>
+                      )}
+                    </td>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

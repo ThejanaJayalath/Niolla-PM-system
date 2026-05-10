@@ -7,6 +7,7 @@ export interface InquiryDocument extends Document {
   customerName: string;
   companyName?: string;
   phoneNumber: string;
+  businessModel?: string;
   projectDescription: string;
   requiredFeatures: string[];
   internalNotes?: string;
@@ -34,7 +35,8 @@ const inquirySchema = new Schema<InquiryDocument>(
     customerName: { type: String, required: true },
     companyName: { type: String, trim: true, index: true },
     phoneNumber: { type: String, required: true, index: true },
-    projectDescription: { type: String, required: true },
+    businessModel: { type: String, trim: true, index: true },
+    projectDescription: { type: String, default: '' },
     requiredFeatures: [{ type: String }],
     internalNotes: { type: String },
     proposals: [

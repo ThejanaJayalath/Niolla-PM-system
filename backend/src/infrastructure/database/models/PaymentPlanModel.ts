@@ -3,6 +3,8 @@ import { PaymentPlan } from '../../../domain/entities/PaymentPlan';
 
 export interface PaymentPlanDocument extends Document {
   projectId: mongoose.Types.ObjectId;
+  planKind?: 'primary' | 'addon';
+  linkedRequirementId?: mongoose.Types.ObjectId;
   downPaymentPct: number;
   downPaymentAmt: number;
   totalInstallments: number;
@@ -19,6 +21,8 @@ export interface PaymentPlanDocument extends Document {
 const paymentPlanSchema = new Schema<PaymentPlanDocument>(
   {
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
+    planKind: { type: String, enum: ['primary', 'addon'], default: 'primary', index: true },
+    linkedRequirementId: { type: Schema.Types.ObjectId, ref: 'CustomerRequirement', index: true },
     downPaymentPct: { type: Number, required: true },
     downPaymentAmt: { type: Number, required: true },
     totalInstallments: { type: Number, required: true },

@@ -8,7 +8,18 @@ const authService = new AuthService();
 export async function login(req: Request, res: Response): Promise<void> {
   const { email, password } = req.body;
   const result = await authService.login(email, password);
-  if (!result) {
+  if ('error' in result) {
+    if (result.error === 'suspended') {
+      res.status(403).json({
+        success: false,
+        error: {
+          code: 'ACCOUNT_SUSPENDED',
+          message:
+            'This account is suspended. Contact your administrator if you need access.',
+        },
+      });
+      return;
+    }
     res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid email or password' } });
     return;
   }

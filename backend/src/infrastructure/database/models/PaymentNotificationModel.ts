@@ -6,7 +6,13 @@ export interface PaymentNotificationDocument extends Document {
   userId?: mongoose.Types.ObjectId;
   installmentId?: mongoose.Types.ObjectId;
   type: 'sms' | 'email' | 'system';
-  triggerType: 'due_reminder' | 'overdue' | 'receipt' | 'assignment';
+  triggerType:
+    | 'due_reminder'
+    | 'overdue'
+    | 'receipt'
+    | 'assignment'
+    | 'payout_review'
+    | 'requirement_addon';
   scheduledAt: Date;
   sentAt?: Date;
   status: 'pending' | 'sent' | 'failed';
@@ -23,7 +29,7 @@ const paymentNotificationSchema = new Schema<PaymentNotificationDocument>(
     type: { type: String, enum: ['sms', 'email', 'system'], required: true },
     triggerType: {
       type: String,
-      enum: ['due_reminder', 'overdue', 'receipt', 'assignment'],
+      enum: ['due_reminder', 'overdue', 'receipt', 'assignment', 'payout_review', 'requirement_addon'],
       required: true,
       index: true,
     },

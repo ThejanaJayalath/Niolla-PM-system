@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Info } from 'lucide-react';
 import styles from './ConfirmDialog.module.css';
 
 interface ConfirmDialogProps {
@@ -9,6 +9,8 @@ interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   danger?: boolean;
+  /** Single OK button — in-app “system” style instead of browser alert() */
+  alertMode?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
@@ -21,6 +23,7 @@ export default function ConfirmDialog({
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   danger = true,
+  alertMode = false,
   onConfirm,
   onCancel,
   isLoading = false,
@@ -39,17 +42,29 @@ export default function ConfirmDialog({
     <div className={styles.overlay} onClick={onCancel}>
       <div className={styles.dialog} onClick={(e) => e.stopPropagation()}>
         <div className={styles.iconWrap}>
-          <AlertTriangle size={24} className={danger ? styles.iconDanger : styles.iconWarn} />
+          {alertMode && !danger ? (
+            <Info size={24} className={styles.iconInfo} />
+          ) : (
+            <AlertTriangle size={24} className={danger ? styles.iconDanger : styles.iconWarn} />
+          )}
         </div>
         <h3 className={styles.title}>{title}</h3>
         <p className={styles.message}>{message}</p>
-        <div className={styles.actions}>
-          <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={isLoading}>
-            {cancelLabel}
-          </button>
+        <div className={alertMode ? styles.actionsSingle : styles.actions}>
+          {!alertMode && (
+            <button type="button" className={styles.cancelBtn} onClick={onCancel} disabled={isLoading}>
+              {cancelLabel}
+            </button>
+          )}
           <button
             type="button"
-            className={danger ? styles.dangerBtn : styles.confirmBtn}
+            className={
+              alertMode
+                ? styles.alertOkBtn
+                : danger
+                  ? styles.dangerBtn
+                  : styles.confirmBtn
+            }
             onClick={onConfirm}
             disabled={isLoading}
           >

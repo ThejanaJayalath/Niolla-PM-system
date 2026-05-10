@@ -6,7 +6,8 @@ export interface ProposalDocument extends Document {
   proposalId: string;
   projectName?: string;
   customerName: string;
-  projectDescription: string;
+  /** Copied from inquiry when present; otherwise empty (optional in product). */
+  projectDescription?: string;
   requiredFeatures: string[];
   milestones: ProposalMilestone[];
   advancePayment?: number;

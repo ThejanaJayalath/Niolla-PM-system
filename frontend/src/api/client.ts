@@ -30,7 +30,9 @@ async function request<T>(
   const json = isJson ? await res.json().catch(() => ({})) : {};
 
   if (!res.ok) {
-    if (res.status === 401) {
+    // Do not clear session on failed login/register — that breaks sign-in UX and can loop.
+    const isAuthPublic = path === '/auth/login' || path === '/auth/register';
+    if (res.status === 401 && !isAuthPublic) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';

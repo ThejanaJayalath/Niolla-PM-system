@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { X, FolderKanban, User, Type, DollarSign, Calendar, FileText } from 'lucide-react';
 import { api } from '../api/client';
+import type { ProjectLifecycleStatus } from '../types/projectLifecycle';
+import { normalizeProjectStatus } from '../types/projectLifecycle';
 import styles from './NewInquiryModal.module.css';
 
 export interface ProjectFormData {
@@ -9,9 +11,10 @@ export interface ProjectFormData {
   description: string;
   systemType: string;
   totalValue: string;
+  expenses: string;
   startDate: string;
   endDate: string;
-  status: 'active' | 'completed' | 'cancelled';
+  status: ProjectLifecycleStatus;
 }
 
 interface Project {
@@ -21,9 +24,10 @@ interface Project {
   description?: string;
   systemType?: string;
   totalValue: number;
+  expenses?: number;
   startDate?: string;
   endDate?: string;
-  status: 'active' | 'completed' | 'cancelled';
+  status: ProjectLifecycleStatus;
 }
 
 interface CustomerOption {
@@ -55,9 +59,10 @@ export default function AddProjectModal({
     description: '',
     systemType: '',
     totalValue: '',
+    expenses: '',
     startDate: '',
     endDate: '',
-    status: 'active',
+    status: 'unassigned',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -72,9 +77,10 @@ export default function AddProjectModal({
         description: '',
         systemType: '',
         totalValue: '',
+        expenses: '',
         startDate: '',
         endDate: '',
-        status: 'active',
+        status: 'unassigned',
       });
       setError('');
     } else if (editProject) {
@@ -84,9 +90,13 @@ export default function AddProjectModal({
         description: editProject.description || '',
         systemType: editProject.systemType || '',
         totalValue: String(editProject.totalValue ?? ''),
+        expenses:
+          editProject.expenses !== undefined && editProject.expenses !== null
+            ? String(editProject.expenses)
+            : '',
         startDate: editProject.startDate ? editProject.startDate.slice(0, 10) : '',
         endDate: editProject.endDate ? editProject.endDate.slice(0, 10) : '',
-        status: editProject.status || 'active',
+        status: normalizeProjectStatus(editProject.status),
       });
     } else {
       setForm({
@@ -95,9 +105,10 @@ export default function AddProjectModal({
         description: '',
         systemType: '',
         totalValue: '',
+        expenses: '',
         startDate: '',
         endDate: '',
-        status: 'active',
+        status: 'unassigned',
       });
     }
   }, [open, editProject, customers, initialCustomerId]);
@@ -123,6 +134,14 @@ export default function AddProjectModal({
       setError('Total value must be a valid number');
       return;
     }
+    let expensesNum = 0;
+    if (form.expenses.trim() !== '') {
+      expensesNum = parseFloat(form.expenses);
+      if (isNaN(expensesNum) || expensesNum < 0) {
+        setError('Expenses must be a valid non-negative number');
+        return;
+      }
+    }
     setSubmitting(true);
     const payload = {
       clientId: form.clientId,
@@ -130,6 +149,7 @@ export default function AddProjectModal({
       description: form.description.trim() || undefined,
       systemType: form.systemType.trim() || undefined,
       totalValue,
+      expenses: expensesNum,
       startDate: form.startDate || undefined,
       endDate: form.endDate || undefined,
       status: form.status,
@@ -140,6 +160,7 @@ export default function AddProjectModal({
         description: payload.description,
         systemType: payload.systemType,
         totalValue: payload.totalValue,
+        expenses: payload.expenses,
         startDate: payload.startDate,
         endDate: payload.endDate,
         status: payload.status,
@@ -255,6 +276,27 @@ export default function AddProjectModal({
           </div>
 
           <div className={styles.formGroup}>
+            <label htmlFor="expenses">
+              <DollarSign size={18} />
+              Other expenses (Rs.)
+            </label>
+            <input
+              id="expenses"
+              name="expenses"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.expenses}
+              onChange={handleChange}
+              className={styles.input}
+              placeholder="0 — optional"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Non-developer costs. Net profit = total value − (developer payouts + expenses).
+            </p>
+          </div>
+
+          <div className={styles.formGroup}>
             <label htmlFor="startDate">
               <Calendar size={18} />
               Start Date
@@ -306,9 +348,10 @@ export default function AddProjectModal({
               onChange={handleChange}
               className={styles.input}
             >
-              <option value="active">Active</option>
+              <option value="unassigned">Unassigned</option>
+              <option value="under_development">Under development</option>
               <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              <option value="suspended">Suspended</option>
             </select>
           </div>
 
