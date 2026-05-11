@@ -1,11 +1,11 @@
-
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Plus, Search, ChevronDown, Download } from 'lucide-react';
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import NewInquiryModal from '../components/NewInquiryModal';
+import NewProspectModal from '../components/NewProspectModal';
 import styles from './Inquiries.module.css';
 
 interface Inquiry {
@@ -14,6 +14,7 @@ interface Inquiry {
   customerName: string;
   companyName?: string;
   phoneNumber: string;
+  businessModel?: string;
   projectDescription: string;
   status: string;
   createdAt: string;
@@ -43,6 +44,9 @@ const STATUS_LABELS: Record<string, string> = {
 /** API / filter values only (no duplicate labels from legacy lowercase keys). */
 const INQUIRY_FILTER_STATUSES = ['NEW', 'PROPOSAL_SENT', 'NEGOTIATING', 'PENDING_ADVANCE', 'CONFIRMED', 'LOST'] as const;
 
+/** Active pipeline — not yet won or lost (shown on /prospects only). */
+const PROSPECT_STATUSES = new Set(['NEW', 'PROPOSAL_SENT', 'NEGOTIATING', 'PENDING_ADVANCE']);
+
 // Helper for status colors
 const getStatusColor = (status: string) => {
   const s = status.toLowerCase();
@@ -66,13 +70,15 @@ const getNormalizedStatus = (status: string) => {
 
 export default function Inquiries() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isProspectsView = location.pathname === '/prospects';
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('');
   const [search, setSearch] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [showNewModal, setShowNewModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   // Track selected proposal for each inquiry (inquiryId -> proposalId)
   const [selectedProposals, setSelectedProposals] = useState<Record<string, string>>({});
 
@@ -101,6 +107,12 @@ export default function Inquiries() {
     }, 500); // Debounce search
     return () => clearTimeout(timer);
   }, [filter, search]);
+
+  useEffect(() => {
+    if (isProspectsView && filter && !PROSPECT_STATUSES.has(filter)) {
+      setFilter('');
+    }
+  }, [isProspectsView, filter]);
 
   const handleCreateProposal = (id: string) => {
     navigate('/proposals/new', { state: { inquiryId: id } });
@@ -140,26 +152,39 @@ export default function Inquiries() {
   };
 
   const q = search.toLowerCase().trim();
-  const filteredInquiries = inquiries.filter((inq) => {
+  const pipelineFiltered = isProspectsView
+    ? inquiries.filter((inq) => PROSPECT_STATUSES.has(getNormalizedStatus(inq.status)))
+    : inquiries;
+  const filteredInquiries = pipelineFiltered.filter((inq) => {
     if (!q) return true;
     return (
       inq.customerName.toLowerCase().includes(q) ||
       (inq.companyName || '').toLowerCase().includes(q) ||
       inq.phoneNumber.toLowerCase().includes(q) ||
-      inq.projectDescription.toLowerCase().includes(q)
+      inq.projectDescription.toLowerCase().includes(q) ||
+      (inq.businessModel || '').toLowerCase().includes(q)
     );
   });
 
   return (
     <div className={`${styles.page} font-sans`}>
       <div className={styles.headerRow}>
-        <h1 className="text-2xl font-bold text-gray-900">Inquiries</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isProspectsView ? 'Prospects' : 'Inquiries'}
+          </h1>
+          {isProspectsView && (
+            <p className="mt-1 text-sm text-gray-500">
+              Active pipeline leads (new through pending advance). Won or lost deals are listed under Inquiries.
+            </p>
+          )}
+        </div>
         <button
-          onClick={() => setShowNewModal(true)}
+          onClick={() => setShowCreateModal(true)}
           className="bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2"
         >
           <Plus size={18} />
-          Add Inquiries
+          {isProspectsView ? 'Add prospect' : 'Add Inquiries'}
         </button>
       </div>
 
@@ -168,7 +193,11 @@ export default function Inquiries() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder="Search by name, company, phone, description"
+            placeholder={
+              isProspectsView
+                ? 'Search by name, phone, business model, description'
+                : 'Search by name, company, phone, description'
+            }
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
@@ -181,8 +210,11 @@ export default function Inquiries() {
             onChange={(e) => setFilter(e.target.value)}
             className="w-full pl-4 pr-10 py-2 bg-white border border-gray-200 rounded-lg text-sm appearance-none focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary cursor-pointer"
           >
-            <option value="">All Status</option>
-            {INQUIRY_FILTER_STATUSES.map((value) => (
+            <option value="">{isProspectsView ? 'All pipeline statuses' : 'All Status'}</option>
+            {(isProspectsView
+              ? INQUIRY_FILTER_STATUSES.filter((value) => PROSPECT_STATUSES.has(value))
+              : INQUIRY_FILTER_STATUSES
+            ).map((value) => (
               <option key={value} value={value}>
                 {STATUS_LABELS[value]}
               </option>
@@ -196,17 +228,32 @@ export default function Inquiries() {
         <table className={styles.table}>
           <thead>
             <tr>
-              <th className="px-6 py-4 w-[20%]">Customer Name</th>
-              <th className="px-6 py-4 w-[15%]">Customer Id</th>
-              <th className="px-6 py-4 w-[30%]">Description</th>
-              <th className="px-6 py-4 w-[15%]">Status</th>
-              <th className="px-6 py-4 w-[20%] text-center">proposal</th>
+              {isProspectsView ? (
+                <>
+                  <th className="px-6 py-4 w-[22%]">Name</th>
+                  <th className="px-6 py-4 w-[18%]">Phone</th>
+                  <th className="px-6 py-4 w-[18%]">Business model</th>
+                  <th className="px-6 py-4 w-[42%]">Description</th>
+                </>
+              ) : (
+                <>
+                  <th className="px-6 py-4 w-[20%]">Customer Name</th>
+                  <th className="px-6 py-4 w-[15%]">Customer Id</th>
+                  <th className="px-6 py-4 w-[30%]">Description</th>
+                  <th className="px-6 py-4 w-[15%]">Status</th>
+                  <th className="px-6 py-4 w-[20%] text-center">proposal</th>
+                </>
+              )}
             </tr>
           </thead>
           {/* divide-y-0 because we use border-spacing */}
           <tbody className="divide-y-0">
             {loading ? (
-              <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Loading...</td></tr>
+              <tr>
+                <td colSpan={isProspectsView ? 4 : 5} className="px-6 py-8 text-center text-gray-500">
+                  Loading...
+                </td>
+              </tr>
             ) : (
               <>
                 {/* Render actual inquiries */}
@@ -216,101 +263,120 @@ export default function Inquiries() {
                     onClick={() => navigate(`/inquiries/${inq._id}`)}
                     className="hover:bg-gray-50 transition-colors group cursor-pointer"
                   >
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      <div>{inq.customerName}</div>
-                      {inq.companyName?.trim() && (
-                        <div className="text-xs text-gray-500 font-normal mt-0.5 truncate max-w-[200px]" title={inq.companyName}>
-                          {inq.companyName}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">{inq.customerId || 'N/A'}</td>
-                    <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={inq.projectDescription}>
-                      {inq.projectDescription}
-                    </td>
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="relative w-40 md:w-40 sm:w-full max-w-full">
-                        <select
-                          value={getNormalizedStatus(inq.status)}
-                          onChange={(e) => updateStatus(inq._id, e.target.value)}
-                          className={`appearance-none w-full pl-4 pr-10 py-2 rounded-full text-xs font-bold border uppercase tracking-wide cursor-pointer focus:outline-none transition-colors shadow-sm ${getStatusColor(inq.status)}`}
-                        >
-                          {Object.keys(STATUS_LABELS).filter(k => k === k.toUpperCase()).map((statusKey) => (
-                            <option key={statusKey} value={statusKey}>
-                              {STATUS_LABELS[statusKey]}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={14} />
-                      </div>
-                    </td>
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-center items-center w-full max-w-[200px] mx-auto md:max-w-[200px] sm:max-w-full">
-                        {/* Proposal Logic */}
-                        {(!inq.proposals || inq.proposals.length === 0) ? (
-                          <button
-                            onClick={() => handleCreateProposal(inq._id)}
-                            className="w-full flex items-center justify-between border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm"
-                          >
-                            <span className="truncate">Create Proposal</span>
-                            <Plus size={16} className="flex-shrink-0 ml-2" />
-                          </button>
-                        ) : inq.proposals.length === 1 ? (
-                          <div className="flex w-full gap-2">
-                            <button
-                              onClick={() => handleDownloadProposal(inq.proposals![0]._id)}
-                              className="flex-1 border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm"
+                    {isProspectsView ? (
+                      <>
+                        <td className="px-6 py-4 font-medium text-gray-900">
+                          <div>{inq.customerName}</div>
+                          {inq.companyName?.trim() && (
+                            <div className="text-xs text-gray-500 font-normal mt-0.5 truncate max-w-[200px]" title={inq.companyName}>
+                              {inq.companyName}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-gray-600 whitespace-nowrap">{inq.phoneNumber}</td>
+                        <td className="px-6 py-4 text-gray-800">
+                          <span className="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-xs font-semibold text-gray-800">
+                            {inq.businessModel?.trim() || '—'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={inq.projectDescription || undefined}>
+                          {inq.projectDescription?.trim() ? inq.projectDescription : '—'}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        <td className="px-6 py-4 font-medium text-gray-900">
+                          <div>{inq.customerName}</div>
+                          {inq.companyName?.trim() && (
+                            <div className="text-xs text-gray-500 font-normal mt-0.5 truncate max-w-[200px]" title={inq.companyName}>
+                              {inq.companyName}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">{inq.customerId || 'N/A'}</td>
+                        <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={inq.projectDescription}>
+                          {inq.projectDescription}
+                        </td>
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative w-40 md:w-40 sm:w-full max-w-full">
+                            <select
+                              value={getNormalizedStatus(inq.status)}
+                              onChange={(e) => updateStatus(inq._id, e.target.value)}
+                              className={`appearance-none w-full pl-4 pr-10 py-2 rounded-full text-xs font-bold border uppercase tracking-wide cursor-pointer focus:outline-none transition-colors shadow-sm ${getStatusColor(inq.status)}`}
                             >
-                              <span className="truncate">Download</span>
-                              <Download size={16} className="flex-shrink-0 ml-2" />
-                            </button>
+                              {Object.keys(STATUS_LABELS).filter(k => k === k.toUpperCase()).map((statusKey) => (
+                                <option key={statusKey} value={statusKey}>
+                                  {STATUS_LABELS[statusKey]}
+                                </option>
+                              ))}
+                            </select>
+                            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 opacity-50 pointer-events-none" size={14} />
                           </div>
-                        ) : (
-                          <div className="relative w-full group">
-                            {/* Show Download button if a proposal is selected, otherwise show Proposal List */}
-                            {selectedProposals[inq._id] ? (
+                        </td>
+                        <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex justify-center items-center w-full max-w-[200px] mx-auto md:max-w-[200px] sm:max-w-full">
+                            {(!inq.proposals || inq.proposals.length === 0) ? (
                               <button
-                                onClick={() => handleDownloadProposal(selectedProposals[inq._id])}
-                                className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm"
+                                onClick={() => handleCreateProposal(inq._id)}
+                                className="w-full flex items-center justify-between border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm"
                               >
-                                <span className="truncate">Download</span>
-                                <Download size={16} className="flex-shrink-0 ml-2" />
+                                <span className="truncate">Create Proposal</span>
+                                <Plus size={16} className="flex-shrink-0 ml-2" />
                               </button>
-                            ) : (
-                              <>
-                                <button className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
-                                  <span className="truncate">Proposal List</span>
-                                  <ChevronDown size={16} className="flex-shrink-0 ml-2" />
+                            ) : inq.proposals.length === 1 ? (
+                              <div className="flex w-full gap-2">
+                                <button
+                                  onClick={() => handleDownloadProposal(inq.proposals![0]._id)}
+                                  className="flex-1 border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm"
+                                >
+                                  <span className="truncate">Download</span>
+                                  <Download size={16} className="flex-shrink-0 ml-2" />
                                 </button>
-                                {/* Dropdown menu */}
-                                <div className="absolute top-full left-0 w-full bg-white border border-gray-100 shadow-lg rounded-lg mt-1 hidden group-hover:block md:group-hover:block sm:group-hover:hidden z-20">
-                                  {inq.proposals.map((proposal, i) => (
-                                    <div
-                                      key={proposal._id}
-                                      onClick={() => handleSelectProposal(inq._id, proposal._id)}
-                                      className="px-4 py-2 hover:bg-gray-50 text-sm cursor-pointer border-b border-gray-50 last:border-0"
-                                    >
-                                      Proposal #{i + 1}
+                              </div>
+                            ) : (
+                              <div className="relative w-full group">
+                                {selectedProposals[inq._id] ? (
+                                  <button
+                                    onClick={() => handleDownloadProposal(selectedProposals[inq._id])}
+                                    className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm"
+                                  >
+                                    <span className="truncate">Download</span>
+                                    <Download size={16} className="flex-shrink-0 ml-2" />
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button className="w-full border border-orange-200 bg-white text-gray-800 hover:border-orange-400 hover:bg-orange-50 px-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-between shadow-sm">
+                                      <span className="truncate">Proposal List</span>
+                                      <ChevronDown size={16} className="flex-shrink-0 ml-2" />
+                                    </button>
+                                    <div className="absolute top-full left-0 w-full bg-white border border-gray-100 shadow-lg rounded-lg mt-1 hidden group-hover:block md:group-hover:block sm:group-hover:hidden z-20">
+                                      {inq.proposals.map((proposal, i) => (
+                                        <div
+                                          key={proposal._id}
+                                          onClick={() => handleSelectProposal(inq._id, proposal._id)}
+                                          className="px-4 py-2 hover:bg-gray-50 text-sm cursor-pointer border-b border-gray-50 last:border-0"
+                                        >
+                                          Proposal #{i + 1}
+                                        </div>
+                                      ))}
                                     </div>
-                                  ))}
-                                </div>
-                              </>
+                                  </>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                    </td>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 ))}
 
                 {/* Fill remaining rows to always show 8 total */}
                 {Array.from({ length: Math.max(0, 8 - filteredInquiries.length) }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="h-[60px]">
-                    <td className="px-6 py-4">&nbsp;</td>
-                    <td className="px-6 py-4">&nbsp;</td>
-                    <td className="px-6 py-4">&nbsp;</td>
-                    <td className="px-6 py-4">&nbsp;</td>
-                    <td className="px-6 py-4">&nbsp;</td>
+                    {Array.from({ length: isProspectsView ? 4 : 5 }).map((__, i) => (
+                      <td key={i} className="px-6 py-4">&nbsp;</td>
+                    ))}
                   </tr>
                 ))}
               </>
@@ -338,11 +404,19 @@ export default function Inquiries() {
         </div>
       </div>
 
-      <NewInquiryModal
-        open={showNewModal}
-        onClose={() => setShowNewModal(false)}
-        onSuccess={load}
-      />
+      {isProspectsView ? (
+        <NewProspectModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={load}
+        />
+      ) : (
+        <NewInquiryModal
+          open={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={load}
+        />
+      )}
 
       <ConfirmDialog
         open={!!deleteId}

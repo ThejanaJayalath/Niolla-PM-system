@@ -51,6 +51,8 @@ router.get(
   '/',
   [
     query('planId').optional().isMongoId(),
+    query('projectId').optional().isMongoId(),
+    query('clientId').optional().isMongoId(),
     query('status').optional().isIn(['pending', 'paid', 'partial', 'overdue']),
   ],
   validate,

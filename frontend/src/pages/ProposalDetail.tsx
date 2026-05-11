@@ -11,7 +11,7 @@ interface Proposal {
   inquiryId: string;
   proposalId?: string;
   customerName: string;
-  projectDescription: string;
+  projectDescription?: string;
   requiredFeatures: string[];
   projectName?: string;
   milestones: Milestone[];
@@ -303,7 +303,7 @@ export default function ProposalDetail() {
                 <div className={styles.formGroup}>
                   <label>Description</label>
                   <textarea
-                    value={proposal.projectDescription}
+                    value={proposal.projectDescription ?? ''}
                     readOnly
                     className={styles.inputReadonly}
                     rows={4}

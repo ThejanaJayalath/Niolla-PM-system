@@ -6,9 +6,12 @@ const paymentNotificationService = new PaymentNotificationService();
 
 export async function listPaymentNotifications(req: AuthenticatedRequest, res: Response): Promise<void> {
   const clientId = req.query.clientId as string | undefined;
-  const userId = req.query.userId as string | undefined;
+  let userId = req.query.userId as string | undefined;
   const status = req.query.status as string | undefined;
   const triggerType = req.query.triggerType as string | undefined;
+  if (req.user?.role === 'employee' && req.user.userId) {
+    userId = req.user.userId;
+  }
   const notifications = await paymentNotificationService.findAll({ clientId, userId, status, triggerType });
   res.json({ success: true, data: notifications });
 }
@@ -23,6 +26,10 @@ export async function getPaymentNotification(req: AuthenticatedRequest, res: Res
 }
 
 export async function markNotificationSent(req: AuthenticatedRequest, res: Response): Promise<void> {
+  if (req.user?.role === 'employee') {
+    res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Not allowed' } });
+    return;
+  }
   const notification = await paymentNotificationService.markSent(req.params.id);
   if (!notification) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Notification not found' } });

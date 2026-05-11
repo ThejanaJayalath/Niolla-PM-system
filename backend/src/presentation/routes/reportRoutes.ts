@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { query, validationResult } from 'express-validator';
 import { authMiddleware, requireRole } from '../middleware/auth';
-import { getPaymentSummary, getMonthlyCollection, getOverdueList } from '../controllers/ReportController';
+import { getPaymentSummary, getMonthlyCollection, getOverdueList, getIncomeTracking } from '../controllers/ReportController';
 
 const router = Router();
 router.use(authMiddleware);
@@ -19,6 +19,7 @@ const validate = (req: import('express').Request, res: import('express').Respons
 };
 
 router.get('/summary', getPaymentSummary);
+router.get('/income-tracking', getIncomeTracking);
 router.get('/monthly-collection', [query('year').isInt({ min: 2020, max: 2100 }), query('month').isInt({ min: 1, max: 12 })], validate, getMonthlyCollection);
 router.get('/overdue-list', getOverdueList);
 

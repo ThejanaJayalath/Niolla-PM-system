@@ -46,7 +46,8 @@ export async function listInstallments(req: AuthenticatedRequest, res: Response)
   const planId = req.query.planId as string | undefined;
   const status = req.query.status as string | undefined;
   const projectId = req.query.projectId as string | undefined;
-  const installments = await installmentService.findAll({ planId, status, projectId });
+  const clientId = req.query.clientId as string | undefined;
+  const installments = await installmentService.findAll({ planId, status, projectId, clientId });
   res.json({ success: true, data: installments });
 }
 

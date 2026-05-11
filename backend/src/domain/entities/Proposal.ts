@@ -17,7 +17,8 @@ export interface Proposal {
   status?: ProposalStatus;
   projectName?: string;
   customerName: string;
-  projectDescription: string;
+  /** Optional; may be blank when the inquiry had no description. */
+  projectDescription?: string;
   requiredFeatures: string[];
   milestones: ProposalMilestone[];
   advancePayment?: number;

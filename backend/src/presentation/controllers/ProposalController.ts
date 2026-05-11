@@ -1,4 +1,5 @@
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { ProposalService } from '../../application/services/ProposalService';
 import { buildProposalDocx } from '../../infrastructure/pdf/ProposalDocxBuilder';
 import { fillProposalTemplate } from '../../infrastructure/pdf/ProposalDocxGenerator';
@@ -9,7 +10,11 @@ import { AuthenticatedRequest } from '../middleware/auth';
 
 const proposalService = new ProposalService();
 
-export async function createProposal(req: AuthenticatedRequest, res: Response): Promise<void> {
+export async function createProposal(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
   const {
     inquiryId,
     projectName,
@@ -25,22 +30,56 @@ export async function createProposal(req: AuthenticatedRequest, res: Response): 
     validUntil,
     notes,
   } = req.body;
-  const proposal = await proposalService.create({
-    inquiryId,
-    projectName,
-    milestones,
-    advancePayment,
-    projectCost,
-    totalAmount,
-    paymentPlan,
-    installmentMonths,
-    monthlyInstallment,
-    maintenanceCostPerMonth,
-    maintenanceNote,
-    validUntil,
-    notes,
-  });
-  res.status(201).json({ success: true, data: proposal });
+  try {
+    const proposal = await proposalService.create({
+      inquiryId,
+      projectName,
+      milestones,
+      advancePayment,
+      projectCost,
+      totalAmount,
+      paymentPlan,
+      installmentMonths,
+      monthlyInstallment,
+      maintenanceCostPerMonth,
+      maintenanceNote,
+      validUntil,
+      notes,
+    });
+    res.status(201).json({ success: true, data: proposal });
+  } catch (err: unknown) {
+    if (err instanceof Error && err.message === 'Inquiry not found') {
+      res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: err.message },
+      });
+      return;
+    }
+    if (err instanceof mongoose.Error.ValidationError) {
+      const first = Object.values(err.errors)[0] as { message?: string } | undefined;
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: first?.message ?? 'Invalid proposal data' },
+      });
+      return;
+    }
+    if (
+      typeof err === 'object' &&
+      err !== null &&
+      'code' in err &&
+      (err as { code: number }).code === 11000
+    ) {
+      res.status(409).json({
+        success: false,
+        error: {
+          code: 'DUPLICATE_KEY',
+          message: 'Proposal id conflict. Please try again.',
+        },
+      });
+      return;
+    }
+    next(err);
+  }
 }
 
 export async function getProposal(req: AuthenticatedRequest, res: Response): Promise<void> {

@@ -6,7 +6,14 @@ export interface PaymentNotification {
   userId?: string;
   installmentId?: string;
   type: 'sms' | 'email' | 'system';
-  triggerType: 'due_reminder' | 'overdue' | 'receipt' | 'assignment';
+  triggerType:
+    | 'due_reminder'
+    | 'overdue'
+    | 'receipt'
+    | 'assignment'
+    | 'payout_review'
+    /** Customer: new billable feature / add-on plan (separate from main contract). */
+    | 'requirement_addon';
   scheduledAt: Date;
   sentAt?: Date;
   status: 'pending' | 'sent' | 'failed';

@@ -36,8 +36,19 @@ router.post(
   [
     body('inquiryId').isMongoId().withMessage('Valid inquiry ID is required'),
     body('projectName').optional().trim(),
-    body('milestones').isArray().withMessage('Milestones must be an array'),
-    body('milestones.*.title').trim().notEmpty().withMessage('Milestone title is required'),
+    body('milestones')
+      .isArray()
+      .withMessage('Milestones must be an array')
+      .custom((arr: unknown[]) => {
+        if (!Array.isArray(arr)) return false;
+        for (let i = 0; i < arr.length; i++) {
+          const m = arr[i] as { title?: unknown };
+          if (typeof m?.title !== 'string' || !m.title.trim()) {
+            throw new Error(`Milestone at index ${i} requires a non-empty title`);
+          }
+        }
+        return true;
+      }),
     body('milestones.*.amount').optional().isNumeric().withMessage('Milestone amount must be a number when provided'),
     body('milestones.*.timePeriod').optional().trim(),
     body('milestones.*.description').optional().trim(),

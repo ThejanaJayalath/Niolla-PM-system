@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { body, param, query, validationResult } from 'express-validator';
+import { INQUIRY_BUSINESS_MODEL_VALUES } from '../../constants/inquiryBusinessModels';
 import { authMiddleware, requireRole } from '../middleware/auth';
 import {
   createInquiry,
@@ -22,15 +23,24 @@ const validate = (req: import('express').Request, res: import('express').Respons
   next();
 };
 
+const businessModelValidators = [
+  body('businessModel')
+    .optional()
+    .trim()
+    .isIn([...INQUIRY_BUSINESS_MODEL_VALUES])
+    .withMessage('Invalid business model'),
+];
+
 router.post(
   '/',
   [
     body('customerName').trim().notEmpty().withMessage('Customer name is required'),
     body('companyName').optional().trim(),
     body('phoneNumber').trim().notEmpty().withMessage('Phone number is required'),
-    body('projectDescription').trim().notEmpty().withMessage('Project description is required'),
-    body('requiredFeatures').isArray().withMessage('Required features must be an array'),
+    body('projectDescription').optional().trim(),
+    body('requiredFeatures').optional().isArray().withMessage('Required features must be an array'),
     body('internalNotes').optional().trim(),
+    ...businessModelValidators,
   ],
   validate,
   createInquiry
@@ -56,10 +66,11 @@ router.patch(
     body('customerName').optional().trim().notEmpty(),
     body('companyName').optional().trim(),
     body('phoneNumber').optional().trim().notEmpty(),
-    body('projectDescription').optional().trim().notEmpty(),
+    body('projectDescription').optional().trim(),
     body('requiredFeatures').optional().isArray(),
     body('internalNotes').optional().trim(),
     body('status').optional().isIn(STATUS_VALUES),
+    ...businessModelValidators,
   ],
   validate,
   updateInquiry

@@ -8,6 +8,7 @@ import {
     ListTodo,
     FileText,
     TrendingUp,
+    TrendingDown,
     CreditCard,
     MessageSquare,
     Calendar,
@@ -19,10 +20,13 @@ import {
     Users,
     User,
     UserCircle,
+    UserRoundSearch,
     Wallet,
     ScrollText,
     Receipt,
+    Folders,
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -30,11 +34,14 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
+    const { user } = useAuth();
+    const showExpenses = user?.role === 'owner' || user?.role === 'pm';
     const [meetingsMaintenanceOpen, setMeetingsMaintenanceOpen] = useState(false);
 
     const navItems = [
         { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
         { icon: FolderKanban, label: 'Projects', path: '/projects' },
+        { icon: Users, label: 'Assign Employees', path: '/assign-employees' },
         { icon: Bell, label: 'Notifications', path: '/notifications' },
         { icon: BarChart3, label: 'Reports', path: '/reports' },
         { icon: ListTodo, label: 'Tasks', path: '/tasks' },
@@ -44,14 +51,17 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
     ];
 
     const paymentItems = [
+        { icon: Folders, label: 'Projects & payments', path: '/projects-payments' },
         { icon: Wallet, label: 'Payment Plans', path: '/payment-plans' },
         { icon: CalendarCheck, label: 'Installments', path: '/installments' },
         { icon: Banknote, label: 'Payments', path: '/payments' },
         { icon: CreditCard, label: 'Billing', path: '/billing' },
         { icon: Receipt, label: 'Invoices', path: '/invoices' },
+        ...(showExpenses ? [{ icon: TrendingDown, label: 'Expenses', path: '/expenses' }] : []),
     ];
 
     const leadsItems = [
+        { icon: UserRoundSearch, label: 'Prospects', path: '/prospects' },
         { icon: MessageSquare, label: 'Inquiries', path: '/inquiries' },
         { icon: FileText, label: 'Proposal', path: '/proposals' },
         { icon: Calendar, label: 'Meetings', path: '/meetings', locked: true },

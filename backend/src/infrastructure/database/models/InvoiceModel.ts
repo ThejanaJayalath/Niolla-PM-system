@@ -13,6 +13,7 @@ export interface InvoiceDocument extends Document {
   discountAmt?: number;
   status: 'draft' | 'sent' | 'paid' | 'pending';
   sourceType?: 'PAYMENT' | 'PROPOSAL_ADVANCE';
+  invoiceType?: 'ADVANCE_PAYMENT' | 'MONTHLY_INSTALLMENT' | 'BALANCE_PAYMENT';
   description?: string;
   projectName?: string;
   companyName?: string;
@@ -35,6 +36,11 @@ const invoiceSchema = new Schema<InvoiceDocument>(
     discountAmt: { type: Number },
     status: { type: String, enum: ['draft', 'sent', 'paid', 'pending'], default: 'paid' },
     sourceType: { type: String, enum: ['PAYMENT', 'PROPOSAL_ADVANCE'], default: 'PAYMENT', index: true },
+    invoiceType: {
+      type: String,
+      enum: ['ADVANCE_PAYMENT', 'MONTHLY_INSTALLMENT', 'BALANCE_PAYMENT'],
+      index: true,
+    },
     description: { type: String },
     projectName: { type: String },
     companyName: { type: String },

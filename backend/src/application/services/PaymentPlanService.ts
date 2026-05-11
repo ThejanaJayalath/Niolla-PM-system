@@ -2,7 +2,9 @@ import mongoose from 'mongoose';
 import { PaymentPlan } from '../../domain/entities/PaymentPlan';
 import { PaymentPlanModel } from '../../infrastructure/database/models/PaymentPlanModel';
 import { ProjectModel } from '../../infrastructure/database/models/ProjectModel';
+import { CustomerRequirementModel } from '../../infrastructure/database/models/CustomerRequirementModel';
 import { InstallmentService } from './InstallmentService';
+import { PaymentNotificationService } from './PaymentNotificationService';
 
 export interface CreatePaymentPlanInput {
   projectId: string;
@@ -37,6 +39,178 @@ export interface ListPaymentPlansFilters {
 }
 
 export class PaymentPlanService {
+  /**
+   * Add-on payment plan for a customer requirement: separate totals from the main project contract.
+   */
+  async createAddonPlanForRequirement(input: {
+    projectId: string;
+    requirementId: string;
+    totalValue: number;
+    downPaymentPct: number;
+    totalInstallments: number;
+    serviceFeePct?: number;
+    planStartDate?: string;
+  }): Promise<PaymentPlan> {
+    const totalValue = Number(input.totalValue);
+    const downPaymentPct = Number(input.downPaymentPct);
+    const totalInstallments = Math.max(1, Math.floor(Number(input.totalInstallments)));
+    const downPaymentAmt = (totalValue * downPaymentPct) / 100;
+    const remainingAfterDown = totalValue - downPaymentAmt;
+    const serviceFeePct = Number(input.serviceFeePct ?? 0);
+    const serviceFeeAmt = (totalValue * serviceFeePct) / 100;
+    const installmentAmt =
+      totalInstallments > 0 ? (remainingAfterDown + serviceFeeAmt) / totalInstallments : 0;
+
+    const doc = await PaymentPlanModel.create({
+      projectId: new mongoose.Types.ObjectId(input.projectId),
+      planKind: 'addon',
+      linkedRequirementId: new mongoose.Types.ObjectId(input.requirementId),
+      downPaymentPct,
+      downPaymentAmt,
+      totalInstallments,
+      installmentAmt,
+      remainingBalance: remainingAfterDown,
+      serviceFeePct,
+      serviceFeeAmt,
+      planStartDate: input.planStartDate ? new Date(input.planStartDate) : new Date(),
+      status: 'active',
+    });
+    const installmentService = new InstallmentService();
+    const installments = await installmentService.createManyForPlan(String(doc._id));
+    await this.notifyClientRequirementAddonPayment({
+      projectId: input.projectId,
+      requirementId: input.requirementId,
+      projectName: undefined,
+      totalValue,
+      downPaymentPct,
+      downPaymentAmt,
+      totalInstallments,
+      installmentAmt,
+      firstInstallmentId: installments[0]?._id,
+    });
+    return this.toPaymentPlan(doc);
+  }
+
+  /**
+   * Primary contract plan + installments from a confirmed proposal (mirrors template math; no template required).
+   * Idempotent: if the project already has a primary plan, returns it and does not duplicate installments.
+   */
+  async createPrimaryPlanFromProposal(input: {
+    projectId: string;
+    totalAmount: number;
+    advancePayment: number;
+    installmentMonths: number;
+    monthlyInstallment?: number;
+  }): Promise<PaymentPlan | null> {
+    const projectOid = new mongoose.Types.ObjectId(input.projectId);
+    const existing = await PaymentPlanModel.findOne({ projectId: projectOid, planKind: 'primary' });
+    if (existing) {
+      return this.toPaymentPlan(existing);
+    }
+
+    const totalValue = Math.max(0, Number(input.totalAmount));
+    const downPaymentAmt = Math.max(0, Number(input.advancePayment ?? 0));
+    const downPaymentPct = totalValue > 0 ? (downPaymentAmt / totalValue) * 100 : 0;
+    const remainingAfterDown = Math.max(0, totalValue - downPaymentAmt);
+    const months = Math.max(0, Math.floor(Number(input.installmentMonths ?? 0)));
+    let installmentAmt = 0;
+    if (months > 0) {
+      const m = input.monthlyInstallment;
+      if (m !== undefined && m !== null && Number.isFinite(Number(m)) && Number(m) > 0) {
+        installmentAmt = Number(m);
+      } else {
+        installmentAmt = months > 0 ? remainingAfterDown / months : 0;
+      }
+    }
+
+    const doc = await PaymentPlanModel.create({
+      projectId: projectOid,
+      planKind: 'primary',
+      downPaymentPct,
+      downPaymentAmt,
+      totalInstallments: months,
+      installmentAmt,
+      remainingBalance: remainingAfterDown,
+      serviceFeePct: 0,
+      serviceFeeAmt: 0,
+      planStartDate: new Date(),
+      status: 'active',
+    });
+
+    if (months > 0) {
+      const installmentService = new InstallmentService();
+      await installmentService.createManyForPlan(String(doc._id));
+    }
+
+    return this.toPaymentPlan(doc);
+  }
+
+  /**
+   * Tell the linked customer that a new add-on (requirement) payment is due — separate from the main contract.
+   * Non-fatal: plan creation succeeds even if notification fails.
+   */
+  private async notifyClientRequirementAddonPayment(args: {
+    projectId: string;
+    requirementId: string;
+    projectName?: string;
+    totalValue: number;
+    downPaymentPct: number;
+    downPaymentAmt: number;
+    totalInstallments: number;
+    installmentAmt: number;
+    firstInstallmentId?: string;
+  }): Promise<void> {
+    try {
+      const project = await ProjectModel.findById(args.projectId).select('projectName clientId').lean();
+      const clientRaw = project?.clientId as { toString?: () => string } | string | undefined;
+      const clientId =
+        clientRaw && typeof (clientRaw as { toString?: () => string }).toString === 'function'
+          ? (clientRaw as { toString: () => string }).toString()
+          : typeof clientRaw === 'string'
+            ? clientRaw
+            : undefined;
+      if (!clientId) return;
+
+      const reqLean = await CustomerRequirementModel.findById(args.requirementId).select('title').lean();
+      const featureTitle = (reqLean?.title as string | undefined)?.trim() || 'Additional feature';
+      const projectLabel =
+        args.projectName?.trim() ||
+        (project?.projectName as string | undefined)?.trim() ||
+        'Your project';
+
+      const fmt = (n: number) =>
+        Number.isFinite(n) ? n.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+
+      const lines: string[] = [
+        `New add-on feature on "${projectLabel}": ${featureTitle}.`,
+        `This amount is separate from your original proposal / main project payment plan.`,
+        `Add-on contract total: LKR ${fmt(args.totalValue)}.`,
+      ];
+      if (args.downPaymentAmt > 0) {
+        lines.push(`Down payment (${args.downPaymentPct}%): LKR ${fmt(args.downPaymentAmt)}.`);
+      }
+      lines.push(
+        `${args.totalInstallments} scheduled installment(s) of LKR ${fmt(args.installmentAmt)} each (covering balance after down payment, if any).`,
+        `Please arrange payment as agreed. Staff will record each installment when paid (Installments).`
+      );
+
+      const notificationService = new PaymentNotificationService();
+      const now = new Date();
+      await notificationService.create({
+        clientId,
+        ...(args.firstInstallmentId ? { installmentId: args.firstInstallmentId } : {}),
+        type: 'system',
+        triggerType: 'requirement_addon',
+        scheduledAt: now,
+        status: 'sent',
+        sentAt: now,
+        messageBody: lines.join(' '),
+      });
+    } catch {
+      /* non-fatal */
+    }
+  }
+
   async create(data: CreatePaymentPlanInput): Promise<PaymentPlan> {
     const doc = await PaymentPlanModel.create({
       projectId: data.projectId,
@@ -74,6 +248,7 @@ export class PaymentPlanService {
 
     const doc = await PaymentPlanModel.create({
       projectId: data.projectId,
+      planKind: 'primary',
       downPaymentPct: template.downPaymentPct,
       downPaymentAmt,
       totalInstallments,
@@ -161,6 +336,10 @@ export class PaymentPlanService {
       projectId: projectObj && typeof projectObj === 'object' && projectObj._id
         ? (projectObj._id as { toString: () => string }).toString()
         : (o.projectId as string),
+      planKind: (o.planKind as PaymentPlan['planKind']) || 'primary',
+      linkedRequirementId: o.linkedRequirementId
+        ? (o.linkedRequirementId as { toString: () => string }).toString()
+        : undefined,
       downPaymentPct: Number(o.downPaymentPct),
       downPaymentAmt: Number(o.downPaymentAmt),
       totalInstallments: Number(o.totalInstallments),

@@ -199,3 +199,201 @@
   text-align: center;
   font-size: 0.9375rem;
 }
+
+.devWalletSection {
+  margin-bottom: 1.5rem;
+}
+
+.walletHero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  padding: 1.15rem 1.25rem;
+  margin-bottom: 1rem;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 45%, #fde68a 100%);
+  border: 1px solid #fdba74;
+}
+
+.walletHeading {
+  position: relative;
+  z-index: 1;
+}
+
+.walletTitle {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #9a3412;
+  letter-spacing: 0.01em;
+}
+
+.walletSubtitle {
+  margin: 0.3rem 0 0;
+  font-size: 0.88rem;
+  color: #7c2d12;
+}
+
+.walletCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.walletCard {
+  border: 1px solid var(--border-subtle);
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.walletCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
+}
+
+.devProjectGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.1rem;
+  margin-top: 1rem;
+}
+
+.devProjectCard {
+  padding: 1.1rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  background: linear-gradient(180deg, #ffffff 0%, #fffaf5 100%);
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+  min-height: 175px;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.devProjectCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px rgba(15, 23, 42, 0.1);
+  border-color: #fb923c;
+}
+
+.devProjectTitle {
+  margin: 0;
+  font-size: 1.03rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.devProjectPayout {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.devProjectActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: auto;
+  padding-top: 0.35rem;
+}
+
+.devBtn {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.devBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.devBtnSecondary {
+  composes: devBtn;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #fdba74;
+}
+
+.devBtnPrimary {
+  composes: devBtn;
+  background: #ea580c;
+  color: white;
+}
+
+.devBtnPrimary:hover:not(:disabled) {
+  background: #c2410c;
+}
+
+.cardSubValue {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.cardHelpText {
+  margin: 0.35rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.devInlineMuted {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.transactionTableCard {
+  margin-top: 0.25rem;
+  width: 100%;
+  border: 1px solid var(--color-primary-light, #fed8b1);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-surface);
+  overflow: hidden;
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--color-primary, #fb8c19) 12%, transparent);
+}
+
+.transactionTableScroll {
+  overflow-x: auto;
+  width: 100%;
+}
+
+.transactionGridTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.transactionGridTable th,
+.transactionGridTable td {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-primary-light, #fed8b1);
+  text-align: left;
+  vertical-align: top;
+  color: var(--text-primary);
+}
+
+.transactionGridTable thead th {
+  background: var(--color-table-header, #fff1e4);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-primary-hover, #e67e0f);
+}
+
+.transactionGridTable tbody tr:hover {
+  background: color-mix(in srgb, var(--color-primary, #fb8c19) 7%, var(--bg-surface, #fff));
+}
+
+.transactionCellStrong {
+  font-weight: 600;
+  color: var(--color-primary-hover, #c2410c);
+}

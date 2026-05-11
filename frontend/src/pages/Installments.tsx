@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Trash2, CheckCircle } from 'lucide-react';
 import { api } from '../api/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ConfirmDialog from '../components/ConfirmDialog';
 import RecordPaymentModal from '../components/RecordPaymentModal';
 import styles from './Inquiries.module.css';
@@ -26,6 +26,7 @@ interface PaymentPlanOption {
 
 export default function Installments() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [plans, setPlans] = useState<PaymentPlanOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,11 +42,13 @@ export default function Installments() {
     try {
       const params = new URLSearchParams(window.location.search);
       const projectId = params.get('projectId');
+      const clientId = params.get('clientId');
 
       const queryParams = new URLSearchParams();
       if (planFilter) queryParams.append('planId', planFilter);
       if (statusFilter) queryParams.append('status', statusFilter);
       if (projectId) queryParams.append('projectId', projectId);
+      if (clientId) queryParams.append('clientId', clientId);
 
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
       const res = await api.get<Installment[]>(`/installments${queryString}`);
@@ -73,7 +76,7 @@ export default function Installments() {
   useEffect(() => {
     setLoading(true);
     loadInstallments();
-  }, [planFilter, statusFilter]);
+  }, [planFilter, statusFilter, location.search]);
 
   const handleDelete = async () => {
     const id = deleteId;

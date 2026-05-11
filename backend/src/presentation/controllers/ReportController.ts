@@ -5,7 +5,11 @@ import { PaymentPlanModel } from '../../infrastructure/database/models/PaymentPl
 import { PaymentTransactionModel } from '../../infrastructure/database/models/PaymentTransactionModel';
 import { InstallmentModel } from '../../infrastructure/database/models/InstallmentModel';
 import { InvoiceModel } from '../../infrastructure/database/models/InvoiceModel';
+import { InvoiceService } from '../../application/services/InvoiceService';
+import type { IncomeInvoiceType } from '../../domain/incomeInvoiceType';
 import { AuthenticatedRequest } from '../middleware/auth';
+
+const invoiceService = new InvoiceService();
 
 export interface PaymentSummary {
   totalClients: number;
@@ -36,6 +40,30 @@ export interface OverdueInstallmentRow {
   dueAmount: number;
   paidAmount: number;
   overdueDays: number;
+}
+
+export interface IncomeCategorySummary {
+  invoiceType: IncomeInvoiceType;
+  label: string;
+  description: string;
+  totalAmount: number;
+  invoiceCount: number;
+}
+
+export interface IncomeTrackingRow {
+  invoiceId: string;
+  invoiceNumber: string;
+  invoiceDate: string;
+  clientName?: string;
+  amount: number;
+  invoiceType: IncomeInvoiceType;
+}
+
+export interface IncomeTrackingResult {
+  /** Paid invoices only — realized incoming funds. */
+  categories: IncomeCategorySummary[];
+  entries: IncomeTrackingRow[];
+  grandTotal: number;
 }
 
 export async function getPaymentSummary(_req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -164,6 +192,84 @@ export async function getOverdueList(_req: AuthenticatedRequest, res: Response):
   } catch (err) {
     console.error('Overdue list error:', err);
     const message = err instanceof Error ? err.message : 'Failed to load overdue list';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+const INCOME_CATEGORY_META: Record<
+  IncomeInvoiceType,
+  { label: string; description: string }
+> = {
+  ADVANCE_PAYMENT: {
+    label: 'Advance Payments',
+    description:
+      'A 40% upfront payment received immediately after the proposal is confirmed.',
+  },
+  MONTHLY_INSTALLMENT: {
+    label: 'Monthly Installments',
+    description: 'Recurring monthly payments collected from customers opted into an installment plan.',
+  },
+  BALANCE_PAYMENT: {
+    label: 'Balance Payments',
+    description: 'The remaining final settlement received upon the successful completion of a project.',
+  },
+};
+
+/**
+ * Income tracking: categorize paid invoice amounts by invoice type (advance / installment / balance).
+ */
+export async function getIncomeTracking(_req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const invoices = await invoiceService.paidInvoicesForIncomeTracking();
+
+    const buckets: Record<IncomeInvoiceType, { total: number; count: number }> = {
+      ADVANCE_PAYMENT: { total: 0, count: 0 },
+      MONTHLY_INSTALLMENT: { total: 0, count: 0 },
+      BALANCE_PAYMENT: { total: 0, count: 0 },
+    };
+
+    const entries: IncomeTrackingRow[] = [];
+    let grandTotal = 0;
+
+    for (const inv of invoices) {
+      const amt = Number(inv.totalAmount) || 0;
+      const invoiceType: IncomeInvoiceType =
+        inv.invoiceType === 'ADVANCE_PAYMENT' ||
+        inv.invoiceType === 'MONTHLY_INSTALLMENT' ||
+        inv.invoiceType === 'BALANCE_PAYMENT'
+          ? inv.invoiceType
+          : inv.sourceType === 'PROPOSAL_ADVANCE'
+            ? 'ADVANCE_PAYMENT'
+            : 'MONTHLY_INSTALLMENT';
+
+      buckets[invoiceType].total += amt;
+      buckets[invoiceType].count += 1;
+      grandTotal += amt;
+
+      entries.push({
+        invoiceId: inv._id || '',
+        invoiceNumber: inv.invoiceNumber,
+        invoiceDate:
+          inv.invoiceDate instanceof Date ? inv.invoiceDate.toISOString() : new Date(inv.invoiceDate).toISOString(),
+        clientName: inv.clientName,
+        amount: amt,
+        invoiceType,
+      });
+    }
+
+    const categories: IncomeCategorySummary[] = (Object.keys(buckets) as IncomeInvoiceType[]).map((invoiceType) => ({
+      invoiceType,
+      label: INCOME_CATEGORY_META[invoiceType].label,
+      description: INCOME_CATEGORY_META[invoiceType].description,
+      totalAmount: buckets[invoiceType].total,
+      invoiceCount: buckets[invoiceType].count,
+    }));
+
+    const data: IncomeTrackingResult = { categories, entries, grandTotal };
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('Income tracking error:', err);
+    const message = err instanceof Error ? err.message : 'Failed to load income tracking';
     res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
   }
 }
