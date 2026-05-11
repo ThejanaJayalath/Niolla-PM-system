@@ -29,7 +29,14 @@ router.get(
     query('clientId').optional().isMongoId(),
     query('status').optional().isIn(['pending', 'sent', 'failed']),
     query('userId').optional().isMongoId(),
-    query('triggerType').optional().isIn(['due_reminder', 'overdue', 'receipt', 'assignment']),
+    query('triggerType').optional().isIn([
+      'due_reminder',
+      'overdue',
+      'receipt',
+      'assignment',
+      'payout_review',
+      'requirement_addon',
+    ]),
   ],
   validate,
   listPaymentNotifications
@@ -50,7 +57,14 @@ router.post(
     body('installmentId').optional().isMongoId(),
     body('type').isIn(['sms', 'email', 'system']).withMessage('Invalid type'),
     body('triggerType')
-      .isIn(['due_reminder', 'overdue', 'receipt', 'assignment'])
+      .isIn([
+        'due_reminder',
+        'overdue',
+        'receipt',
+        'assignment',
+        'payout_review',
+        'requirement_addon',
+      ])
       .withMessage('Invalid trigger type'),
     body('scheduledAt').isISO8601().withMessage('Valid scheduled date is required'),
     body('messageBody').optional().trim(),

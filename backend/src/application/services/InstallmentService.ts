@@ -1,6 +1,7 @@
 import { Installment } from '../../domain/entities/Installment';
 import { InstallmentModel } from '../../infrastructure/database/models/InstallmentModel';
 import { PaymentPlanModel } from '../../infrastructure/database/models/PaymentPlanModel';
+import { ProjectModel } from '../../infrastructure/database/models/ProjectModel';
 
 export interface CreateInstallmentInput {
   planId: string;
@@ -15,6 +16,8 @@ export interface CreateInstallmentInput {
 export interface ListInstallmentsFilters {
   planId?: string;
   projectId?: string;
+  /** Resolve projects for this customer, then all payment plans under those projects. */
+  clientId?: string;
   status?: string;
 }
 
@@ -62,7 +65,7 @@ export class InstallmentService {
   async findById(id: string): Promise<Installment | null> {
     const doc = await InstallmentModel.findById(id).populate({
       path: 'planId',
-      select: 'projectId installmentAmt totalInstallments',
+      select: 'projectId installmentAmt totalInstallments planKind',
       populate: { path: 'projectId', select: 'projectName' },
     });
     return doc ? this.toInstallment(doc) : null;
@@ -72,7 +75,7 @@ export class InstallmentService {
     const docs = await InstallmentModel.find({ planId })
       .populate({
         path: 'planId',
-        select: 'projectId installmentAmt totalInstallments',
+        select: 'projectId installmentAmt totalInstallments planKind',
         populate: { path: 'projectId', select: 'projectName' },
       })
       .sort({ installmentNo: 1 });
@@ -81,18 +84,27 @@ export class InstallmentService {
 
   async findAll(filters?: ListInstallmentsFilters): Promise<Installment[]> {
     const query: Record<string, unknown> = {};
-    if (filters?.planId) query.planId = filters.planId;
     if (filters?.status) query.status = filters.status;
 
-    if (filters?.projectId) {
+    if (filters?.planId) {
+      query.planId = filters.planId;
+    } else if (filters?.projectId) {
       const plans = await PaymentPlanModel.find({ projectId: filters.projectId }, '_id');
-      query.planId = { $in: plans.map(p => p._id) };
+      query.planId = { $in: plans.map((p) => p._id) };
+    } else if (filters?.clientId) {
+      const projectDocs = await ProjectModel.find({ clientId: filters.clientId }).select('_id').lean();
+      const projectIds = projectDocs.map((p) => p._id);
+      if (projectIds.length === 0) {
+        return [];
+      }
+      const plans = await PaymentPlanModel.find({ projectId: { $in: projectIds } }, '_id');
+      query.planId = { $in: plans.map((p) => p._id) };
     }
 
     const docs = await InstallmentModel.find(query)
       .populate({
         path: 'planId',
-        select: 'projectId installmentAmt totalInstallments',
+        select: 'projectId installmentAmt totalInstallments planKind',
         populate: { path: 'projectId', select: 'projectName' },
       })
       .sort({ dueDate: 1 });
@@ -106,7 +118,7 @@ export class InstallmentService {
     if (data.paidDate !== undefined) update.paidDate = data.paidDate ? new Date(data.paidDate) : undefined;
     const doc = await InstallmentModel.findByIdAndUpdate(id, update, { new: true }).populate({
       path: 'planId',
-      select: 'projectId installmentAmt totalInstallments',
+      select: 'projectId installmentAmt totalInstallments planKind',
       populate: { path: 'projectId', select: 'projectName' },
     });
     return doc ? this.toInstallment(doc) : null;
@@ -133,7 +145,7 @@ export class InstallmentService {
       { new: true }
     ).populate({
       path: 'planId',
-      select: 'projectId installmentAmt totalInstallments',
+      select: 'projectId installmentAmt totalInstallments planKind',
       populate: { path: 'projectId', select: 'projectName' },
     });
     return doc ? this.toInstallment(doc) : null;
@@ -166,7 +178,11 @@ export class InstallmentService {
 
   private toInstallment(doc: { toObject: () => Record<string, unknown> }): Installment {
     const o = doc.toObject();
-    const planObj = o.planId as { _id?: unknown; projectId?: { projectName?: string } } | null;
+    const planObj = o.planId as {
+      _id?: unknown;
+      projectId?: { _id?: unknown; projectName?: string };
+      planKind?: 'primary' | 'addon';
+    } | null;
     const installment: Installment = {
       _id: (o._id as { toString: () => string })?.toString?.(),
       planId: planObj && typeof planObj === 'object' && planObj._id
@@ -184,8 +200,12 @@ export class InstallmentService {
       updatedAt: o.updatedAt as Date,
     };
     if (planObj && typeof planObj === 'object' && planObj.projectId && typeof planObj.projectId === 'object') {
-      const proj = planObj.projectId as { projectName?: string };
-      if (proj.projectName) (installment as Installment & { projectName?: string }).projectName = proj.projectName;
+      const proj = planObj.projectId as { _id?: unknown; projectName?: string };
+      if (proj._id) installment.projectId = (proj._id as { toString: () => string }).toString();
+      if (proj.projectName) installment.projectName = proj.projectName;
+    }
+    if (planObj && typeof planObj === 'object' && planObj.planKind) {
+      installment.planKind = planObj.planKind;
     }
     return installment;
   }

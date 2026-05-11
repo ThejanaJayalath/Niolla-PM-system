@@ -6,16 +6,18 @@ import { ProposalService } from './ProposalService';
 import { InteractionService } from './InteractionService';
 import { CustomerRequirementService } from './CustomerRequirementService';
 import { BillingService } from './BillingService';
-import { ReminderService } from './ReminderService';
 import { PaymentNotificationService } from './PaymentNotificationService';
 import { InvoiceService } from './InvoiceService';
 import { buildInvoicePdfPublicUrl } from '../../infrastructure/security/invoicePublicLink';
+import { ProjectService } from './ProjectService';
+import { PaymentPlanService } from './PaymentPlanService';
 
 export interface CreateInquiryInput {
   customerName: string;
   companyName?: string;
   phoneNumber: string;
-  projectDescription: string;
+  businessModel?: string;
+  projectDescription?: string;
   requiredFeatures: string[];
   internalNotes?: string;
   createdBy?: string;
@@ -25,6 +27,7 @@ export interface UpdateInquiryInput {
   customerName?: string;
   companyName?: string;
   phoneNumber?: string;
+  businessModel?: string;
   projectDescription?: string;
   requiredFeatures?: string[];
   internalNotes?: string;
@@ -37,9 +40,10 @@ export class InquiryService {
   private interactionService = new InteractionService();
   private customerRequirementService = new CustomerRequirementService();
   private billingService = new BillingService();
-  private reminderService = new ReminderService();
   private paymentNotificationService = new PaymentNotificationService();
   private invoiceService = new InvoiceService();
+  private projectService = new ProjectService();
+  private paymentPlanService = new PaymentPlanService();
 
   async create(data: CreateInquiryInput): Promise<{ inquiry: Inquiry; duplicatePhone: boolean }> {
     const normalizedPhone = this.normalizePhone(data.phoneNumber);
@@ -50,6 +54,9 @@ export class InquiryService {
       ...data,
       companyName: data.companyName?.trim() || undefined,
       phoneNumber: normalizedPhone,
+      projectDescription: (data.projectDescription ?? '').trim(),
+      requiredFeatures: data.requiredFeatures ?? [],
+      businessModel: data.businessModel?.trim() || undefined,
       status: 'NEW' as InquiryStatus,
       createdBy: data.createdBy,
     });
@@ -78,7 +85,8 @@ export class InquiryService {
         { customerName: searchRegex },
         { companyName: searchRegex },
         { phoneNumber: searchRegex },
-        { projectDescription: searchRegex }
+        { projectDescription: searchRegex },
+        { businessModel: searchRegex },
       ];
     }
 
@@ -90,6 +98,9 @@ export class InquiryService {
     const update: Record<string, unknown> = { ...data };
     if (data.companyName !== undefined) update.companyName = data.companyName?.trim() || undefined;
     if (data.phoneNumber) update.phoneNumber = this.normalizePhone(data.phoneNumber);
+    if (data.businessModel !== undefined) {
+      update.businessModel = data.businessModel?.trim() || undefined;
+    }
     const doc = await InquiryModel.findByIdAndUpdate(id, update, { new: true, runValidators: false });
     const inquiry = doc ? (doc.toObject() as unknown as Inquiry) : null;
     if (inquiry && (data.status === 'PENDING_ADVANCE' || data.status === 'CONFIRMED')) {
@@ -142,7 +153,7 @@ export class InquiryService {
         );
       }
       await this.ensureAdvanceBillingOnConfirmation(inquiry, customer);
-      await this.ensureInstallmentFinanceAutomation(inquiry, customer);
+      await this.ensureProjectAndPrimaryPaymentPlanFromProposal(inquiry, customer);
       await this.proposalService.syncLatestProposalConfirmedForInquiry(String(inquiry._id));
     }
     return inquiry;
@@ -172,8 +183,6 @@ export class InquiryService {
   private async ensureAdvanceBillingOnConfirmation(inquiry: Inquiry, customer: { _id?: string } | null): Promise<void> {
     if (!inquiry._id) return;
     const inquiryId = String(inquiry._id);
-    const alreadyCreated = await this.billingService.hasAdvanceBillingForInquiry(inquiryId);
-    if (alreadyCreated) return;
 
     const proposal = await this.proposalService.findByInquiryId(inquiryId);
     if (!proposal) return;
@@ -181,25 +190,31 @@ export class InquiryService {
     if (!Number.isFinite(advance) || advance <= 0) return;
 
     const projectLabel = proposal.projectName?.trim() || inquiry.projectDescription?.trim() || 'Project';
-    const billing = await this.billingService.create({
-      inquiryId,
-      customerName: inquiry.customerName,
-      companyName: inquiry.companyName?.trim() || undefined,
-      projectName: proposal.projectName?.trim() || undefined,
-      phoneNumber: inquiry.phoneNumber,
-      billingType: 'ADVANCE',
-      items: [
-        {
-          number: '1',
-          description: `Advance payment (40%) - ${projectLabel}`,
-          amount: advance,
-        },
-      ],
-      subTotal: advance,
-      advanceApplied: 0,
-      totalAmount: advance,
-      billingDate: new Date(),
-    });
+    const latestAdvanceInvoice = await this.invoiceService.findProposalAdvanceByInquiryId(inquiryId);
+    const needsNewBilling = !latestAdvanceInvoice || latestAdvanceInvoice.status === 'paid';
+
+    let billing: { billingId: string } | null = null;
+    if (needsNewBilling) {
+      billing = await this.billingService.create({
+        inquiryId,
+        customerName: inquiry.customerName,
+        companyName: inquiry.companyName?.trim() || undefined,
+        projectName: proposal.projectName?.trim() || undefined,
+        phoneNumber: inquiry.phoneNumber,
+        billingType: 'ADVANCE',
+        items: [
+          {
+            number: '1',
+            description: `Advance payment (40%) - ${projectLabel}`,
+            amount: advance,
+          },
+        ],
+        subTotal: advance,
+        advanceApplied: 0,
+        totalAmount: advance,
+        billingDate: new Date(),
+      });
+    }
 
     // Create invoice record from proposal advance (same amount as billing); link client + shop (companyName) + proposal for finance.
     let advanceInvoiceNumber: string | undefined;
@@ -213,7 +228,6 @@ export class InquiryService {
         projectLabel,
         companyName: inquiry.companyName?.trim() || undefined,
         projectName: proposal.projectName?.trim() || undefined,
-        invoiceNumber: billing.billingId,
       });
       if (invoice?._id) {
         advanceInvoiceId = invoice._id;
@@ -223,7 +237,7 @@ export class InquiryService {
 
     // Queue immediate customer communication that advance invoice is generated.
     if (customer?._id) {
-      const invoiceLabel = advanceInvoiceNumber || billing.billingId;
+      const invoiceLabel = advanceInvoiceNumber || billing?.billingId || 'Advance Invoice';
       const pdfUrl = advanceInvoiceId ? buildInvoicePdfPublicUrl(advanceInvoiceId) : '';
       const displayName = inquiry.customerName || 'Valued customer';
       const amountStr = `LKR ${Number(advance).toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -267,58 +281,51 @@ export class InquiryService {
     }
   }
 
-  private async ensureInstallmentFinanceAutomation(inquiry: Inquiry, customer: { _id?: string } | null): Promise<void> {
+  /**
+   * Create (or reuse) the delivery project and a primary payment plan + installments from the latest proposal
+   * so Payments / Installments / customer billing align with the confirmed deal.
+   */
+  private async ensureProjectAndPrimaryPaymentPlanFromProposal(
+    inquiry: Inquiry,
+    customer: { _id?: string } | null
+  ): Promise<void> {
     if (!inquiry._id || !customer?._id) return;
     const inquiryId = String(inquiry._id);
     const proposal = await this.proposalService.findByInquiryId(inquiryId);
-    const months = Number(proposal?.installmentMonths ?? 0);
-    const monthly = Number(proposal?.monthlyInstallment ?? 0);
-    if (!proposal || !Number.isInteger(months) || months <= 0 || !Number.isFinite(monthly) || monthly <= 0) return;
+    if (!proposal || !Number.isFinite(Number(proposal.totalAmount)) || Number(proposal.totalAmount) <= 0) return;
 
-    const existing = await this.reminderService.findByInquiryId(inquiryId);
-    for (let i = 1; i <= months; i += 1) {
-      const marker = `AUTO_FINANCE_INSTALLMENT|${inquiryId}|${i}`;
-      if (existing.some((r) => (r.notes || '').includes(marker))) continue;
+    const projectName =
+      (proposal.projectName || inquiry.projectDescription || 'Project').trim() || 'Project';
+    const clientId = String(customer._id);
 
-      const dueDate = this.addMonths(new Date(), i);
-      await this.reminderService.create({
-        inquiryId,
-        customerName: inquiry.customerName,
-        type: 'reminder',
-        title: `Installment ${i}/${months} due`,
-        description: `Monthly installment for ${proposal.projectName || 'project'}`,
-        scheduledAt: dueDate,
-        notes: `${marker}|amount=${monthly.toFixed(2)}`,
-        status: 'schedule',
+    const existingProjects = await this.projectService.findByClientId(clientId);
+    const match = existingProjects.find((p) => p.projectName.trim() === projectName.trim());
+    let projectId: string;
+    if (match?._id) {
+      projectId = match._id;
+      await this.projectService.update(projectId, { totalValue: Number(proposal.totalAmount) });
+    } else {
+      const created = await this.projectService.create({
+        clientId,
+        projectName,
+        description: proposal.projectDescription || inquiry.projectDescription || undefined,
+        totalValue: Number(proposal.totalAmount),
+        status: 'unassigned',
       });
-
-      const notifyAt = new Date(dueDate);
-      notifyAt.setDate(notifyAt.getDate() - 2);
-      const scheduleAt = notifyAt > new Date() ? notifyAt : new Date();
-      const body = `Installment ${i}/${months} of LKR ${monthly.toFixed(2)} is due on ${dueDate.toDateString()} for ${inquiry.customerName}.`;
-      await Promise.all([
-        this.paymentNotificationService.create({
-          clientId: String(customer._id),
-          type: 'email',
-          triggerType: 'due_reminder',
-          scheduledAt: scheduleAt,
-          messageBody: body,
-        }),
-        this.paymentNotificationService.create({
-          clientId: String(customer._id),
-          type: 'sms',
-          triggerType: 'due_reminder',
-          scheduledAt: scheduleAt,
-          messageBody: body,
-        }),
-      ]);
+      if (!created._id) return;
+      projectId = created._id;
     }
-  }
 
-  private addMonths(date: Date, months: number): Date {
-    const d = new Date(date);
-    d.setMonth(d.getMonth() + months);
-    return d;
+    await this.paymentPlanService.createPrimaryPlanFromProposal({
+      projectId,
+      totalAmount: Number(proposal.totalAmount),
+      advancePayment: Number(proposal.advancePayment ?? 0),
+      installmentMonths: Number(proposal.installmentMonths ?? 0),
+      monthlyInstallment:
+        proposal.monthlyInstallment !== undefined && proposal.monthlyInstallment !== null
+          ? Number(proposal.monthlyInstallment)
+          : undefined,
+    });
   }
 
   /**
@@ -329,6 +336,7 @@ export class InquiryService {
   private identifyServiceCategories(inquiry: Inquiry): string[] {
     const values = new Set<string>();
     const text = [
+      inquiry.businessModel,
       inquiry.projectDescription,
       inquiry.internalNotes,
       ...(inquiry.requiredFeatures || []),

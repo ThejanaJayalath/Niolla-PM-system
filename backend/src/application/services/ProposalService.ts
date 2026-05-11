@@ -25,27 +25,32 @@ export class ProposalService {
   private customerService = new CustomerService();
   private invoiceService = new InvoiceService();
 
+  /** Next numeric suffix so `proposalId` stays unique even if the newest row uses a non-standard id. */
+  private async getNextProposalIdNumber(): Promise<number> {
+    const docs = await ProposalModel.find({ proposalId: /^Proposal_num\d+$/i })
+      .select('proposalId')
+      .lean();
+    let max = 0;
+    for (const d of docs) {
+      const m = d.proposalId?.match(/^Proposal_num(\d+)$/i);
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    }
+    return max + 1;
+  }
+
   async create(data: CreateProposalInput): Promise<Proposal> {
     const inquiry = await InquiryModel.findById(data.inquiryId);
     if (!inquiry) throw new Error('Inquiry not found');
 
-    // Generate Proposal ID
-    const lastProposal = await ProposalModel.findOne().sort({ createdAt: -1 });
-    let nextIdNumber = 1;
-    if (lastProposal && lastProposal.proposalId) {
-      const match = lastProposal.proposalId.match(/Proposal_num(\d+)/);
-      if (match && match[1]) {
-        nextIdNumber = parseInt(match[1], 10) + 1;
-      }
-    }
-    const newProposalId = `Proposal_num${nextIdNumber.toString().padStart(2, '0')}`;
+    const nextIdNumber = await this.getNextProposalIdNumber();
+    const newProposalId = `Proposal_num${String(nextIdNumber).padStart(2, '0')}`;
 
     const proposal = await ProposalModel.create({
       inquiryId: data.inquiryId,
       proposalId: newProposalId,
       projectName: data.projectName,
-      customerName: inquiry.customerName,
-      projectDescription: inquiry.projectDescription,
+      customerName: (inquiry.customerName ?? '').trim() || 'Customer',
+      projectDescription: String(inquiry.projectDescription ?? '').trim(),
       requiredFeatures: inquiry.requiredFeatures || [],
       milestones: data.milestones,
       advancePayment: data.advancePayment,

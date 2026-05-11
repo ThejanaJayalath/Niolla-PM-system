@@ -66,11 +66,22 @@ export class PaymentTransactionService {
     await installmentService.updatePaidAmount(data.installmentId, amount);
     await paymentPlanService.updateRemainingBalance(planId, amount);
 
+    const txId = String(doc._id);
+    try {
+      await invoiceService.ensureInvoiceForPaymentTransaction(txId);
+    } catch (err) {
+      console.error('[PaymentTransactionService] Auto-invoice failed for', txId, err);
+    }
+
     const created = await PaymentTransactionModel.findById(doc._id)
       .populate({
         path: 'installmentId',
         select: 'installmentNo dueDate dueAmount paidAmount status planId',
-        populate: { path: 'planId', select: 'projectId', populate: { path: 'projectId', select: 'projectName' } },
+        populate: {
+          path: 'planId',
+          select: 'projectId planKind',
+          populate: { path: 'projectId', select: 'projectName' },
+        },
       })
       .populate('clientId', 'name companyName email')
       .populate('recordedBy', 'name email');
@@ -95,7 +106,15 @@ export class PaymentTransactionService {
 
   async findByClientId(clientId: string): Promise<PaymentTransaction[]> {
     const docs = await PaymentTransactionModel.find({ clientId })
-      .populate('installmentId', 'installmentNo dueDate dueAmount paidAmount status')
+      .populate({
+        path: 'installmentId',
+        select: 'installmentNo dueDate dueAmount paidAmount status planId',
+        populate: {
+          path: 'planId',
+          select: 'projectId planKind',
+          populate: { path: 'projectId', select: 'projectName' },
+        },
+      })
       .populate('recordedBy', 'name email')
       .sort({ paymentDate: -1 });
     return docs.map((d) => this.toPaymentTransaction(d));
@@ -109,7 +128,11 @@ export class PaymentTransactionService {
       .populate({
         path: 'installmentId',
         select: 'installmentNo dueDate dueAmount paidAmount status planId',
-        populate: { path: 'planId', select: 'projectId', populate: { path: 'projectId', select: 'projectName' } },
+        populate: {
+          path: 'planId',
+          select: 'projectId planKind',
+          populate: { path: 'projectId', select: 'projectName' },
+        },
       })
       .populate('clientId', 'name companyName email')
       .populate('recordedBy', 'name email')
@@ -122,12 +145,7 @@ export class PaymentTransactionService {
     const inst = o.installmentId as { _id?: unknown; toString?: () => string } | null;
     const client = o.clientId as { _id?: unknown; name?: string; companyName?: string } | null;
     const recorded = o.recordedBy as { _id?: unknown; name?: string; email?: string } | null;
-    const tx: PaymentTransaction & {
-      installmentNo?: number;
-      projectName?: string;
-      clientName?: string;
-      recordedByName?: string;
-    } = {
+    const tx: PaymentTransaction = {
       _id: (o._id as { toString: () => string })?.toString?.(),
       installmentId: inst && typeof inst === 'object' && inst._id
         ? (inst._id as { toString: () => string }).toString()
@@ -146,12 +164,20 @@ export class PaymentTransactionService {
       updatedAt: o.updatedAt as Date,
     };
     if (o.gatewayId) tx.gatewayId = (o.gatewayId as { toString: () => string }).toString();
-    const instObj = o.installmentId as { installmentNo?: number; planId?: { projectId?: { projectName?: string } } } | null;
+    const instObj = o.installmentId as {
+      installmentNo?: number;
+      planId?: { projectId?: { _id?: unknown; projectName?: string }; planKind?: 'primary' | 'addon' };
+    } | null;
     if (instObj && typeof instObj === 'object') {
       tx.installmentNo = instObj.installmentNo;
       const plan = instObj.planId;
-      if (plan && typeof plan === 'object' && plan.projectId && typeof plan.projectId === 'object') {
-        tx.projectName = (plan.projectId as { projectName?: string }).projectName;
+      if (plan && typeof plan === 'object') {
+        if (plan.planKind) tx.planKind = plan.planKind;
+        if (plan.projectId && typeof plan.projectId === 'object') {
+          const proj = plan.projectId as { _id?: unknown; projectName?: string };
+          tx.projectName = proj.projectName;
+          if (proj._id) tx.projectId = (proj._id as { toString: () => string }).toString();
+        }
       }
     }
     if (client && typeof client === 'object') {

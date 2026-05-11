@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "seed": "npx ts-node scripts/seedAdmin.ts",
+    "cleanup:demo-finance": "npx ts-node scripts/cleanupDemoInvoicesAndBilling.ts",
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {

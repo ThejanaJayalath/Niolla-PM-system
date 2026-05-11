@@ -37,6 +37,8 @@ export default function CreateProposal() {
     const [templateUploading, setTemplateUploading] = useState(false);
     const [templateError, setTemplateError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    /** Blocks double POST before React re-renders `submitting` (avoids duplicate 500 toasts). */
+    const submitLockRef = useRef(false);
 
     const location = useLocation();
 
@@ -126,6 +128,8 @@ export default function CreateProposal() {
         : 0;
 
     const handleSubmit = async () => {
+        if (submitLockRef.current || submitting) return;
+
         if (!selectedInquiry) {
             pushSystemToast('Please select an inquiry', 'warning');
             return;
@@ -149,6 +153,7 @@ export default function CreateProposal() {
                 timePeriod: m.time?.trim() || undefined
             }));
 
+        submitLockRef.current = true;
         setSubmitting(true);
         try {
             const res = await api.post('/proposals', {
@@ -471,6 +476,7 @@ export default function CreateProposal() {
                                     </div>
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={handleSubmit}
                                     disabled={submitting || !selectedInquiry}
                                     className={styles.submitBtn}

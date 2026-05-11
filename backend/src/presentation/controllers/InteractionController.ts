@@ -171,17 +171,56 @@ export async function createCustomerRequirement(req: AuthenticatedRequest, res: 
     source: req.body.source,
     capturedAt: req.body.capturedAt ? new Date(req.body.capturedAt) : undefined,
     capturedBy: req.user?.userId,
+    requirementPayoutValue:
+      req.body.requirementPayoutValue !== undefined && req.body.requirementPayoutValue !== null
+        ? Number(req.body.requirementPayoutValue)
+        : undefined,
   });
   res.status(201).json({ success: true, data: requirement });
 }
 
 export async function updateRequirement(req: AuthenticatedRequest, res: Response): Promise<void> {
+  const existing = await customerRequirementService.findById(req.params.requirementId);
+  if (!existing) {
+    res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Requirement not found' } });
+    return;
+  }
+
+  if (req.user?.role === 'employee' && req.user.userId) {
+    const assigned = (existing.assignedEmployeeIds || []).map(String).includes(req.user.userId);
+    const body = req.body as Record<string, unknown>;
+    const keys = Object.keys(body).filter((k) => body[k] !== undefined);
+    const onlyMarkDone =
+      keys.length === 1 && keys[0] === 'status' && body.status === 'DONE' && existing.status !== 'DONE';
+    if (!assigned || !onlyMarkDone) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'FORBIDDEN', message: 'Developers may only mark assigned requirements as done.' },
+      });
+      return;
+    }
+    const requirement = await customerRequirementService.update(req.params.requirementId, { status: 'DONE' });
+    res.json({ success: true, data: requirement });
+    return;
+  }
+
+  const requirementPayoutValue =
+    req.body.requirementPayoutValue === undefined
+      ? undefined
+      : req.body.requirementPayoutValue === null
+        ? null
+        : Number(req.body.requirementPayoutValue);
+
   const requirement = await customerRequirementService.update(req.params.requirementId, {
     title: req.body.title,
     description: req.body.description,
     priority: req.body.priority,
     status: req.body.status,
     source: req.body.source,
+    assignedEmployeeIds: Array.isArray(req.body.assignedEmployeeIds)
+      ? (req.body.assignedEmployeeIds as string[])
+      : undefined,
+    ...(requirementPayoutValue !== undefined ? { requirementPayoutValue } : {}),
   });
   if (!requirement) {
     res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Requirement not found' } });

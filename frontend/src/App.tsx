@@ -22,8 +22,10 @@ import BillingDetail from './pages/BillingDetail';
 import CreateBilling from './pages/CreateBilling';
 import Customer from './pages/Customer';
 import CustomerDetail from './pages/CustomerDetail';
+import ProjectsPaymentsHub from './pages/ProjectsPaymentsHub';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
+import ProjectRequirementWorkflow from './pages/ProjectRequirementWorkflow';
 import PaymentPlans from './pages/PaymentPlans';
 import Installments from './pages/Installments';
 import InstallmentDetail from './pages/InstallmentDetail';
@@ -31,7 +33,10 @@ import Payments from './pages/Payments';
 import Invoices from './pages/Invoices';
 import PaymentNotifications from './pages/PaymentNotifications';
 import Reports from './pages/Reports';
+import Expenses from './pages/Expenses';
 import Audit from './pages/Audit';
+import AssignEmployees from './pages/AssignEmployees';
+import Tasks from './pages/Tasks';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -54,7 +59,9 @@ export default function App() {
       >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="tasks" element={<Tasks />} />
         <Route path="inquiries" element={<Inquiries />} />
+        <Route path="prospects" element={<Inquiries />} />
         <Route path="inquiries/new" element={<InquiryForm />} />
         <Route path="inquiries/:id" element={<InquiryDetail />} />
         <Route path="inquiries/:id/edit" element={<InquiryForm />} />
@@ -69,13 +76,17 @@ export default function App() {
         <Route path="billing/:id" element={<BillingDetail />} />
         <Route path="customer" element={<Customer />} />
         <Route path="customer/:id" element={<CustomerDetail />} />
+        <Route path="projects-payments" element={<ProjectsPaymentsHub />} />
         <Route path="projects" element={<Projects />} />
+        <Route path="assign-employees" element={<AssignEmployees />} />
+        <Route path="projects/:id/requirement-workflow" element={<ProjectRequirementWorkflow />} />
         <Route path="projects/:id" element={<ProjectDetail />} />
         <Route path="payment-plans" element={<PaymentPlans />} />
         <Route path="installments" element={<Installments />} />
         <Route path="installments/:planId" element={<InstallmentDetail />} />
         <Route path="payments" element={<Payments />} />
         <Route path="invoices" element={<Invoices />} />
+        <Route path="expenses" element={<Expenses />} />
         <Route path="notifications" element={<PaymentNotifications />} />
         <Route path="reports" element={<Reports />} />
         <Route path="audit" element={<Audit />} />

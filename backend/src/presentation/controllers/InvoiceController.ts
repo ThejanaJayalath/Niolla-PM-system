@@ -71,23 +71,8 @@ export async function generateInvoice(req: AuthenticatedRequest, res: Response):
       res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Transaction not found' } });
       return;
     }
-    const existing = await invoiceService.findByTransactionId(req.params.transactionId);
-    if (existing) {
-      res.status(400).json({ success: false, error: { code: 'ALREADY_EXISTS', message: 'Invoice already generated for this transaction' } });
-      return;
-    }
-
-    const invoiceNumber = await invoiceService.getNextInvoiceNumber();
-    const invoice = await invoiceService.create({
-      transactionId: req.params.transactionId,
-      clientId: transaction.clientId,
-      invoiceNumber,
-      invoiceDate: new Date(),
-      totalAmount: transaction.amount,
-      status: 'paid',
-    });
-
-    res.status(201).json({ success: true, data: invoice });
+    const { invoice, created } = await invoiceService.ensureInvoiceForPaymentTransaction(req.params.transactionId);
+    res.status(created ? 201 : 200).json({ success: true, data: invoice });
   } catch (err) {
     console.error('Generate invoice error:', err);
     res.status(500).json({
@@ -181,20 +166,25 @@ async function onProposalAdvanceInvoicePaid(invoice: Invoice): Promise<void> {
     : 0;
   const amtStr = `LKR ${remaining.toLocaleString('en-LK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const body = `Payment Received. Order Confirmed! Your Remaining Balance is ${amtStr}. Thank you for choosing NIOLLA.`;
+  const sentAt = new Date();
 
   await Promise.all([
     paymentNotificationService.create({
       clientId: invoice.clientId,
       type: 'email',
       triggerType: 'receipt',
-      scheduledAt: new Date(),
+      scheduledAt: sentAt,
+      status: 'sent',
+      sentAt,
       messageBody: body,
     }),
     paymentNotificationService.create({
       clientId: invoice.clientId,
       type: 'sms',
       triggerType: 'receipt',
-      scheduledAt: new Date(),
+      scheduledAt: sentAt,
+      status: 'sent',
+      sentAt,
       messageBody: body,
     }),
   ]);

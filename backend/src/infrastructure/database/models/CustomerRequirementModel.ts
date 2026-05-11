@@ -5,6 +5,9 @@ export interface CustomerRequirementDocument extends Document {
   customerRef: mongoose.Types.ObjectId;
   inquiryRef?: mongoose.Types.ObjectId;
   projectRef?: mongoose.Types.ObjectId;
+  assignedEmployeeIds?: mongoose.Types.ObjectId[];
+  /** Agreed value / developer payout for this requirement (separate from main contract & add-on plans). */
+  requirementPayoutValue?: number;
   title: string;
   description?: string;
   priority: RequirementPriority;
@@ -22,11 +25,17 @@ const customerRequirementSchema = new Schema<CustomerRequirementDocument>(
     customerRef: { type: Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
     inquiryRef: { type: Schema.Types.ObjectId, ref: 'Inquiry', index: true },
     projectRef: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
+    assignedEmployeeIds: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    requirementPayoutValue: { type: Number, min: 0 },
     title: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     priority: { type: String, enum: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'], default: 'MEDIUM', index: true },
     status: { type: String, enum: ['OPEN', 'IN_PROGRESS', 'DONE', 'DEFERRED'], default: 'OPEN', index: true },
-    source: { type: String, enum: ['INQUIRY', 'CALL', 'MEETING', 'MANUAL'], default: 'MANUAL' },
+    source: {
+      type: String,
+      enum: ['INQUIRY', 'CALL', 'MEETING', 'MANUAL', 'CUSTOMER', 'CUSTOMER_PORTAL'],
+      default: 'MANUAL',
+    },
     capturedAt: { type: Date, required: true, default: Date.now, index: true },
     capturedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     lastUpdatedAt: { type: Date },

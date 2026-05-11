@@ -7,10 +7,14 @@ export interface ProjectDocument extends Document {
   description?: string;
   systemType?: string;
   totalValue: number;
+  expenses: number;
   startDate?: Date;
   endDate?: Date;
   assignedEmployees?: mongoose.Types.ObjectId[];
-  status: 'active' | 'completed' | 'cancelled';
+  assignedEmployeePayouts?: Map<string, number>;
+  assignedEmployeePayoutRelease?: Map<string, string>;
+  status: 'unassigned' | 'under_development' | 'completed' | 'suspended';
+  requirementWorkflowLabel?: 'none' | 'to_be_updated' | 'updated';
   createdAt: Date;
   updatedAt: Date;
 }
@@ -22,10 +26,26 @@ const projectSchema = new Schema<ProjectDocument>(
     description: { type: String },
     systemType: { type: String },
     totalValue: { type: Number, required: true },
+    expenses: { type: Number, default: 0 },
     startDate: { type: Date },
     endDate: { type: Date },
     assignedEmployees: [{ type: Schema.Types.ObjectId, ref: 'User' }],
-    status: { type: String, enum: ['active', 'completed', 'cancelled'], default: 'active' },
+    assignedEmployeePayouts: { type: Map, of: Number, default: {} },
+    assignedEmployeePayoutRelease: {
+      type: Map,
+      of: String,
+      default: {},
+    },
+    status: {
+      type: String,
+      enum: ['unassigned', 'under_development', 'completed', 'suspended'],
+      default: 'unassigned',
+    },
+    requirementWorkflowLabel: {
+      type: String,
+      enum: ['none', 'to_be_updated', 'updated'],
+      default: 'none',
+    },
   },
   { timestamps: true }
 );

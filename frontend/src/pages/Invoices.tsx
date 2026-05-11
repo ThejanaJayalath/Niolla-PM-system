@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { CheckCircle, Copy, FileDown, Mail, Send, X } from 'lucide-react';
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
@@ -21,6 +21,7 @@ interface Invoice {
   description?: string;
   companyName?: string;
   sourceType?: 'PAYMENT' | 'PROPOSAL_ADVANCE';
+  invoiceType?: 'ADVANCE_PAYMENT' | 'MONTHLY_INSTALLMENT' | 'BALANCE_PAYMENT';
 }
 
 interface CustomerOption {
@@ -174,6 +175,15 @@ export default function Invoices() {
     }
   };
 
+  const invoiceTypeLabel = (inv: Invoice): string => {
+    if (inv.invoiceType === 'ADVANCE_PAYMENT') return 'Advance';
+    if (inv.invoiceType === 'BALANCE_PAYMENT') return 'Balance';
+    if (inv.invoiceType === 'MONTHLY_INSTALLMENT') return 'Monthly';
+    if (inv.sourceType === 'PROPOSAL_ADVANCE') return 'Advance';
+    if (inv.sourceType === 'PAYMENT') return 'Installment / balance';
+    return '—';
+  };
+
   const statusClass = (status: string) => {
     switch (status) {
       case 'paid':
@@ -231,6 +241,7 @@ export default function Invoices() {
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Invoice No</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Client</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Date</th>
+              <th className="px-6 py-4 text-orange-500 font-bold text-sm">Income type</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Total Amount</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Status</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Emailed</th>
@@ -240,13 +251,13 @@ export default function Invoices() {
           <tbody className="divide-y-0">
             {loading ? (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                   Loading...
                 </td>
               </tr>
             ) : invoices.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
                   No invoices yet. Invoices are created automatically when you record a payment.
                 </td>
               </tr>
@@ -254,9 +265,24 @@ export default function Invoices() {
               <>
                 {paginated.map((inv) => (
                   <tr key={inv._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{inv.invoiceNumber}</td>
-                    <td className="px-6 py-4 text-gray-600">{inv.clientName || inv.clientId}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900">
+                      <Link
+                        to={`/customer/${inv.clientId}`}
+                        className="text-orange-600 hover:text-orange-700 font-semibold hover:underline"
+                      >
+                        {inv.invoiceNumber}
+                      </Link>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      <Link
+                        to={`/customer/${inv.clientId}`}
+                        className="text-gray-700 hover:text-orange-600 hover:underline"
+                      >
+                        {inv.clientName || inv.clientId}
+                      </Link>
+                    </td>
                     <td className="px-6 py-4 text-gray-600">{formatDate(inv.invoiceDate)}</td>
+                    <td className="px-6 py-4 text-gray-700 text-sm">{invoiceTypeLabel(inv)}</td>
                     <td className="px-6 py-4 font-medium text-gray-900">
                       Rs. {Number(inv.totalAmount).toLocaleString()}
                     </td>
@@ -285,11 +311,11 @@ export default function Invoices() {
                           type="button"
                           onClick={() => handleNotifyCustomer(inv)}
                           disabled={notifyingId === inv._id}
-                          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-white bg-primary hover:opacity-90 rounded-lg transition-opacity disabled:opacity-50"
-                          title="Email & SMS: send invoice with PDF download link"
+                          className="p-2 text-gray-600 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="Email & SMS: invoice with PDF download link"
+                          aria-label="Notify customer with invoice PDF link"
                         >
-                          <Send size={14} aria-hidden />
-                          Send
+                          <Send size={18} aria-hidden />
                         </button>
                         <button
                           type="button"
@@ -315,7 +341,7 @@ export default function Invoices() {
                 ))}
                 {Array.from({ length: Math.max(0, rowsPerPage - paginated.length) }).map((_, idx) => (
                   <tr key={`empty-${idx}`} className="h-[60px]">
-                    {Array.from({ length: 7 }).map((_, i) => (
+                    {Array.from({ length: 8 }).map((_, i) => (
                       <td key={i} className="px-6 py-4">&nbsp;</td>
                     ))}
                   </tr>

@@ -5,6 +5,8 @@ export interface Inquiry {
   /** Business / shop name (optional). */
   companyName?: string;
   phoneNumber: string;
+  /** Product line / stack interest (e.g. ERP, POS). */
+  businessModel?: string;
   projectDescription: string;
   requiredFeatures: string[];
   internalNotes?: string;

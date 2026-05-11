@@ -68,6 +68,13 @@
   color: var(--text);
 }
 
+.cellMuted {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  max-width: 280px;
+  line-height: 1.35;
+}
+
 .badge {
   display: inline-block;
   padding: 0.25rem 0.5rem;

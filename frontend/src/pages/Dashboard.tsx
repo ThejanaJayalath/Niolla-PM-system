@@ -1,8 +1,24 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import { FileText, MessageSquare, Bell, ClipboardList, Users, FolderKanban, Banknote, Wallet, Receipt, AlertCircle, CalendarClock } from 'lucide-react';
+import {
+  FileText,
+  MessageSquare,
+  Bell,
+  ClipboardList,
+  Users,
+  FolderKanban,
+  Banknote,
+  Wallet,
+  Receipt,
+  AlertCircle,
+  CalendarClock,
+  PiggyBank,
+  TrendingUp,
+} from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
+import { useAuth } from '../context/AuthContext';
 import styles from './Dashboard.module.css';
 
 interface Stats {
@@ -44,7 +60,56 @@ function getInquiryId(inq: ReminderRow['inquiryId']): string {
   return String(inq);
 }
 
+type PayoutReleaseStatus = 'accruing' | 'submitted' | 'released';
+
+interface DeveloperWalletTransactionRow {
+  id: string;
+  date: string;
+  projectId: string;
+  projectName: string;
+  displayStatus: 'Pending' | 'Available';
+  walletStatus?: 'Pending' | 'Available';
+  amount: number;
+}
+
+interface DeveloperPendingEarningsItem {
+  projectId: string;
+  projectName: string;
+  amount: number;
+  releaseStatus: PayoutReleaseStatus;
+  proposalId?: string | null;
+}
+
+interface DeveloperPendingEarnings {
+  totalPending: number;
+  availableWalletBalance: number;
+  totalEarnedThisMonth: number;
+  totalEarnedThisYear: number;
+  /** @deprecated Use staffAssignments (Staff_Assignments). */
+  items: DeveloperPendingEarningsItem[];
+  /** @deprecated Use wallet.ledger (Wallet collection). */
+  transactions: DeveloperWalletTransactionRow[];
+  wallet: { availableBalance: number; ledger: DeveloperWalletTransactionRow[] };
+  staffAssignments: DeveloperPendingEarningsItem[];
+}
+
+interface PendingPayoutApprovalRow {
+  projectId: string;
+  projectName: string;
+  developerId: string;
+  developerName: string;
+  developerEmail?: string;
+  amount: number;
+}
+
+function releaseStatusLabel(s: PayoutReleaseStatus): string {
+  if (s === 'submitted') return 'Awaiting admin approval';
+  if (s === 'released') return 'Credited to wallet';
+  return 'In progress';
+}
+
 export default function Dashboard() {
+  const { user, loading: authLoading } = useAuth();
   const [stats, setStats] = useState<Stats>({
     totalInquiries: 0,
     newInquiries: 0,
@@ -54,6 +119,12 @@ export default function Dashboard() {
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingEarnings, setPendingEarnings] = useState<DeveloperPendingEarnings | null>(null);
+  const [pendingEarningsLoading, setPendingEarningsLoading] = useState(false);
+  const [pendingApprovals, setPendingApprovals] = useState<PendingPayoutApprovalRow[]>([]);
+  const [pendingApprovalsLoading, setPendingApprovalsLoading] = useState(false);
+  const [approveKey, setApproveKey] = useState<string | null>(null);
+  const [markCompleteProjectId, setMarkCompleteProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -88,9 +159,347 @@ export default function Dashboard() {
     });
   }, []);
 
+  useEffect(() => {
+    if (authLoading || user?.role !== 'employee') {
+      if (!authLoading && user?.role !== 'employee') setPendingEarnings(null);
+      return;
+    }
+    setPendingEarningsLoading(true);
+    Promise.all([
+      api.get<DeveloperPendingEarnings>('/projects/developer/pending-earnings'),
+      api.get<{ availableBalance: number; ledger: DeveloperWalletTransactionRow[] }>('/projects/developer/wallet'),
+      api.get<DeveloperPendingEarningsItem[]>('/projects/developer/staff-assignments'),
+    ])
+      .then(([summaryRes, walletRes, staffRes]) => {
+        if (summaryRes.success && summaryRes.data) {
+          const d = summaryRes.data;
+          const wallet = walletRes.success && walletRes.data ? walletRes.data : d.wallet;
+          const staffAssignments =
+            staffRes.success && staffRes.data ? staffRes.data : d.staffAssignments ?? d.items;
+          setPendingEarnings({
+            ...d,
+            wallet: wallet ?? { availableBalance: d.availableWalletBalance, ledger: d.transactions },
+            staffAssignments: staffAssignments ?? d.items,
+            items: staffAssignments ?? d.items,
+            transactions: wallet?.ledger ?? d.transactions,
+          });
+        } else
+          setPendingEarnings({
+            totalPending: 0,
+            availableWalletBalance: 0,
+            totalEarnedThisMonth: 0,
+            totalEarnedThisYear: 0,
+            items: [],
+            transactions: [],
+            wallet: { availableBalance: 0, ledger: [] },
+            staffAssignments: [],
+          });
+      })
+      .finally(() => setPendingEarningsLoading(false));
+  }, [authLoading, user?.role, user?._id]);
+
+  useEffect(() => {
+    if (authLoading || user?.role !== 'owner') {
+      if (!authLoading && user?.role !== 'owner') setPendingApprovals([]);
+      return;
+    }
+    setPendingApprovalsLoading(true);
+    api
+      .get<PendingPayoutApprovalRow[]>('/projects/admin/pending-payout-approvals')
+      .then((res) => {
+        if (res.success && res.data) setPendingApprovals(res.data);
+        else setPendingApprovals([]);
+      })
+      .finally(() => setPendingApprovalsLoading(false));
+  }, [authLoading, user?.role]);
+
+  const viewProposalPdf = (proposalId: string, projectName: string) => {
+    const safe = projectName.replace(/\s+/g, '-').slice(0, 60) || 'proposal';
+    api.download(`/proposals/${proposalId}/pdf`, `proposal-${safe}.pdf`).catch((err) => {
+      pushSystemToast(err instanceof Error ? err.message : 'Could not open proposal PDF', 'error');
+    });
+  };
+
+  const markTaskCompleted = async (projectId: string) => {
+    setMarkCompleteProjectId(projectId);
+    const res = await api.post(`/projects/${projectId}/payout-completion/submit`, {});
+    setMarkCompleteProjectId(null);
+    if (res.success) {
+      const [summaryRes, walletRes, staffRes] = await Promise.all([
+        api.get<DeveloperPendingEarnings>('/projects/developer/pending-earnings'),
+        api.get<{ availableBalance: number; ledger: DeveloperWalletTransactionRow[] }>('/projects/developer/wallet'),
+        api.get<DeveloperPendingEarningsItem[]>('/projects/developer/staff-assignments'),
+      ]);
+      if (summaryRes.success && summaryRes.data) {
+        const d = summaryRes.data;
+        const wallet = walletRes.success && walletRes.data ? walletRes.data : d.wallet;
+        const staffAssignments =
+          staffRes.success && staffRes.data ? staffRes.data : d.staffAssignments ?? d.items;
+        setPendingEarnings({
+          ...d,
+          wallet: wallet ?? { availableBalance: d.availableWalletBalance, ledger: d.transactions },
+          staffAssignments: staffAssignments ?? d.items,
+          items: staffAssignments ?? d.items,
+          transactions: wallet?.ledger ?? d.transactions,
+        });
+      }
+      pushSystemToast('A notification was sent to the Admin for approval.', 'success');
+    } else {
+      pushSystemToast(res.error?.message ?? 'Could not mark as completed.', 'error');
+    }
+  };
+
+  const approvePayoutFromDashboard = async (projectId: string, developerId: string) => {
+    const key = `${projectId}:${developerId}`;
+    setApproveKey(key);
+    const res = await api.post(`/projects/${projectId}/payout-completion/approve`, { developerId });
+    setApproveKey(null);
+    if (res.success) {
+      const list = await api.get<PendingPayoutApprovalRow[]>('/projects/admin/pending-payout-approvals');
+      if (list.success && list.data) setPendingApprovals(list.data);
+    }
+  };
+
   return (
     <div>
       <h1 className={styles.pageTitle}>Dashboard</h1>
+
+      {user?.role === 'employee' && (
+        <section className={styles.devWalletSection}>
+          <div className={styles.walletHero}>
+            <div className={styles.walletHeading}>
+              <h2 className={styles.walletTitle}>Main Wallet Overview</h2>
+              <p className={styles.walletSubtitle}>
+                Track pending earnings, approved balance, and growth at a glance.
+              </p>
+            </div>
+          </div>
+          <div className={styles.walletCards}>
+            <div className={`${styles.card} ${styles.walletCard}`}>
+              <div className={styles.cardIcon} style={{ background: '#ecfdf5', color: '#047857' }}>
+                <PiggyBank size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Pending Earnings</span>
+                <span className={styles.cardValue}>
+                  {pendingEarningsLoading || !pendingEarnings
+                    ? '—'
+                    : `LKR ${Number(pendingEarnings.totalPending).toLocaleString()}`}
+                </span>
+                <p className={styles.cardHelpText}>
+                  Money allocated to active projects but not yet approved by the Admin.
+                </p>
+              </div>
+            </div>
+            <div className={`${styles.card} ${styles.walletCard}`}>
+              <div className={styles.cardIcon} style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+                <Wallet size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Available Balance</span>
+                <span className={styles.cardValue}>
+                  {pendingEarningsLoading || !pendingEarnings
+                    ? '—'
+                    : `LKR ${Number(pendingEarnings.availableWalletBalance).toLocaleString()}`}
+                </span>
+                <p className={styles.cardHelpText}>
+                  Money from approved tasks that is ready for the monthly payout.
+                </p>
+              </div>
+            </div>
+            <div className={`${styles.card} ${styles.walletCard}`}>
+              <div className={styles.cardIcon} style={{ background: '#fef3c7', color: '#b45309' }}>
+                <TrendingUp size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Total Earned</span>
+                <span className={styles.cardValue}>
+                  {pendingEarningsLoading || !pendingEarnings
+                    ? '—'
+                    : `LKR ${Number(pendingEarnings.totalEarnedThisMonth).toLocaleString()}`}
+                </span>
+                <span className={styles.cardSubValue}>
+                  {!pendingEarningsLoading && pendingEarnings
+                    ? `Year to date: LKR ${Number(pendingEarnings.totalEarnedThisYear).toLocaleString()}`
+                    : ''}
+                </span>
+                <p className={styles.cardHelpText}>
+                  Total amount credited after admin approval this month (and year to date above).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <h3 className={styles.sectionTitle} style={{ marginTop: '1.5rem', marginBottom: '0.5rem', fontSize: '1rem' }}>
+            Your projects
+          </h3>
+          {pendingEarningsLoading ? (
+            <p className={styles.muted} style={{ textAlign: 'left', padding: '0.5rem 0' }}>
+              Loading…
+            </p>
+          ) : !pendingEarnings || pendingEarnings.staffAssignments.length === 0 ? (
+            <p className={styles.muted} style={{ textAlign: 'left', padding: '0.5rem 0' }}>
+              No active assignments with a payout yet.
+            </p>
+          ) : (
+            <div className={styles.devProjectGrid}>
+              {pendingEarnings.staffAssignments.map((row) => {
+                const busy = markCompleteProjectId === row.projectId;
+                const canMarkComplete = row.releaseStatus === 'accruing';
+                return (
+                  <div key={row.projectId} className={styles.devProjectCard}>
+                    <h4 className={styles.devProjectTitle}>{row.projectName}</h4>
+                    <div className={styles.devProjectPayout}>
+                      Assigned payout:{' '}
+                      <strong>LKR {Number(row.amount).toLocaleString()}</strong>
+                    </div>
+                    <div className={styles.devInlineMuted}>{releaseStatusLabel(row.releaseStatus ?? 'accruing')}</div>
+                    <div className={styles.devProjectActions}>
+                      <button
+                        type="button"
+                        className={styles.devBtnSecondary}
+                        disabled={!row.proposalId}
+                        onClick={() => row.proposalId && viewProposalPdf(row.proposalId, row.projectName)}
+                      >
+                        View Proposal
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.devBtnPrimary}
+                        disabled={!canMarkComplete || !!markCompleteProjectId}
+                        title={
+                          canMarkComplete
+                            ? 'Once clicked, a notification is sent to Admin for approval.'
+                            : releaseStatusLabel(row.releaseStatus ?? 'accruing')
+                        }
+                        aria-label={
+                          canMarkComplete
+                            ? 'Mark as Completed. Once clicked, a notification is sent to Admin for approval.'
+                            : `Mark as Completed (unavailable): ${releaseStatusLabel(row.releaseStatus ?? 'accruing')}`
+                        }
+                        onClick={() => markTaskCompleted(row.projectId)}
+                      >
+                        {busy ? 'Submitting…' : 'Mark as Completed'}
+                      </button>
+                      <Link to={`/projects/${row.projectId}?tab=assignments`} className={styles.viewLink}>
+                        Details
+                      </Link>
+                    </div>
+                    {!row.proposalId ? (
+                      <p className={styles.devInlineMuted}>Proposal PDF unavailable (link your customer to an inquiry).</p>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <h3 className={styles.sectionTitle} style={{ marginTop: '1.75rem', marginBottom: '0.5rem', fontSize: '1rem' }}>
+            Transaction history
+          </h3>
+          {!pendingEarningsLoading && pendingEarnings && pendingEarnings.wallet.ledger.length > 0 ? (
+            <div className={styles.transactionTableCard}>
+              <div className={styles.transactionTableScroll}>
+                <table className={styles.transactionGridTable}>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Project</th>
+                      <th>Status</th>
+                      <th>Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pendingEarnings.wallet.ledger.map((t) => (
+                      <tr key={t.id}>
+                        <td>{format(new Date(t.date), 'yyyy-MM-dd')}</td>
+                        <td className={styles.transactionCellStrong}>{t.projectName}</td>
+                        <td>{t.displayStatus}</td>
+                        <td>LKR {Number(t.amount).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <p className={styles.muted} style={{ textAlign: 'left', padding: '0.5rem 0' }}>
+              No payout submissions yet. Mark a project complete to appear here.
+            </p>
+          )}
+        </section>
+      )}
+
+      {user?.role === 'owner' && (
+        <section style={{ marginBottom: '1.5rem' }}>
+          <h2 className={styles.sectionTitle} style={{ marginBottom: '0.75rem' }}>
+            Developer payout approvals
+          </h2>
+          {pendingApprovalsLoading ? (
+            <p className={styles.muted}>Loading…</p>
+          ) : pendingApprovals.length === 0 ? (
+            <p className={styles.muted}>No developers are waiting for payout approval.</p>
+          ) : (
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Project</th>
+                    <th>Developer</th>
+                    <th>Amount</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingApprovals.map((row) => {
+                    const busy = approveKey === `${row.projectId}:${row.developerId}`;
+                    return (
+                      <tr key={`${row.projectId}-${row.developerId}`}>
+                        <td className="font-medium">{row.projectName}</td>
+                        <td>
+                          {row.developerName}
+                          {row.developerEmail ? (
+                            <span className={styles.muted} style={{ display: 'block', fontSize: '0.8rem' }}>
+                              {row.developerEmail}
+                            </span>
+                          ) : null}
+                        </td>
+                        <td>Rs. {Number(row.amount).toLocaleString()}</td>
+                        <td>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              disabled={!!approveKey}
+                              onClick={() => approvePayoutFromDashboard(row.projectId, row.developerId)}
+                              className={styles.viewLink}
+                              style={{
+                                cursor: approveKey ? 'not-allowed' : 'pointer',
+                                border: '1px solid #16a34a',
+                                borderRadius: '6px',
+                                padding: '0.25rem 0.5rem',
+                                background: '#f0fdf4',
+                                color: '#15803d',
+                                textDecoration: 'none',
+                                fontSize: '0.85rem',
+                              }}
+                            >
+                              {busy ? 'Approving…' : 'Approve — credit wallet'}
+                            </button>
+                            <Link to={`/projects/${row.projectId}?tab=assignments`} className={styles.viewLink}>
+                              Project
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
       <div className={styles.cardGrid}>
         <div className={styles.card}>
           <div className={styles.cardIcon}>

@@ -11,12 +11,25 @@ export interface LoginResult {
   token: string;
 }
 
+export type LoginServiceResult = LoginResult | { error: 'invalid' } | { error: 'suspended' };
+
 export class AuthService {
-  async login(email: string, password: string): Promise<LoginResult | null> {
-    const doc = await UserModel.findOne({ email: email.toLowerCase() });
-    if (!doc) return null;
+  /** Prefer normalized email; fall back to case-insensitive exact match for legacy rows. */
+  private async findUserDocumentByEmail(email: string) {
+    const key = (email || '').trim().toLowerCase();
+    if (!key) return null;
+    let doc = await UserModel.findOne({ email: key });
+    if (doc) return doc;
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return UserModel.findOne({ email: { $regex: new RegExp(`^${escaped}$`, 'i') } });
+  }
+
+  async login(email: string, password: string): Promise<LoginServiceResult> {
+    const doc = await this.findUserDocumentByEmail(email);
+    if (!doc) return { error: 'invalid' };
+    if (doc.status === 'suspended') return { error: 'suspended' };
     const match = await bcrypt.compare(password, doc.passwordHash);
-    if (!match) return null;
+    if (!match) return { error: 'invalid' };
 
     const user = doc.toObject();
     const { passwordHash, ...userWithoutPassword } = user;

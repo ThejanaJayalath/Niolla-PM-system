@@ -6,9 +6,17 @@ export interface CreatePaymentNotificationInput {
   userId?: string;
   installmentId?: string;
   type: 'sms' | 'email' | 'system';
-  triggerType: 'due_reminder' | 'overdue' | 'receipt' | 'assignment';
+  triggerType:
+    | 'due_reminder'
+    | 'overdue'
+    | 'receipt'
+    | 'assignment'
+    | 'payout_review'
+    | 'requirement_addon';
   scheduledAt: string | Date;
   messageBody?: string;
+  status?: 'pending' | 'sent' | 'failed';
+  sentAt?: string | Date;
 }
 
 export interface ListPaymentNotificationsFilters {
@@ -35,7 +43,10 @@ export class PaymentNotificationService {
       type: data.type,
       triggerType: data.triggerType,
       scheduledAt: data.scheduledAt instanceof Date ? data.scheduledAt : new Date(data.scheduledAt),
-      status: 'pending',
+      status: data.status ?? 'pending',
+      ...(data.sentAt
+        ? { sentAt: data.sentAt instanceof Date ? data.sentAt : new Date(data.sentAt) }
+        : {}),
       messageBody: data.messageBody,
     });
     return this.toNotification(doc);
@@ -134,7 +145,13 @@ export class PaymentNotificationService {
       ...(clientId !== undefined ? { clientId } : {}),
       ...(userId !== undefined ? { userId } : {}),
       type: o.type as 'sms' | 'email' | 'system',
-      triggerType: o.triggerType as 'due_reminder' | 'overdue' | 'receipt' | 'assignment',
+      triggerType: o.triggerType as
+        | 'due_reminder'
+        | 'overdue'
+        | 'receipt'
+        | 'assignment'
+        | 'payout_review'
+        | 'requirement_addon',
       scheduledAt: o.scheduledAt as Date,
       status: o.status as 'pending' | 'sent' | 'failed',
       createdAt: o.createdAt as Date,

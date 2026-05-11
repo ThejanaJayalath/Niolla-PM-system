@@ -35,7 +35,7 @@ const callDirectionList = ['INBOUND', 'OUTBOUND'];
 const callOutcomeList = ['ANSWERED', 'NO_ANSWER', 'VOICEMAIL', 'FOLLOW_UP_REQUIRED', 'CLOSED'];
 const requirementPriorityList = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 const requirementStatusList = ['OPEN', 'IN_PROGRESS', 'DONE', 'DEFERRED'];
-const requirementSourceList = ['INQUIRY', 'CALL', 'MEETING', 'MANUAL'];
+const requirementSourceList = ['INQUIRY', 'CALL', 'MEETING', 'MANUAL', 'CUSTOMER', 'CUSTOMER_PORTAL'];
 
 router.get('/customers/:id/interactions', [param('id').isMongoId(), query('type').optional().isIn(interactionTypeList)], validate, listCustomerInteractions);
 router.post(
@@ -128,6 +128,10 @@ router.post(
     body('status').optional().isIn(requirementStatusList),
     body('source').optional().isIn(requirementSourceList),
     body('capturedAt').optional().isISO8601(),
+    body('requirementPayoutValue')
+      .optional({ nullable: true })
+      .custom((v) => v === null || v === undefined || (Number.isFinite(Number(v)) && Number(v) >= 0))
+      .withMessage('requirementPayoutValue must be null or a non-negative number'),
   ],
   validate,
   createCustomerRequirement
@@ -141,6 +145,12 @@ router.patch(
     body('priority').optional().isIn(requirementPriorityList),
     body('status').optional().isIn(requirementStatusList),
     body('source').optional().isIn(requirementSourceList),
+    body('assignedEmployeeIds').optional().isArray(),
+    body('assignedEmployeeIds.*').optional().isMongoId(),
+    body('requirementPayoutValue')
+      .optional({ nullable: true })
+      .custom((v) => v === null || v === undefined || (Number.isFinite(Number(v)) && Number(v) >= 0))
+      .withMessage('requirementPayoutValue must be null or a non-negative number'),
   ],
   validate,
   updateRequirement

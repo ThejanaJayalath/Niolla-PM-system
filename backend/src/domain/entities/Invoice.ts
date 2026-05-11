@@ -12,6 +12,12 @@ export interface Invoice {
   discountAmt?: number;
   status: 'draft' | 'sent' | 'paid' | 'pending';
   sourceType?: 'PAYMENT' | 'PROPOSAL_ADVANCE';
+  /**
+   * Income category for paid-funds reporting. Set from source/transaction context:
+   * ADVANCE_PAYMENT (proposal advance), MONTHLY_INSTALLMENT (plan installments 1..n-1),
+   * BALANCE_PAYMENT (final plan installment).
+   */
+  invoiceType?: 'ADVANCE_PAYMENT' | 'MONTHLY_INSTALLMENT' | 'BALANCE_PAYMENT';
   description?: string;
   projectName?: string;
   companyName?: string;
@@ -19,4 +25,6 @@ export interface Invoice {
   emailedAt?: Date;
   createdAt?: Date;
   updatedAt?: Date;
+  /** Populated on some API responses when client is joined. */
+  clientName?: string;
 }
