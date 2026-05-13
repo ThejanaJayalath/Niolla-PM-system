@@ -14,6 +14,8 @@ interface UserType {
   status: 'active' | 'suspended';
   phone?: string;
   address?: string;
+  baseSalary?: number;
+  walletBalance?: number;
   profilePhoto?: string;
   createdAt: string;
   updatedAt: string;
@@ -46,6 +48,7 @@ export default function EmployeeDetail() {
   const [changingPassword, setChangingPassword] = useState(false);
 
   const isOwner = currentUser?.role === 'owner';
+  const canEditPay = currentUser?.role === 'owner' || currentUser?.role === 'pm';
 
   useEffect(() => {
     if (id) loadUser();
@@ -314,6 +317,31 @@ export default function EmployeeDetail() {
                   <div className={styles.readOnlyValue}>{user.address || '—'}</div>
                 )}
               </div>
+              {user.role === 'employee' && canEditPay ? (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>Monthly base salary (Rs.)</label>
+                  {editing ? (
+                    <input
+                      type="number"
+                      min={0}
+                      step="1"
+                      value={editData.baseSalary ?? user.baseSalary ?? 0}
+                      onChange={(e) =>
+                        setEditData({ ...editData, baseSalary: parseFloat(e.target.value) || 0 })
+                      }
+                      className={styles.input}
+                      placeholder="0"
+                    />
+                  ) : (
+                    <div className={styles.readOnlyValue}>
+                      Rs. {Number(user.baseSalary ?? 0).toLocaleString()}
+                    </div>
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    End-of-month pay = base salary + approved wallet balance.
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
 

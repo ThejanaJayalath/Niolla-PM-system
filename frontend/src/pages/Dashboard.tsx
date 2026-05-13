@@ -38,6 +38,23 @@ interface PaymentSummary {
   dueTodayCount: number;
 }
 
+interface LiveBusinessBalanceRow {
+  key: 'totalRevenue' | 'pendingReceivables' | 'totalExpenses' | 'netProfit' | 'finalProfit';
+  category: string;
+  description: string;
+  amount: number;
+}
+
+interface LiveBusinessBalance {
+  rows: LiveBusinessBalanceRow[];
+  totalRevenue: number;
+  pendingReceivables: number;
+  totalExpenses: number;
+  netProfit: number;
+  finalProfit: number;
+  expenseBreakdown: { marketing: number; payouts: number; overheads: number };
+}
+
 interface ReminderRow {
   _id: string;
   inquiryId: string | { _id: string; customerName?: string };
@@ -117,6 +134,7 @@ export default function Dashboard() {
     proposalsCreated: 0,
   });
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
+  const [liveBalance, setLiveBalance] = useState<LiveBusinessBalance | null>(null);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingEarnings, setPendingEarnings] = useState<DeveloperPendingEarnings | null>(null);
@@ -127,12 +145,16 @@ export default function Dashboard() {
   const [markCompleteProjectId, setMarkCompleteProjectId] = useState<string | null>(null);
 
   useEffect(() => {
+    const isFinanceRole = user?.role === 'owner' || user?.role === 'pm';
     Promise.all([
       api.get<unknown[]>('/inquiries'),
       api.get<ReminderRow[]>('/reminders/upcoming?limit=10'),
       api.get<unknown[]>('/proposals'),
       api.get<PaymentSummary>('/reports/summary'),
-    ]).then(([inqRes, remRes, propRes, summaryRes]) => {
+      isFinanceRole
+        ? api.get<LiveBusinessBalance>('/reports/live-business-balance')
+        : Promise.resolve({ success: false as const, data: undefined }),
+    ]).then(([inqRes, remRes, propRes, summaryRes, balanceRes]) => {
       const inquiries = (inqRes.success && inqRes.data ? inqRes.data : []) as { status?: string }[];
       const total = inquiries.length;
       const newCount = inquiries.filter((i) => i.status === 'new').length;
@@ -155,9 +177,11 @@ export default function Dashboard() {
           overdueCount: 0,
           dueTodayCount: 0,
         });
+      if (balanceRes.success && balanceRes.data) setLiveBalance(balanceRes.data);
+      else setLiveBalance(null);
       setLoading(false);
     });
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
     if (authLoading || user?.role !== 'employee') {
@@ -199,8 +223,8 @@ export default function Dashboard() {
   }, [authLoading, user?.role, user?._id]);
 
   useEffect(() => {
-    if (authLoading || user?.role !== 'owner') {
-      if (!authLoading && user?.role !== 'owner') setPendingApprovals([]);
+    if (authLoading || (user?.role !== 'owner' && user?.role !== 'pm')) {
+      if (!authLoading && user?.role !== 'owner' && user?.role !== 'pm') setPendingApprovals([]);
       return;
     }
     setPendingApprovalsLoading(true);
@@ -430,7 +454,7 @@ export default function Dashboard() {
         </section>
       )}
 
-      {user?.role === 'owner' && (
+      {(user?.role === 'owner' || user?.role === 'pm') && (
         <section style={{ marginBottom: '1.5rem' }}>
           <h2 className={styles.sectionTitle} style={{ marginBottom: '0.75rem' }}>
             Developer payout approvals
@@ -542,6 +566,74 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+
+      {liveBalance && (user?.role === 'owner' || user?.role === 'pm') && (
+        <section className={styles.financeSection}>
+          <div className={styles.financeSectionHeader}>
+            <div className={styles.financeSectionIcon}>
+              <TrendingUp size={22} />
+            </div>
+            <div>
+              <h2 className={styles.sectionTitle}>Live Business Balance</h2>
+              <p className={styles.financeIntro}>
+                Self-accounting master ledger — updates when invoices are marked paid, developer payouts are
+                assigned, and expenses are logged. Final Profit is shown after Marketing, Salaries, and
+                Infrastructure are deducted.
+              </p>
+            </div>
+          </div>
+          <div className={styles.balanceTableWrap}>
+            <table className={styles.balanceTable}>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th className={styles.balanceAmountCol}>Amount (Rs.)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {liveBalance.rows.map((row) => (
+                  <tr
+                    key={row.key}
+                    className={
+                      row.key === 'finalProfit' || row.key === 'netProfit'
+                        ? styles.balanceRowProfit
+                        : row.key === 'totalExpenses'
+                          ? styles.balanceRowExpense
+                          : undefined
+                    }
+                  >
+                    <td>
+                      <div className={styles.balanceCategory}>{row.category}</div>
+                      <p className={styles.balanceDesc}>{row.description}</p>
+                    </td>
+                    <td className={styles.balanceAmountCol}>
+                      <span
+                        className={
+                          row.key === 'finalProfit' || row.key === 'netProfit'
+                            ? row.amount >= 0
+                              ? styles.balancePositive
+                              : styles.balanceNegative
+                            : undefined
+                        }
+                      >
+                        {loading ? '—' : Number(row.amount).toLocaleString()}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className={styles.financeFootnote}>
+            Expense breakdown — Marketing Rs. {liveBalance.expenseBreakdown.marketing.toLocaleString()} · Payouts Rs.{' '}
+            {liveBalance.expenseBreakdown.payouts.toLocaleString()} · Overheads Rs.{' '}
+            {liveBalance.expenseBreakdown.overheads.toLocaleString()}.{' '}
+            <Link to="/transactions" className={styles.financeLink}>
+              Open master ledger
+            </Link>
+          </p>
+        </section>
+      )}
 
       {paymentSummary !== null && (
         <>

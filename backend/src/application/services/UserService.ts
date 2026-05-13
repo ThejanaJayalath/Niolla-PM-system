@@ -92,6 +92,11 @@ export class UserService {
         doc.role = updates.role;
       }
       if (updates.status) doc.status = updates.status;
+      if (updates.baseSalary !== undefined && doc.role === 'employee') {
+        const base = Number(updates.baseSalary);
+        if (!Number.isFinite(base) || base < 0) throw new Error('baseSalary must be a non-negative number');
+        doc.baseSalary = base;
+      }
     }
 
     await doc.save();

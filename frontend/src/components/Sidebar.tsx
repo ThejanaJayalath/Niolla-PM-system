@@ -9,6 +9,7 @@ import {
     FileText,
     TrendingUp,
     TrendingDown,
+    ArrowLeftRight,
     CreditCard,
     MessageSquare,
     Calendar,
@@ -58,6 +59,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
         { icon: CreditCard, label: 'Billing', path: '/billing' },
         { icon: Receipt, label: 'Invoices', path: '/invoices' },
         ...(showExpenses ? [{ icon: TrendingDown, label: 'Expenses', path: '/expenses' }] : []),
+        ...(showExpenses ? [{ icon: ArrowLeftRight, label: 'Transactions', path: '/transactions' }] : []),
     ];
 
     const leadsItems = [

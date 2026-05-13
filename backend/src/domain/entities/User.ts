@@ -13,6 +13,8 @@ export interface User {
   lastLogin?: Date;
   /** Approved developer payouts (available to withdraw / internal ledger). */
   walletBalance?: number;
+  /** Monthly base pay for employees (before wallet bonuses). */
+  baseSalary?: number;
 }
 
 export type UserRole = 'owner' | 'pm' | 'employee';

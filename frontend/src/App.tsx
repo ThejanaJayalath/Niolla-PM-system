@@ -34,6 +34,7 @@ import Invoices from './pages/Invoices';
 import PaymentNotifications from './pages/PaymentNotifications';
 import Reports from './pages/Reports';
 import Expenses from './pages/Expenses';
+import Transactions from './pages/Transactions';
 import Audit from './pages/Audit';
 import AssignEmployees from './pages/AssignEmployees';
 import Tasks from './pages/Tasks';
@@ -87,6 +88,7 @@ export default function App() {
         <Route path="payments" element={<Payments />} />
         <Route path="invoices" element={<Invoices />} />
         <Route path="expenses" element={<Expenses />} />
+        <Route path="transactions" element={<Transactions />} />
         <Route path="notifications" element={<PaymentNotifications />} />
         <Route path="reports" element={<Reports />} />
         <Route path="audit" element={<Audit />} />

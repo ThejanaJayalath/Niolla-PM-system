@@ -397,3 +397,125 @@
   font-weight: 600;
   color: var(--color-primary-hover, #c2410c);
 }
+
+/* Live Business Balance — finance dashboard */
+.financeSection {
+  margin-bottom: 2.5rem;
+  padding: 1.5rem;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.financeSectionHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.financeSectionIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg, 12px);
+  background: #ecfdf5;
+  color: #047857;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.financeIntro {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.balanceTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+}
+
+.balanceTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.balanceTable th,
+.balanceTable td {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+  vertical-align: top;
+}
+
+.balanceTable thead th {
+  background: #fff7ed;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #c2410c;
+}
+
+.balanceTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.balanceAmountCol {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.balanceCategory {
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.balanceDesc {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #6b7280);
+  line-height: 1.45;
+  max-width: 36rem;
+}
+
+.balanceRowProfit {
+  background: #f0fdf4;
+}
+
+.balanceRowExpense {
+  background: #fef2f2;
+}
+
+.balancePositive {
+  color: #047857;
+}
+
+.balanceNegative {
+  color: #dc2626;
+}
+
+.financeFootnote {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.financeLink {
+  color: var(--primary, #fb8c19);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.financeLink:hover {
+  text-decoration: underline;
+}

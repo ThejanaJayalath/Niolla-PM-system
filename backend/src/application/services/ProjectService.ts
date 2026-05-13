@@ -16,6 +16,7 @@ import { ProposalModel } from '../../infrastructure/database/models/ProposalMode
 import { UserModel } from '../../infrastructure/database/models/UserModel';
 import { PaymentNotificationService } from './PaymentNotificationService';
 import { ExpenseService } from './ExpenseService';
+import { MasterLedgerService } from './MasterLedgerService';
 
 export interface CreateProjectInput {
   clientId: string;
@@ -112,6 +113,7 @@ function assignmentInAppMessage(projectName: string, amount: number): string {
 export class ProjectService {
   private paymentNotificationService = new PaymentNotificationService();
   private expenseService = new ExpenseService();
+  private masterLedgerService = new MasterLedgerService();
 
   async create(data: CreateProjectInput): Promise<Project> {
     const doc = await ProjectModel.create({
@@ -525,17 +527,7 @@ export class ProjectService {
     }
 
     if (payoutLogContext && approvedByUserId?.trim()) {
-      try {
-        await this.expenseService.logAutomatedStaffSalaryFromPayoutApproval({
-          amount: payoutLogContext.amount,
-          developerId: payoutLogContext.devId,
-          projectId: payoutLogContext.pid,
-          projectName: payoutLogContext.projectName,
-          recordedByUserId: approvedByUserId.trim(),
-        });
-      } catch {
-        /* non-fatal: payout already applied */
-      }
+      /* Wallet credited; salary expense is logged at month-end payroll (base + wallet). */
     }
 
     await this.syncStaffAssignmentsForProject(projectId);
@@ -715,6 +707,14 @@ export class ProjectService {
     }
 
     await this.syncStaffAssignmentsForProject(id);
+
+    if (data.assignedEmployeePayouts !== undefined || data.assignedEmployees !== undefined) {
+      try {
+        await this.masterLedgerService.syncProjectPayoutAccruals(id);
+      } catch {
+        /* non-fatal */
+      }
+    }
 
     return this.toProject(doc);
   }

@@ -14,6 +14,7 @@ export interface UserDocument extends Document {
   updatedAt: Date;
   lastLogin?: Date;
   walletBalance?: number;
+  baseSalary?: number;
 }
 
 const userSchema = new Schema<UserDocument>(
@@ -28,6 +29,7 @@ const userSchema = new Schema<UserDocument>(
     profilePhoto: { type: String },
     lastLogin: { type: Date },
     walletBalance: { type: Number, default: 0 },
+    baseSalary: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true }
 );

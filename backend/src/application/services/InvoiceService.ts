@@ -4,6 +4,7 @@ import { InvoiceModel } from '../../infrastructure/database/models/InvoiceModel'
 import { PaymentTransactionModel } from '../../infrastructure/database/models/PaymentTransactionModel';
 import { InstallmentModel } from '../../infrastructure/database/models/InstallmentModel';
 import mongoose from 'mongoose';
+import { MasterLedgerService } from './MasterLedgerService';
 
 /** First sequence number for `INV-YYYYMM-####` when no invoice exists yet for that month. */
 const INVOICE_MONTHLY_SEQUENCE_START = 789;
@@ -31,6 +32,8 @@ export interface ListInvoicesFilters {
   status?: string;
   inquiryId?: string;
 }
+
+const masterLedgerService = new MasterLedgerService();
 
 export class InvoiceService {
   /**
@@ -139,7 +142,15 @@ export class InvoiceService {
       projectName: data.projectName,
       companyName: data.companyName,
     });
-    return this.toInvoice(doc);
+    const invoice = this.toInvoice(doc);
+    if (invoice.status === 'paid' && invoice._id) {
+      try {
+        await masterLedgerService.recordInvoicePaid(invoice._id);
+      } catch {
+        /* non-fatal */
+      }
+    }
+    return invoice;
   }
 
   async hasProposalAdvanceInvoice(inquiryId: string): Promise<boolean> {
@@ -300,7 +311,19 @@ export class InvoiceService {
       { $set: { status } },
       { new: true }
     ).populate('clientId', 'name companyName email');
-    return { invoice: doc ? this.toInvoice(doc) : null, previousStatus };
+    const invoice = doc ? this.toInvoice(doc) : null;
+    if (invoice?._id) {
+      try {
+        if (status === 'paid') {
+          await masterLedgerService.recordInvoicePaid(invoice._id);
+        } else if (previousStatus === 'paid') {
+          await masterLedgerService.removeInvoiceIncome(invoice._id);
+        }
+      } catch {
+        /* non-fatal */
+      }
+    }
+    return { invoice, previousStatus };
   }
 
   async markCustomerNotified(id: string): Promise<Invoice | null> {
