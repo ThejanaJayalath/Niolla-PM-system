@@ -15,6 +15,8 @@ export interface User {
   walletBalance?: number;
   /** Monthly base pay for employees (before wallet bonuses). */
   baseSalary?: number;
+  /** YYYY-MM-DD — used for birthday card automation */
+  dateOfBirth?: string;
 }
 
 export type UserRole = 'owner' | 'pm' | 'employee';

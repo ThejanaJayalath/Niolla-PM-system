@@ -14,6 +14,7 @@ import {
   downloadReportXlsx,
 } from '../lib/reportExport';
 import { ReportFinancialCharts } from '../components/ReportFinancialCharts';
+import ProductWiseReports from '../components/ProductWiseReports';
 import styles from './Inquiries.module.css';
 
 type ReportTab =
@@ -26,7 +27,8 @@ type ReportTab =
   | 'project-progress'
   | 'staff'
   | 'staff-wallet'
-  | 'marketing-roi';
+  | 'marketing-roi'
+  | 'product-reports';
 
 type IncomeInvoiceType = 'ADVANCE_PAYMENT' | 'MONTHLY_INSTALLMENT' | 'BALANCE_PAYMENT';
 
@@ -280,6 +282,7 @@ const TAB_LABELS: Record<ReportTab, string> = {
   staff: 'Staff Performance',
   'staff-wallet': 'Staff Wallet',
   'marketing-roi': 'Marketing Report',
+  'product-reports': 'Product Reports',
 };
 
 const TAB_GROUPS: { label: string; tabs: ReportTab[] }[] = [
@@ -287,6 +290,7 @@ const TAB_GROUPS: { label: string; tabs: ReportTab[] }[] = [
     label: 'At a glance',
     tabs: ['project-summary', 'marketing-roi', 'client-statement'],
   },
+  { label: 'Products', tabs: ['product-reports'] },
   { label: 'Financial (Transactions table)', tabs: ['transactions', 'income', 'expenses', 'pl'] },
   { label: 'Projects table', tabs: ['project-progress'] },
   { label: 'Staff_Wallet table', tabs: ['staff', 'staff-wallet'] },
@@ -299,6 +303,7 @@ const DATE_FILTERED_TABS: ReportTab[] = [
   'pl',
   'staff-wallet',
   'marketing-roi',
+  'product-reports',
 ];
 
 type ExportFormat = 'csv' | 'excel' | 'pdf';
@@ -327,13 +332,22 @@ export default function Reports() {
   const [overdueList, setOverdueList] = useState<OverdueRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [productOptions, setProductOptions] = useState<{ _id: string; name: string; code: string }[]>([]);
+  const [groupByProductId, setGroupByProductId] = useState('');
 
   const dateRange = useMemo(
     () => buildDateRange(datePreset, customFrom, customTo),
     [datePreset, customFrom, customTo]
   );
-  const rangeQuery = rangeQueryString(dateRange);
+  const rangeQuery = useMemo(() => {
+    const base = rangeQueryString(dateRange);
+    if (!groupByProductId) return base;
+    const sep = base ? '&' : '';
+    return `${base}${sep}productId=${groupByProductId}`;
+  }, [dateRange, groupByProductId]);
   const usesDateFilter = DATE_FILTERED_TABS.includes(activeTab);
+  const usesProductFilter =
+    usesDateFilter || activeTab === 'product-reports';
 
   const loadActiveReport = useCallback(async () => {
     if (!canViewFinancial) return;
@@ -376,6 +390,13 @@ export default function Reports() {
       setLoading(false);
     }
   }, [activeTab, canViewFinancial, rangeQuery, selectedProjectId, selectedClientId]);
+
+  useEffect(() => {
+    if (!canViewFinancial) return;
+    api.get<{ _id: string; name: string; code: string }[]>('/products?activeOnly=true').then((res) => {
+      if (res.success && Array.isArray(res.data)) setProductOptions(res.data);
+    });
+  }, [canViewFinancial]);
 
   useEffect(() => {
     if (!canViewFinancial) return;
@@ -1475,7 +1496,7 @@ export default function Reports() {
             <strong className="font-semibold text-gray-800">Client Statement</strong> for remaining client balances.
           </p>
 
-          <div className="flex flex-wrap items-end gap-3 mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
+          <div className="flex flex-wrap items-center gap-3 mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
             {usesDateFilter ? (
               <>
                 <div className="flex flex-wrap gap-2">
@@ -1518,14 +1539,31 @@ export default function Reports() {
                     />
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-600 w-full sm:w-auto">
-                    Period: <span className="font-semibold text-gray-900">{dateRange.label}</span>
-                  </p>
+                  <span className="inline-flex items-center min-h-[34px] text-sm text-gray-600 whitespace-nowrap">
+                    Period: <span className="font-semibold text-gray-900 ml-1">{dateRange.label}</span>
+                  </span>
                 )}
               </>
             ) : (
               <p className="text-sm text-gray-600">Live snapshot (not filtered by date).</p>
             )}
+            {usesProductFilter && productOptions.length > 0 ? (
+              <label className="inline-flex items-center gap-2 text-sm font-medium text-gray-700">
+                <span className="whitespace-nowrap">Group by product</span>
+                <select
+                  value={groupByProductId}
+                  onChange={(e) => setGroupByProductId(e.target.value)}
+                  className="min-w-[200px] px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm"
+                >
+                  <option value="">All products</option>
+                  {productOptions.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name} ({p.code})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <div className={`flex flex-wrap gap-2 ${usesDateFilter ? 'sm:ml-auto' : 'ml-0'}`}>
               <button
                 type="button"
@@ -1596,6 +1634,9 @@ export default function Reports() {
                 {activeTab === 'project-progress' && renderProjectProgressTab()}
                 {activeTab === 'staff' && renderStaffTab()}
                 {activeTab === 'staff-wallet' && renderStaffWalletTab()}
+                {activeTab === 'product-reports' && (
+                  <ProductWiseReports periodQuery={rangeQuery} selectedProductId={groupByProductId} />
+                )}
               </>
             )}
           </section>

@@ -24,6 +24,8 @@ export interface Inquiry {
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string;
+  /** YYYY-MM-DD — prospect birthday for card automation */
+  dateOfBirth?: string;
 }
 
 export type InquiryStatus =

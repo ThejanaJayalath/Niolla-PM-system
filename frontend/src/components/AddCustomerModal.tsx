@@ -1,20 +1,27 @@
 import { useState, useEffect } from 'react';
-import { X, User, Phone, Mail, FolderOpen, Building2, MapPin, Briefcase, Hash, Layers } from 'lucide-react';
+import { X, User, Phone, Mail, FolderOpen, Building2, MapPin, Briefcase, Hash, Package } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import styles from './NewInquiryModal.module.css';
-import { SOFTWARE_PRODUCT_OPTIONS } from '../constants/customerServiceProducts';
 
 export interface CustomerFormData {
   name: string;
   phoneNumber: string;
   email: string;
   projects: string[];
-  serviceCategories: string[];
+  productId: string;
   address: string;
   businessType: string;
   companyName: string;
   nicNumber: string;
   status: 'active' | 'inactive';
+  dateOfBirth: string;
+}
+
+interface ProductOption {
+  _id: string;
+  name: string;
+  code: string;
 }
 
 interface AddCustomerModalProps {
@@ -28,12 +35,13 @@ interface AddCustomerModalProps {
     phoneNumber: string;
     email?: string;
     projects: string[];
+    productId?: string;
     address?: string;
     businessType?: string;
     companyName?: string;
     nicNumber?: string;
     status?: 'active' | 'inactive';
-    serviceCategories?: string[];
+    dateOfBirth?: string;
   } | null;
 }
 
@@ -43,18 +51,28 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
     phoneNumber: '',
     email: '',
     projects: [],
-    serviceCategories: [],
+    productId: '',
     address: '',
     businessType: '',
     companyName: '',
     nicNumber: '',
     status: 'active',
+    dateOfBirth: '',
   });
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [projectsInput, setProjectsInput] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const isEdit = !!editCustomer?._id;
+
+  useEffect(() => {
+    if (open) {
+      api.get<ProductOption[]>('/products?activeOnly=true').then((res) => {
+        if (res.success && res.data) setProducts(res.data);
+      });
+    }
+  }, [open]);
 
   useEffect(() => {
     if (!open) {
@@ -63,12 +81,13 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
         phoneNumber: '',
         email: '',
         projects: [],
-        serviceCategories: [],
+        productId: '',
         address: '',
         businessType: '',
         companyName: '',
         nicNumber: '',
         status: 'active',
+        dateOfBirth: '',
       });
       setProjectsInput('');
       setError('');
@@ -78,12 +97,13 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
         phoneNumber: editCustomer.phoneNumber,
         email: editCustomer.email || '',
         projects: editCustomer.projects || [],
-        serviceCategories: editCustomer.serviceCategories || [],
+        productId: editCustomer.productId || '',
         address: editCustomer.address || '',
         businessType: editCustomer.businessType || '',
         companyName: editCustomer.companyName || '',
         nicNumber: editCustomer.nicNumber || '',
         status: editCustomer.status ?? 'active',
+        dateOfBirth: editCustomer.dateOfBirth || '',
       });
       setProjectsInput((editCustomer.projects || []).join(', '));
     } else {
@@ -92,12 +112,13 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
         phoneNumber: '',
         email: '',
         projects: [],
-        serviceCategories: [],
+        productId: '',
         address: '',
         businessType: '',
         companyName: '',
         nicNumber: '',
         status: 'active',
+        dateOfBirth: '',
       });
       setProjectsInput('');
     }
@@ -108,15 +129,6 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const toggleServiceCategory = (value: string) => {
-    setForm((prev) => {
-      const set = new Set(prev.serviceCategories || []);
-      if (set.has(value)) set.delete(value);
-      else set.add(value);
-      return { ...prev, serviceCategories: [...set] };
-    });
-  };
-
   useEffect(() => {
     const list = projectsInput.split(',').map((s) => s.trim()).filter(Boolean);
     setForm((prev) => ({ ...prev, projects: list }));
@@ -125,18 +137,23 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (!form.productId) {
+      setError('Please select a product from the directory');
+      return;
+    }
     setSubmitting(true);
     const payload = {
       name: form.name.trim(),
       phoneNumber: form.phoneNumber.trim(),
       email: form.email.trim() || undefined,
       projects: form.projects,
-      serviceCategories: form.serviceCategories,
+      productId: form.productId,
       address: form.address.trim() || undefined,
       businessType: form.businessType.trim() || undefined,
       companyName: form.companyName.trim() || undefined,
       nicNumber: form.nicNumber.trim() || undefined,
       status: form.status,
+      dateOfBirth: form.dateOfBirth.trim() || undefined,
     };
     if (isEdit) {
       const res = await api.patch<unknown>(`/customers/${editCustomer._id}`, payload);
@@ -175,6 +192,39 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
               <p>{error}</p>
             </div>
           )}
+
+          <div className={styles.formGroup}>
+            <label htmlFor="productId">
+              <Package size={18} />
+              Product
+            </label>
+            {products.length === 0 ? (
+              <p className="text-sm text-gray-600">
+                No active products.{' '}
+                <Link to="/products" className="text-primary font-medium hover:underline" onClick={onClose}>
+                  Add products in the directory
+                </Link>
+                .
+              </p>
+            ) : (
+              <select
+                id="productId"
+                name="productId"
+                value={form.productId}
+                onChange={handleChange}
+                required
+                className={styles.input}
+              >
+                <option value="">Select product (e.g. ERP, POS, CRM)</option>
+                {products.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name} ({p.code})
+                  </option>
+                ))}
+              </select>
+            )}
+            <p className="text-xs text-gray-500 mt-1">Links this customer for segmentation (ERP vs POS customers).</p>
+          </div>
 
           <div className={styles.formGroup}>
             <label htmlFor="name">
@@ -225,26 +275,15 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
           </div>
 
           <div className={styles.formGroup}>
-            <label>
-              <Layers size={18} />
-              Software products
-            </label>
-            <p className="text-xs text-gray-500 mb-2">Link POS, ERP, website, mobile app, and other offerings to this profile.</p>
-            <div className={styles.chipRow}>
-              {SOFTWARE_PRODUCT_OPTIONS.map(({ value, label }) => {
-                const active = (form.serviceCategories || []).includes(value);
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`${styles.chip} ${active ? styles.chipActive : ''}`}
-                    onClick={() => toggleServiceCategory(value)}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
+            <label htmlFor="dateOfBirth">Date of birth (for birthday cards)</label>
+            <input
+              id="dateOfBirth"
+              name="dateOfBirth"
+              type="date"
+              value={form.dateOfBirth}
+              onChange={handleChange}
+              className={styles.input}
+            />
           </div>
 
           <div className={styles.formGroup}>
@@ -336,7 +375,7 @@ export default function AddCustomerModal({ open, onClose, onSuccess, editCustome
           </div>
 
           <div className={styles.actions}>
-            <button type="submit" disabled={submitting} className={styles.submitBtn}>
+            <button type="submit" disabled={submitting || products.length === 0} className={styles.submitBtn}>
               {submitting ? (isEdit ? 'Updating...' : 'Creating...') : isEdit ? 'Update Customer' : 'Add Customer'}
             </button>
             <button type="button" onClick={onClose} disabled={submitting} className={styles.cancelBtn}>

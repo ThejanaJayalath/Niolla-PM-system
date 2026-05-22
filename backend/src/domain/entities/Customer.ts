@@ -12,8 +12,14 @@ export interface Customer {
   companyName?: string;
   nicNumber?: string;
   status?: 'active' | 'inactive';
-  /** NIOLLA NEXA: Web, Mobile App, ERP, POS, Other */
+  /** Primary product from Product Directory (segmentation) */
+  productId?: string;
+  productName?: string;
+  productCode?: string;
+  /** Legacy multi-tag list; kept for inquiry conversion compatibility */
   serviceCategories?: string[];
+  /** YYYY-MM-DD — used for birthday card automation */
+  dateOfBirth?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

@@ -21,6 +21,7 @@ export interface InquiryDocument extends Document {
   totalAdvancePaid: number;
   totalAdvanceUsed: number;
   createdBy?: mongoose.Types.ObjectId;
+  dateOfBirth?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,6 +56,7 @@ const inquirySchema = new Schema<InquiryDocument>(
     totalAdvancePaid: { type: Number, default: 0 },
     totalAdvanceUsed: { type: Number, default: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    dateOfBirth: { type: String, trim: true },
   },
   { timestamps: true }
 );

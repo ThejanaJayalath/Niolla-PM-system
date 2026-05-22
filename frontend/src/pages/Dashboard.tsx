@@ -19,6 +19,9 @@ import {
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
 import { useAuth } from '../context/AuthContext';
+import CrmEngagementSection from '../components/CrmEngagementSection';
+import TopProductsLeaderboard from '../components/TopProductsLeaderboard';
+import TopSellingProductChart from '../components/TopSellingProductChart';
 import styles from './Dashboard.module.css';
 
 interface Stats {
@@ -288,6 +291,8 @@ export default function Dashboard() {
     <div>
       <h1 className={styles.pageTitle}>Dashboard</h1>
 
+      {(user?.role === 'owner' || user?.role === 'pm') && <CrmEngagementSection enabled />}
+
       {user?.role === 'employee' && (
         <section className={styles.devWalletSection}>
           <div className={styles.walletHero}>
@@ -525,7 +530,7 @@ export default function Dashboard() {
       )}
 
       <div className={styles.cardGrid}>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.statCardPurple}`}>
           <div className={styles.cardIcon}>
             <ClipboardList size={24} />
           </div>
@@ -534,7 +539,7 @@ export default function Dashboard() {
             <span className={styles.cardValue}>{loading ? '—' : stats.totalInquiries}</span>
           </div>
         </div>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.statCardGreen}`}>
           <div className={styles.cardIcon}>
             <MessageSquare size={24} />
           </div>
@@ -543,7 +548,7 @@ export default function Dashboard() {
             <span className={styles.cardValue}>{loading ? '—' : stats.newInquiries}</span>
           </div>
         </div>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.statCardBrown}`}>
           <Link to="/reminders" className={styles.cardLink}>
             <div className={styles.cardIcon}>
               <Bell size={24} />
@@ -554,7 +559,7 @@ export default function Dashboard() {
             </div>
           </Link>
         </div>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.statCardOrange}`}>
           <Link to="/proposals" className={styles.cardLink}>
             <div className={styles.cardIcon}>
               <FileText size={24} />
@@ -566,6 +571,13 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+
+      {(user?.role === 'owner' || user?.role === 'pm') && (
+        <>
+          <TopProductsLeaderboard enabled />
+          <TopSellingProductChart enabled />
+        </>
+      )}
 
       {liveBalance && (user?.role === 'owner' || user?.role === 'pm') && (
         <section className={styles.financeSection}>
@@ -638,20 +650,18 @@ export default function Dashboard() {
       {paymentSummary !== null && (
         <>
           <h2 className={styles.sectionTitle} style={{ marginTop: '2rem', marginBottom: '1rem' }}>Payment overview</h2>
-          <div className={styles.cardGrid}>
-            <Link to="/customer" className={styles.cardLink}>
-              <div className={styles.card}>
-                <div className={styles.cardIcon}>
-                  <Users size={24} />
-                </div>
-                <div className={styles.cardContent}>
-                  <span className={styles.cardLabel}>Total clients</span>
-                  <span className={styles.cardValue}>{loading ? '—' : paymentSummary.totalClients}</span>
-                </div>
+          <div className={styles.paymentCardGrid}>
+            <Link to="/customer" className={`${styles.card} ${styles.payCardPurple}`}>
+              <div className={styles.cardIcon}>
+                <Users size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Total clients</span>
+                <span className={styles.cardValue}>{loading ? '—' : paymentSummary.totalClients}</span>
               </div>
             </Link>
-            <div className={styles.card}>
-              <div className={styles.cardIcon} style={{ background: 'var(--info-bg)', color: 'var(--info-text)' }}>
+            <div className={`${styles.card} ${styles.payCardTeal}`}>
+              <div className={styles.cardIcon}>
                 <FolderKanban size={24} />
               </div>
               <div className={styles.cardContent}>
@@ -659,8 +669,8 @@ export default function Dashboard() {
                 <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.totalProjectValue).toLocaleString()}`}</span>
               </div>
             </div>
-            <div className={styles.card}>
-              <div className={styles.cardIcon} style={{ background: 'var(--success-bg)', color: 'var(--success-text)' }}>
+            <div className={`${styles.card} ${styles.payCardGreen}`}>
+              <div className={styles.cardIcon}>
                 <Banknote size={24} />
               </div>
               <div className={styles.cardContent}>
@@ -668,21 +678,19 @@ export default function Dashboard() {
                 <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.totalCollected).toLocaleString()}`}</span>
               </div>
             </div>
-            <Link to="/invoices?status=pending" className={styles.cardLink}>
-              <div className={styles.card}>
-                <div className={styles.cardIcon} style={{ background: '#fff7ed', color: '#c2410c' }}>
-                  <Receipt size={24} />
-                </div>
-                <div className={styles.cardContent}>
-                  <span className={styles.cardLabel}>Accounts receivable (pending income)</span>
-                  <span className={styles.cardValue}>
-                    {loading ? '—' : `Rs. ${Number(paymentSummary.accountsReceivablePending).toLocaleString()}`}
-                  </span>
-                </div>
+            <Link to="/invoices?status=pending" className={`${styles.card} ${styles.payCardOrange}`}>
+              <div className={styles.cardIcon}>
+                <Receipt size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Accounts receivable (pending income)</span>
+                <span className={styles.cardValue}>
+                  {loading ? '—' : `Rs. ${Number(paymentSummary.accountsReceivablePending).toLocaleString()}`}
+                </span>
               </div>
             </Link>
-            <div className={styles.card}>
-              <div className={styles.cardIcon} style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
+            <div className={`${styles.card} ${styles.payCardBrown}`}>
+              <div className={styles.cardIcon}>
                 <Wallet size={24} />
               </div>
               <div className={styles.cardContent}>
@@ -690,26 +698,22 @@ export default function Dashboard() {
                 <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.pendingBalance).toLocaleString()}`}</span>
               </div>
             </div>
-            <Link to="/installments?status=overdue" className={styles.cardLink}>
-              <div className={styles.card}>
-                <div className={styles.cardIcon} style={{ background: '#fef2f2', color: '#dc2626' }}>
-                  <AlertCircle size={24} />
-                </div>
-                <div className={styles.cardContent}>
-                  <span className={styles.cardLabel}>Overdue installments</span>
-                  <span className={styles.cardValue}>{loading ? '—' : paymentSummary.overdueCount}</span>
-                </div>
+            <Link to="/installments?status=overdue" className={`${styles.card} ${styles.payCardRose}`}>
+              <div className={styles.cardIcon}>
+                <AlertCircle size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Overdue installments</span>
+                <span className={styles.cardValue}>{loading ? '—' : paymentSummary.overdueCount}</span>
               </div>
             </Link>
-            <Link to="/installments" className={styles.cardLink}>
-              <div className={styles.card}>
-                <div className={styles.cardIcon} style={{ background: '#eff6ff', color: '#2563eb' }}>
-                  <CalendarClock size={24} />
-                </div>
-                <div className={styles.cardContent}>
-                  <span className={styles.cardLabel}>Due today</span>
-                  <span className={styles.cardValue}>{loading ? '—' : paymentSummary.dueTodayCount}</span>
-                </div>
+            <Link to="/installments" className={`${styles.card} ${styles.payCardBlue}`}>
+              <div className={styles.cardIcon}>
+                <CalendarClock size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Due today</span>
+                <span className={styles.cardValue}>{loading ? '—' : paymentSummary.dueTodayCount}</span>
               </div>
             </Link>
           </div>

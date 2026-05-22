@@ -11,6 +11,7 @@ import { FinanceLedgerService } from '../../application/services/FinanceLedgerSe
 import { FinancialReportService } from '../../application/services/FinancialReportService';
 import { MasterLedgerService } from '../../application/services/MasterLedgerService';
 import { OperationsReportService } from '../../application/services/OperationsReportService';
+import { ProductReportService } from '../../application/services/ProductReportService';
 import type { IncomeInvoiceType } from '../../domain/incomeInvoiceType';
 import { AuthenticatedRequest } from '../middleware/auth';
 
@@ -19,18 +20,21 @@ const financeLedgerService = new FinanceLedgerService();
 const financialReportService = new FinancialReportService();
 const masterLedgerService = new MasterLedgerService();
 const operationsReportService = new OperationsReportService();
+const productReportService = new ProductReportService();
 
 function parseReportPeriod(req: AuthenticatedRequest): {
   year?: number;
   month?: number;
   from?: string;
   to?: string;
+  productId?: string;
 } {
   const year = req.query.year ? parseInt(String(req.query.year), 10) : undefined;
   const month = req.query.month ? parseInt(String(req.query.month), 10) : undefined;
   const from = req.query.from as string | undefined;
   const to = req.query.to as string | undefined;
-  return { year, month, from, to };
+  const productId = req.query.productId as string | undefined;
+  return { year, month, from, to, productId };
 }
 
 function hasValidReportPeriod(period: ReturnType<typeof parseReportPeriod>): boolean {
@@ -657,6 +661,49 @@ export async function getClientStatement(req: AuthenticatedRequest, res: Respons
     res.json({ success: true, data });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to load client statement';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getProductProfitabilityReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const data = await productReportService.getProfitability(period);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load product profitability report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getProductCustomerDensityReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const productId = req.query.productId as string | undefined;
+    const data = await productReportService.getCustomerDensity(productId);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load customer density report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getProductSalesTrendsReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const months = req.query.months ? parseInt(String(req.query.months), 10) : 12;
+    const data = await productReportService.getSalesTrends(Number.isFinite(months) ? months : 12);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load product sales trends';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getTopProductsLeaderboard(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const data = await productReportService.getTopProductsLeaderboard();
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load top products leaderboard';
     res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
   }
 }

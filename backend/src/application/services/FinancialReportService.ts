@@ -136,6 +136,8 @@ export interface ReportPeriodParams {
   month?: number;
   from?: string;
   to?: string;
+  /** Filter income (and derived P&L) to a single catalog product. */
+  productId?: string;
 }
 
 function resolvePeriod(params?: ReportPeriodParams): {
@@ -244,9 +246,34 @@ function formatReportDate(iso: string): string {
 }
 
 export class FinancialReportService {
+  private async clientIdsForProduct(productId?: string): Promise<Set<string> | null> {
+    if (!productId?.trim() || !mongoose.Types.ObjectId.isValid(productId)) return null;
+    const docs = await CustomerModel.find({ productId: new mongoose.Types.ObjectId(productId) })
+      .select('_id')
+      .lean();
+    return new Set(docs.map((d) => String(d._id)));
+  }
+
+  private invoiceMatchesProduct(
+    inv: { productId?: string; clientId: string },
+    productId?: string,
+    clientIds?: Set<string> | null
+  ): boolean {
+    if (!productId) return true;
+    if (inv.productId === productId) return true;
+    return clientIds?.has(inv.clientId) ?? false;
+  }
+
   async getIncomeReport(period?: ReportPeriodParams): Promise<IncomeReportResult> {
     const periodInfo = resolvePeriod(period);
     let invoices = await invoiceService.paidInvoicesForIncomeTracking();
+    const clientIds = await this.clientIdsForProduct(period?.productId);
+
+    if (period?.productId) {
+      invoices = invoices.filter((inv) =>
+        this.invoiceMatchesProduct(inv, period.productId, clientIds)
+      );
+    }
 
     if (periodInfo.from && periodInfo.to) {
       const start = new Date(periodInfo.from).getTime();

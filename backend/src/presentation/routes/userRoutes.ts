@@ -38,6 +38,7 @@ router.post(
     body('role').isIn(['pm', 'employee']).withMessage('Role must be pm or employee'),
     body('phone').optional().isString(),
     body('address').optional().isString(),
+    body('dateOfBirth').optional().matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('dateOfBirth must be YYYY-MM-DD'),
   ],
   (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -59,6 +60,7 @@ router.patch(
     body('status').optional().isIn(['active', 'suspended']).withMessage('Status must be active or suspended'),
     body('phone').optional().isString(),
     body('address').optional().isString(),
+    body('dateOfBirth').optional({ values: 'null' }).matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('dateOfBirth must be YYYY-MM-DD'),
   ],
   (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);

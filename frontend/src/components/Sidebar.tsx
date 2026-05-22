@@ -26,6 +26,7 @@ import {
     ScrollText,
     Receipt,
     Folders,
+    Package,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -48,6 +49,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
         { icon: ListTodo, label: 'Tasks', path: '/tasks' },
         { icon: FileText, label: 'Work Logs', path: '/work-logs' },
         { icon: TrendingUp, label: 'Performance', path: '/performance' },
+        { icon: Package, label: 'Product Directory', path: '/products' },
         { icon: UserCircle, label: 'Customer', path: '/customer' },
     ];
 

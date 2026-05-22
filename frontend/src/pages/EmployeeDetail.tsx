@@ -20,6 +20,7 @@ interface UserType {
   createdAt: string;
   updatedAt: string;
   lastLogin?: string;
+  dateOfBirth?: string;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -301,6 +302,19 @@ export default function EmployeeDetail() {
                   />
                 ) : (
                   <div className={styles.readOnlyValue}>{user.phone || '—'}</div>
+                )}
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Date of birth</label>
+                {editing ? (
+                  <input
+                    type="date"
+                    value={editData.dateOfBirth ?? ''}
+                    onChange={(e) => setEditData({ ...editData, dateOfBirth: e.target.value })}
+                    className={styles.input}
+                  />
+                ) : (
+                  <div className={styles.readOnlyValue}>{user.dateOfBirth || '—'}</div>
                 )}
               </div>
               <div className={styles.formGroup}>

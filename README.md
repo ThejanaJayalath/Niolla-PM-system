@@ -71,6 +71,58 @@ If the file is missing, the cover shows “NIOLLA” text instead. See `backend/
 
 Change the default password after first login (register a new user or update via DB if needed).
 
+## Birthday card automation
+
+Admins see **Birthdays today** on the Dashboard (owner / PM). The system matches clients, prospects, and employees whose **date of birth** (YYYY-MM-DD) falls on the current calendar day.
+
+### Daily scan (8:00 AM)
+
+Schedule the backend job (same pattern as overdue installments):
+
+```bash
+cd backend
+npm run job:birthdays
+```
+
+Or call `GET /api/v1/jobs/scan-birthdays` as owner (e.g. from cron). This creates in-app notifications listing who has a birthday today.
+
+**Windows Task Scheduler / cron example:** `0 8 * * *` → run `npm run job:birthdays` in the `backend` folder.
+
+### Generate & send cards
+
+1. Open the Dashboard → **Birthdays today**.
+2. Click **Generate card** (uses OpenAI DALL·E when `OPENAI_API_KEY` is set; otherwise a branded SVG template with NIOLLA styling).
+3. Click **Send email** or **Send WhatsApp**.
+
+Optional logo on cards: place `proposal-logo.png` in `backend/assets/`.
+
+### Environment variables (`backend/.env`)
+
+| Variable | Purpose |
+|----------|---------|
+| `OPENAI_API_KEY` | AI-generated birthday images (optional) |
+| `OPENAI_IMAGE_MODEL` | Default `dall-e-3` |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Send cards by email |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_FROM` | Auto WhatsApp via Twilio |
+| `PUBLIC_API_BASE_URL` | Public URL for card images (required for Twilio media), e.g. `https://your-api.example.com` |
+
+Without Twilio, **Send WhatsApp** opens a `wa.me` link with the greeting pre-filled (one-click manual send).
+
+### CRM engagement (Dashboard)
+
+| Feature | How it works |
+| --- | --- |
+| **Anniversary greetings** | Projects whose **start date** (or created date) hits its **first anniversary** today appear under *Project anniversaries today*. Generate/send thank-you cards. |
+| **Festival blasts** | *Festival blast* sends NIOLLA-branded wishes to all active **prospects** (inquiries not LOST/CONFIRMED) via WhatsApp or email. |
+| **Engagement tracking** | After sending, use **Mark replied** on a row (or view the stats table) to track who responds best. Stats aggregate sends and marked replies. |
+
+Daily cron (optional, with birthdays at 8 AM):
+
+```bash
+npm run job:anniversaries
+# or GET /api/v1/jobs/scan-anniversaries (owner)
+```
+
 ## API
 
 - **Base URL:** `http://localhost:5000/api/v1`

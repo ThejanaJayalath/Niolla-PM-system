@@ -28,6 +28,10 @@ import {
   downloadStaffWalletReport,
   getClientStatement,
   downloadClientStatement,
+  getProductProfitabilityReport,
+  getProductCustomerDensityReport,
+  getProductSalesTrendsReport,
+  getTopProductsLeaderboard,
 } from '../controllers/ReportController';
 
 const router = Router();
@@ -227,5 +231,34 @@ router.get(
   validate,
   downloadClientStatement
 );
+
+router.get(
+  '/products/profitability',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+    query('productId').optional().isMongoId(),
+  ],
+  validate,
+  getProductProfitabilityReport
+);
+router.get(
+  '/products/customer-density',
+  requireRole('owner', 'pm'),
+  [query('productId').optional().isMongoId()],
+  validate,
+  getProductCustomerDensityReport
+);
+router.get(
+  '/products/sales-trends',
+  requireRole('owner', 'pm'),
+  [query('months').optional().isInt({ min: 3, max: 24 })],
+  validate,
+  getProductSalesTrendsReport
+);
+router.get('/products/top-leaderboard', requireRole('owner', 'pm'), getTopProductsLeaderboard);
 
 export default router;
