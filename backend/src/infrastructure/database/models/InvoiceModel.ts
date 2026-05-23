@@ -6,6 +6,7 @@ export interface InvoiceDocument extends Document {
   inquiryId?: mongoose.Types.ObjectId;
   proposalId?: mongoose.Types.ObjectId;
   clientId: mongoose.Types.ObjectId;
+  productId?: mongoose.Types.ObjectId;
   invoiceNumber: string;
   invoiceDate: Date;
   totalAmount: number;
@@ -29,6 +30,7 @@ const invoiceSchema = new Schema<InvoiceDocument>(
     inquiryId: { type: Schema.Types.ObjectId, ref: 'Inquiry', index: true },
     proposalId: { type: Schema.Types.ObjectId, ref: 'Proposal', index: true },
     clientId: { type: Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
+    productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null, index: true },
     invoiceNumber: { type: String, required: true, unique: true },
     invoiceDate: { type: Date, required: true },
     totalAmount: { type: Number, required: true },

@@ -9,6 +9,7 @@ interface FormState {
   phoneNumber: string;
   businessModel: string;
   projectDescription: string;
+  dateOfBirth: string;
 }
 
 interface NewProspectModalProps {
@@ -61,6 +62,7 @@ export default function NewProspectModal({ open, onClose, onSuccess }: NewProspe
       businessModel: form.businessModel,
       projectDescription: form.projectDescription.trim(),
       requiredFeatures: [] as string[],
+      dateOfBirth: form.dateOfBirth.trim() || undefined,
     };
     const res = await api.post<unknown>('/inquiries', payload);
     setSubmitting(false);
@@ -140,6 +142,18 @@ export default function NewProspectModal({ open, onClose, onSuccess }: NewProspe
               required
               className={styles.input}
               placeholder="Enter phone number"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="prospect-dateOfBirth">Date of birth (optional)</label>
+            <input
+              id="prospect-dateOfBirth"
+              name="dateOfBirth"
+              type="date"
+              value={form.dateOfBirth}
+              onChange={handleChange}
+              className={styles.input}
             />
           </div>
 

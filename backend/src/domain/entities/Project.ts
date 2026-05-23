@@ -3,6 +3,8 @@ import type { ProjectLifecycleStatus } from '../projectLifecycle';
 export interface Project {
   _id?: string;
   clientId: string;
+  /** Catalog product sold to this client (denormalized from customer when created). */
+  productId?: string;
   projectName: string;
   description?: string;
   systemType?: string;

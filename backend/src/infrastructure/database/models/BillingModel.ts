@@ -49,7 +49,6 @@ const billingSchema = new Schema<BillingDocument>(
   { timestamps: true }
 );
 
-billingSchema.index({ billingId: 1 });
 billingSchema.index({ inquiryId: 1 });
 billingSchema.index({ createdAt: -1 });
 

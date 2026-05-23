@@ -3,6 +3,7 @@ import { Project } from '../../../domain/entities/Project';
 
 export interface ProjectDocument extends Document {
   clientId: mongoose.Types.ObjectId;
+  productId?: mongoose.Types.ObjectId;
   projectName: string;
   description?: string;
   systemType?: string;
@@ -22,6 +23,7 @@ export interface ProjectDocument extends Document {
 const projectSchema = new Schema<ProjectDocument>(
   {
     clientId: { type: Schema.Types.ObjectId, ref: 'Customer', required: true, index: true },
+    productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null, index: true },
     projectName: { type: String, required: true },
     description: { type: String },
     systemType: { type: String },

@@ -99,7 +99,7 @@ export async function updateProjectTask(req: AuthenticatedRequest, res: Response
   };
   const asAdmin = isAdmin(req.user?.role);
   try {
-    const data = await projectTaskService.update(
+    const result = await projectTaskService.update(
       id,
       {
         title: body.title,
@@ -109,11 +109,17 @@ export async function updateProjectTask(req: AuthenticatedRequest, res: Response
       },
       { asAdmin, userId }
     );
-    if (!data) {
+    if (!result) {
       res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Task not found' } });
       return;
     }
-    res.json({ success: true, data });
+    res.json({
+      success: true,
+      data: {
+        ...result.task,
+        payoutSubmitted: result.payoutSubmitted,
+      },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Update failed';
     res.status(400).json({ success: false, error: { code: 'BAD_REQUEST', message } });

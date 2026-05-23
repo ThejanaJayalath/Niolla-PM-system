@@ -16,6 +16,7 @@ import { ProposalModel } from '../../infrastructure/database/models/ProposalMode
 import { UserModel } from '../../infrastructure/database/models/UserModel';
 import { PaymentNotificationService } from './PaymentNotificationService';
 import { ExpenseService } from './ExpenseService';
+import { MasterLedgerService } from './MasterLedgerService';
 
 export interface CreateProjectInput {
   clientId: string;
@@ -112,10 +113,14 @@ function assignmentInAppMessage(projectName: string, amount: number): string {
 export class ProjectService {
   private paymentNotificationService = new PaymentNotificationService();
   private expenseService = new ExpenseService();
+  private masterLedgerService = new MasterLedgerService();
 
   async create(data: CreateProjectInput): Promise<Project> {
+    const customer = await CustomerModel.findById(data.clientId).select('productId').lean();
+    const productId = customer?.productId ?? undefined;
     const doc = await ProjectModel.create({
       clientId: data.clientId,
+      productId,
       projectName: data.projectName.trim(),
       description: data.description?.trim() || undefined,
       systemType: data.systemType?.trim() || undefined,
@@ -277,18 +282,29 @@ export class ProjectService {
     const doc = await ProjectModel.findById(projectId)
       .select('projectName status clientId assignedEmployees assignedEmployeePayouts assignedEmployeePayoutRelease')
       .lean();
+    const pid = new mongoose.Types.ObjectId(projectId);
     if (!doc || !isProjectInDevelopment(String(doc.status))) {
-      await StaffAssignmentModel.deleteMany({ projectId: new mongoose.Types.ObjectId(projectId) });
+      await StaffAssignmentModel.deleteMany({ projectId: pid });
       return;
     }
-    const pid = doc._id as mongoose.Types.ObjectId;
+    const projectOid = doc._id as mongoose.Types.ObjectId;
     const clientOid = doc.clientId as mongoose.Types.ObjectId;
-    await StaffAssignmentModel.deleteMany({ projectId: pid });
-    const assignees = doc.assignedEmployees || [];
+
+    const seen = new Set<string>();
+    const assignees: mongoose.Types.ObjectId[] = [];
+    for (const empOid of doc.assignedEmployees || []) {
+      const key = empOid.toString();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      assignees.push(empOid);
+    }
+
+    const activeUserIds: mongoose.Types.ObjectId[] = [];
     for (const empOid of assignees) {
       const uid = empOid.toString();
       const amount = ProjectService.payoutAmountForUser(doc.assignedEmployeePayouts, uid);
       if (!Number.isFinite(amount) || amount <= 0) continue;
+      activeUserIds.push(empOid);
       const release = ProjectService.payoutReleaseForUser(doc.assignedEmployeePayoutRelease, uid);
       const workflowStatus =
         release === 'released'
@@ -296,15 +312,24 @@ export class ProjectService {
           : release === 'submitted'
             ? 'ReviewRequested'
             : 'InProgress';
-      await StaffAssignmentModel.create({
-        userId: empOid,
-        projectId: pid,
-        clientId: clientOid,
-        projectName: doc.projectName as string,
-        agreedPayout: amount,
-        workflowStatus,
-      });
+      await StaffAssignmentModel.findOneAndUpdate(
+        { userId: empOid, projectId: projectOid },
+        {
+          $set: {
+            clientId: clientOid,
+            projectName: doc.projectName as string,
+            agreedPayout: amount,
+            workflowStatus,
+          },
+        },
+        { upsert: true }
+      );
     }
+
+    await StaffAssignmentModel.deleteMany({
+      projectId: projectOid,
+      ...(activeUserIds.length > 0 ? { userId: { $nin: activeUserIds } } : {}),
+    });
   }
 
   private async syncStaffAssignmentsForDeveloper(userId: string): Promise<void> {
@@ -525,17 +550,7 @@ export class ProjectService {
     }
 
     if (payoutLogContext && approvedByUserId?.trim()) {
-      try {
-        await this.expenseService.logAutomatedStaffSalaryFromPayoutApproval({
-          amount: payoutLogContext.amount,
-          developerId: payoutLogContext.devId,
-          projectId: payoutLogContext.pid,
-          projectName: payoutLogContext.projectName,
-          recordedByUserId: approvedByUserId.trim(),
-        });
-      } catch {
-        /* non-fatal: payout already applied */
-      }
+      /* Wallet credited; salary expense is logged at month-end payroll (base + wallet). */
     }
 
     await this.syncStaffAssignmentsForProject(projectId);
@@ -716,6 +731,14 @@ export class ProjectService {
 
     await this.syncStaffAssignmentsForProject(id);
 
+    if (data.assignedEmployeePayouts !== undefined || data.assignedEmployees !== undefined) {
+      try {
+        await this.masterLedgerService.syncProjectPayoutAccruals(id);
+      } catch {
+        /* non-fatal */
+      }
+    }
+
     return this.toProject(doc);
   }
 
@@ -798,6 +821,9 @@ export class ProjectService {
         clientIdObj && typeof clientIdObj === 'object' && clientIdObj._id
           ? (clientIdObj._id as { toString: () => string }).toString()
           : (o.clientId as string),
+      productId: o.productId
+        ? (o.productId as { toString: () => string }).toString?.() ?? String(o.productId)
+        : undefined,
       projectName: o.projectName as string,
       description: o.description as string | undefined,
       systemType: o.systemType as string | undefined,

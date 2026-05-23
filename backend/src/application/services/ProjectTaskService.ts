@@ -3,6 +3,12 @@ import { ProjectTask } from '../../domain/entities/ProjectTask';
 import { ProjectTaskModel } from '../../infrastructure/database/models/ProjectTaskModel';
 import { ProjectModel } from '../../infrastructure/database/models/ProjectModel';
 import { CustomerRequirementModel } from '../../infrastructure/database/models/CustomerRequirementModel';
+import { ProjectService } from './ProjectService';
+
+export interface ProjectTaskUpdateResult {
+  task: ProjectTask;
+  payoutSubmitted?: boolean;
+}
 
 export interface CreateProjectTaskInput {
   projectId: string;
@@ -163,7 +169,7 @@ export class ProjectTaskService {
     id: string,
     data: UpdateProjectTaskInput,
     opts: { asAdmin: boolean; userId: string }
-  ): Promise<ProjectTask | null> {
+  ): Promise<ProjectTaskUpdateResult | null> {
     const existing = await ProjectTaskModel.findById(id).lean();
     if (!existing) return null;
 
@@ -194,13 +200,40 @@ export class ProjectTaskService {
       }
     }
 
-    if (Object.keys(update).length === 0) return this.findById(id);
+    if (Object.keys(update).length === 0) {
+      const task = await this.findById(id);
+      return task ? { task } : null;
+    }
 
     const doc = await ProjectTaskModel.findByIdAndUpdate(id, { $set: update }, { new: true })
       .populate('projectId', 'projectName')
       .populate('requirementId', 'title')
       .lean();
-    return doc ? this.mapPopulated(doc as unknown as Record<string, unknown>) : null;
+    if (!doc) return null;
+
+    const task = this.mapPopulated(doc as unknown as Record<string, unknown>);
+    let payoutSubmitted = false;
+
+    if (data.completed === true && !opts.asAdmin) {
+      const projectIdRaw = (existing.projectId as { toString: () => string }).toString();
+      payoutSubmitted = await this.maybeSubmitPayoutWhenAllTasksDone(projectIdRaw, opts.userId);
+    }
+
+    return { task, payoutSubmitted: payoutSubmitted || undefined };
+  }
+
+  /** When every task assigned to this developer on the project is complete, submit for admin approval. */
+  private async maybeSubmitPayoutWhenAllTasksDone(projectId: string, developerUserId: string): Promise<boolean> {
+    if (!mongoose.Types.ObjectId.isValid(projectId) || !mongoose.Types.ObjectId.isValid(developerUserId)) return false;
+    const pid = new mongoose.Types.ObjectId(projectId);
+    const eid = new mongoose.Types.ObjectId(developerUserId);
+    const tasks = await ProjectTaskModel.find({ projectId: pid, assigneeIds: eid }).select('completed').lean();
+    if (tasks.length === 0) return false;
+    if (!tasks.every((t) => t.completed)) return false;
+
+    const projectService = new ProjectService();
+    const result = await projectService.submitDeveloperPayoutCompletion(projectId, developerUserId);
+    return !!result;
   }
 
   async delete(id: string): Promise<boolean> {

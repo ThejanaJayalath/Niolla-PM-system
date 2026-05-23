@@ -5,11 +5,42 @@ import { PaymentPlanModel } from '../../infrastructure/database/models/PaymentPl
 import { PaymentTransactionModel } from '../../infrastructure/database/models/PaymentTransactionModel';
 import { InstallmentModel } from '../../infrastructure/database/models/InstallmentModel';
 import { InvoiceModel } from '../../infrastructure/database/models/InvoiceModel';
+import { CompanyExpenseModel } from '../../infrastructure/database/models/CompanyExpenseModel';
 import { InvoiceService } from '../../application/services/InvoiceService';
+import { FinanceLedgerService } from '../../application/services/FinanceLedgerService';
+import { FinancialReportService } from '../../application/services/FinancialReportService';
+import { MasterLedgerService } from '../../application/services/MasterLedgerService';
+import { OperationsReportService } from '../../application/services/OperationsReportService';
+import { ProductReportService } from '../../application/services/ProductReportService';
 import type { IncomeInvoiceType } from '../../domain/incomeInvoiceType';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 const invoiceService = new InvoiceService();
+const financeLedgerService = new FinanceLedgerService();
+const financialReportService = new FinancialReportService();
+const masterLedgerService = new MasterLedgerService();
+const operationsReportService = new OperationsReportService();
+const productReportService = new ProductReportService();
+
+function parseReportPeriod(req: AuthenticatedRequest): {
+  year?: number;
+  month?: number;
+  from?: string;
+  to?: string;
+  productId?: string;
+} {
+  const year = req.query.year ? parseInt(String(req.query.year), 10) : undefined;
+  const month = req.query.month ? parseInt(String(req.query.month), 10) : undefined;
+  const from = req.query.from as string | undefined;
+  const to = req.query.to as string | undefined;
+  const productId = req.query.productId as string | undefined;
+  return { year, month, from, to, productId };
+}
+
+function hasValidReportPeriod(period: ReturnType<typeof parseReportPeriod>): boolean {
+  if (period.from && period.to) return true;
+  return !!(period.year && period.month && period.month >= 1 && period.month <= 12);
+}
 
 export interface PaymentSummary {
   totalClients: number;
@@ -64,6 +95,98 @@ export interface IncomeTrackingResult {
   categories: IncomeCategorySummary[];
   entries: IncomeTrackingRow[];
   grandTotal: number;
+}
+
+export interface LiveBusinessBalanceRow {
+  key: 'totalRevenue' | 'pendingReceivables' | 'totalExpenses' | 'netProfit' | 'finalProfit';
+  category: string;
+  description: string;
+  amount: number;
+}
+
+export interface LiveBusinessBalance {
+  rows: LiveBusinessBalanceRow[];
+  /** Convenience mirrors for charts / clients */
+  totalRevenue: number;
+  pendingReceivables: number;
+  totalExpenses: number;
+  /** @deprecated Use finalProfit */
+  netProfit: number;
+  finalProfit: number;
+  expenseBreakdown: {
+    marketing: number;
+    payouts: number;
+    overheads: number;
+  };
+}
+
+export async function getFinanceLedger(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const from = req.query.from as string | undefined;
+    const to = req.query.to as string | undefined;
+    const kind = (req.query.kind as string | undefined) || 'all';
+    if (kind !== 'all' && kind !== 'income' && kind !== 'expense') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'kind must be all, income, or expense' },
+      });
+      return;
+    }
+    const data = await financeLedgerService.getLedger({ from, to, kind: kind as 'all' | 'income' | 'expense' });
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('Finance ledger error:', err);
+    const message = err instanceof Error ? err.message : 'Failed to load finance ledger';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getLiveBusinessBalance(_req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const snapshot = await masterLedgerService.getBusinessSnapshot();
+
+    const rows: LiveBusinessBalanceRow[] = [
+      {
+        key: 'totalRevenue',
+        category: 'Total Revenue',
+        description: 'Paid invoices recorded in the master ledger (self-accounting).',
+        amount: snapshot.totalRevenue,
+      },
+      {
+        key: 'pendingReceivables',
+        category: 'Pending Receivables',
+        description: 'Money still due from installments and unpaid proposal advances.',
+        amount: snapshot.pendingReceivables,
+      },
+      {
+        key: 'totalExpenses',
+        category: 'Total Expenses',
+        description: 'Marketing, developer payouts, and overheads.',
+        amount: snapshot.totalExpenses,
+      },
+      {
+        key: 'finalProfit',
+        category: 'Final Profit',
+        description: 'Revenue minus all expenses — the number admins should trust.',
+        amount: snapshot.finalProfit,
+      },
+    ];
+
+    const data: LiveBusinessBalance = {
+      rows,
+      totalRevenue: snapshot.totalRevenue,
+      pendingReceivables: snapshot.pendingReceivables,
+      totalExpenses: snapshot.totalExpenses,
+      netProfit: snapshot.finalProfit,
+      finalProfit: snapshot.finalProfit,
+      expenseBreakdown: snapshot.expenseBreakdown,
+    };
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error('Live business balance error:', err);
+    const message = err instanceof Error ? err.message : 'Failed to load live business balance';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
 }
 
 export async function getPaymentSummary(_req: AuthenticatedRequest, res: Response): Promise<void> {
@@ -270,6 +393,333 @@ export async function getIncomeTracking(_req: AuthenticatedRequest, res: Respons
   } catch (err) {
     console.error('Income tracking error:', err);
     const message = err instanceof Error ? err.message : 'Failed to load income tracking';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadMonthlyProfitLoss(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const year = req.query.year ? parseInt(String(req.query.year), 10) : undefined;
+    const month = req.query.month ? parseInt(String(req.query.month), 10) : undefined;
+    const from = req.query.from as string | undefined;
+    const to = req.query.to as string | undefined;
+
+    if (!year && !month && !from && !to) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Provide year+month or from+to date range' },
+      });
+      return;
+    }
+
+    const { filename, csv } = await financialReportService.buildMonthlyProfitLossCsv({ year, month, from, to });
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export profit/loss report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getProjectFinancialSheet(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const data = await financialReportService.getProjectFinancialSheet(req.params.projectId);
+    if (!data) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Project not found' } });
+      return;
+    }
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load project financial sheet';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadProjectFinancialSheet(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const result = await financialReportService.buildProjectFinancialSheetCsv(req.params.projectId);
+    if (!result) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Project not found' } });
+      return;
+    }
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.send('\uFEFF' + result.csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export project financial sheet';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getFinancialIncomeReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const data = await financialReportService.getIncomeReport(period);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load income report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getFinancialExpenseReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const data = await financialReportService.getExpenseReport(period);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load expense report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getFinancialProfitLossReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    if (!hasValidReportPeriod(period)) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Provide year+month or from+to date range' },
+      });
+      return;
+    }
+    const data = await financialReportService.getProfitLossReport(period);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load profit & loss report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadFinancialIncomeReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const { filename, csv } = await financialReportService.buildIncomeReportCsv(period);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export income report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadFinancialExpenseReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const { filename, csv } = await financialReportService.buildExpenseReportCsv(period);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export expense report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getProjectProgressReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const data = await operationsReportService.getProjectProgressReport();
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load project progress report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getStaffPerformanceReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const data = await operationsReportService.getStaffPerformanceReport();
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load staff performance report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getMarketingRoiReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const from = req.query.from as string | undefined;
+    const to = req.query.to as string | undefined;
+    const [marketing, pl] = await Promise.all([
+      operationsReportService.getMarketingRoiReport({ from, to }),
+      financialReportService.getProfitLossReport({ from, to }),
+    ]);
+    res.json({
+      success: true,
+      data: {
+        ...marketing,
+        periodNetProfit: pl.netProfit,
+        profitFormula: pl.profitFormula,
+        periodIncome: pl.totalIncome,
+        marketingVsProfitNote:
+          pl.netProfit >= 0
+            ? `Marketing spend is ${pl.totalIncome > 0 ? ((marketing.totalMarketingSpend / pl.totalIncome) * 100).toFixed(1) : '—'}% of period income.`
+            : 'Period net profit is negative after all expenses.',
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load marketing ROI report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadProjectProgressReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const { filename, csv } = await operationsReportService.buildProjectProgressCsv();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export project progress report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadStaffPerformanceReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const { filename, csv } = await operationsReportService.buildStaffPerformanceCsv();
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export staff performance report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadMarketingRoiReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const from = req.query.from as string | undefined;
+    const to = req.query.to as string | undefined;
+    const { filename, csv } = await operationsReportService.buildMarketingRoiCsv({ from, to });
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export marketing ROI report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getTransactionsReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const data = await financialReportService.getTransactionsReport(period);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load transactions report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadTransactionsReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const { filename, csv } = await financialReportService.buildTransactionsReportCsv(period);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export transactions report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getStaffWalletReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const data = await operationsReportService.getStaffWalletReport(period);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load staff wallet report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadStaffWalletReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const { filename, csv } = await operationsReportService.buildStaffWalletCsv(period);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send('\uFEFF' + csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export staff wallet report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getClientStatement(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const data = await financialReportService.getClientStatement(req.params.clientId);
+    if (!data) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Client not found' } });
+      return;
+    }
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load client statement';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getProductProfitabilityReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const period = parseReportPeriod(req);
+    const data = await productReportService.getProfitability(period);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load product profitability report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getProductCustomerDensityReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const productId = req.query.productId as string | undefined;
+    const data = await productReportService.getCustomerDensity(productId);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load customer density report';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getProductSalesTrendsReport(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const months = req.query.months ? parseInt(String(req.query.months), 10) : 12;
+    const data = await productReportService.getSalesTrends(Number.isFinite(months) ? months : 12);
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load product sales trends';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function getTopProductsLeaderboard(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const data = await productReportService.getTopProductsLeaderboard();
+    res.json({ success: true, data });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to load top products leaderboard';
+    res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
+  }
+}
+
+export async function downloadClientStatement(req: AuthenticatedRequest, res: Response): Promise<void> {
+  try {
+    const result = await financialReportService.buildClientStatementCsv(req.params.clientId);
+    if (!result) {
+      res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Client not found' } });
+      return;
+    }
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
+    res.send('\uFEFF' + result.csv);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Failed to export client statement';
     res.status(500).json({ success: false, error: { code: 'REPORT_ERROR', message } });
   }
 }

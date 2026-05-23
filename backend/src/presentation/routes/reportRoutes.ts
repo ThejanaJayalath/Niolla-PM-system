@@ -1,7 +1,38 @@
 import { Router } from 'express';
-import { query, validationResult } from 'express-validator';
+import { param, query, validationResult } from 'express-validator';
 import { authMiddleware, requireRole } from '../middleware/auth';
-import { getPaymentSummary, getMonthlyCollection, getOverdueList, getIncomeTracking } from '../controllers/ReportController';
+import {
+  getPaymentSummary,
+  getMonthlyCollection,
+  getOverdueList,
+  getIncomeTracking,
+  getLiveBusinessBalance,
+  getFinanceLedger,
+  downloadMonthlyProfitLoss,
+  getProjectFinancialSheet,
+  downloadProjectFinancialSheet,
+  getFinancialIncomeReport,
+  getFinancialExpenseReport,
+  getFinancialProfitLossReport,
+  downloadFinancialIncomeReport,
+  downloadFinancialExpenseReport,
+  getProjectProgressReport,
+  getStaffPerformanceReport,
+  getMarketingRoiReport,
+  downloadProjectProgressReport,
+  downloadStaffPerformanceReport,
+  downloadMarketingRoiReport,
+  getTransactionsReport,
+  downloadTransactionsReport,
+  getStaffWalletReport,
+  downloadStaffWalletReport,
+  getClientStatement,
+  downloadClientStatement,
+  getProductProfitabilityReport,
+  getProductCustomerDensityReport,
+  getProductSalesTrendsReport,
+  getTopProductsLeaderboard,
+} from '../controllers/ReportController';
 
 const router = Router();
 router.use(authMiddleware);
@@ -19,8 +50,215 @@ const validate = (req: import('express').Request, res: import('express').Respons
 };
 
 router.get('/summary', getPaymentSummary);
+router.get('/live-business-balance', requireRole('owner', 'pm'), getLiveBusinessBalance);
+router.get(
+  '/finance-ledger',
+  requireRole('owner', 'pm'),
+  [
+    query('from').optional().isISO8601().withMessage('from must be a valid date'),
+    query('to').optional().isISO8601().withMessage('to must be a valid date'),
+    query('kind').optional().isIn(['all', 'income', 'expense']),
+  ],
+  validate,
+  getFinanceLedger
+);
 router.get('/income-tracking', getIncomeTracking);
 router.get('/monthly-collection', [query('year').isInt({ min: 2020, max: 2100 }), query('month').isInt({ min: 1, max: 12 })], validate, getMonthlyCollection);
 router.get('/overdue-list', getOverdueList);
+router.get(
+  '/financial/income',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  getFinancialIncomeReport
+);
+router.get(
+  '/financial/expenses',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  getFinancialExpenseReport
+);
+router.get(
+  '/financial/pl',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  getFinancialProfitLossReport
+);
+router.get(
+  '/financial/income/download',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  downloadFinancialIncomeReport
+);
+router.get(
+  '/financial/expenses/download',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  downloadFinancialExpenseReport
+);
+router.get(
+  '/monthly-profit-loss/download',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  downloadMonthlyProfitLoss
+);
+router.get(
+  '/project-financial/:projectId',
+  requireRole('owner', 'pm'),
+  [param('projectId').isMongoId()],
+  validate,
+  getProjectFinancialSheet
+);
+router.get(
+  '/project-financial/:projectId/download',
+  requireRole('owner', 'pm'),
+  [param('projectId').isMongoId()],
+  validate,
+  downloadProjectFinancialSheet
+);
+router.get('/project-progress', requireRole('owner', 'pm'), getProjectProgressReport);
+router.get('/staff-performance', requireRole('owner', 'pm'), getStaffPerformanceReport);
+router.get(
+  '/marketing-roi',
+  requireRole('owner', 'pm'),
+  [query('from').optional().isISO8601(), query('to').optional().isISO8601()],
+  validate,
+  getMarketingRoiReport
+);
+router.get('/project-progress/download', requireRole('owner', 'pm'), downloadProjectProgressReport);
+router.get('/staff-performance/download', requireRole('owner', 'pm'), downloadStaffPerformanceReport);
+router.get(
+  '/marketing-roi/download',
+  requireRole('owner', 'pm'),
+  [query('from').optional().isISO8601(), query('to').optional().isISO8601()],
+  validate,
+  downloadMarketingRoiReport
+);
+router.get(
+  '/transactions',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  getTransactionsReport
+);
+router.get(
+  '/transactions/download',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  downloadTransactionsReport
+);
+router.get(
+  '/staff-wallet',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  getStaffWalletReport
+);
+router.get(
+  '/staff-wallet/download',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+  ],
+  validate,
+  downloadStaffWalletReport
+);
+router.get(
+  '/client-statement/:clientId',
+  requireRole('owner', 'pm'),
+  [param('clientId').isMongoId()],
+  validate,
+  getClientStatement
+);
+router.get(
+  '/client-statement/:clientId/download',
+  requireRole('owner', 'pm'),
+  [param('clientId').isMongoId()],
+  validate,
+  downloadClientStatement
+);
+
+router.get(
+  '/products/profitability',
+  requireRole('owner', 'pm'),
+  [
+    query('year').optional().isInt({ min: 2020, max: 2100 }),
+    query('month').optional().isInt({ min: 1, max: 12 }),
+    query('from').optional().isISO8601(),
+    query('to').optional().isISO8601(),
+    query('productId').optional().isMongoId(),
+  ],
+  validate,
+  getProductProfitabilityReport
+);
+router.get(
+  '/products/customer-density',
+  requireRole('owner', 'pm'),
+  [query('productId').optional().isMongoId()],
+  validate,
+  getProductCustomerDensityReport
+);
+router.get(
+  '/products/sales-trends',
+  requireRole('owner', 'pm'),
+  [query('months').optional().isInt({ min: 3, max: 24 })],
+  validate,
+  getProductSalesTrendsReport
+);
+router.get('/products/top-leaderboard', requireRole('owner', 'pm'), getTopProductsLeaderboard);
 
 export default router;

@@ -14,6 +14,14 @@ async function migrateLegacyProjectStatuses(): Promise<void> {
 }
 
 export async function connectDatabase(): Promise<void> {
+  if (mongoose.connection.readyState === 1) {
+    return;
+  }
+  if (mongoose.connection.readyState === 2) {
+    await mongoose.connection.asPromise();
+    return;
+  }
+
   // On Windows, Node can fail to resolve mongodb+srv (SRV) using system DNS.
   // ESERVFAIL often happens with default or corporate DNS. Use public DNS and prefer IPv4.
   dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1']);

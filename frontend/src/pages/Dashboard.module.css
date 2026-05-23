@@ -38,21 +38,14 @@
   width: 50px;
   height: 50px;
   border-radius: var(--radius-lg);
-  background: var(--primary-50);
-  color: var(--primary);
+  background: linear-gradient(135deg, #fce7f3, #ede9fe);
+  color: #7c3aed;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   transition: all var(--transition-fast);
-}
-
-.card:hover .cardIcon,
-.cardLink:hover .cardIcon {
-  background: var(--primary);
-  color: white;
-  transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .cardContent {
@@ -76,39 +69,169 @@
   line-height: 1.2;
 }
 
-/* Specific Card Colors (Optional variety) */
-.card:nth-child(2) .cardIcon {
-  background: var(--info-bg);
-  color: var(--info-text);
+/* Dashboard stat cards — purple / green / brown / orange */
+.cardGrid .statCardPurple,
+.cardGrid .statCardGreen,
+.cardGrid .statCardBrown,
+.cardGrid .statCardOrange {
+  border-width: 2px;
+  border-style: solid;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card:nth-child(2):hover .cardIcon {
-  background: var(--info);
-  color: white;
+.cardGrid .statCardPurple:hover,
+.cardGrid .statCardGreen:hover,
+.cardGrid .statCardBrown:hover,
+.cardGrid .statCardOrange:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
 }
 
-.card:nth-child(3) .cardIcon {
-  background: var(--warning-bg);
-  color: var(--warning-text);
+.cardGrid .statCardPurple {
+  background: linear-gradient(145deg, #4c1d95 0%, #6d28d9 45%, #8b5cf6 100%);
+  border-color: #5b21b6;
 }
 
-.card:nth-child(3):hover .cardIcon,
-.cardLink:hover .cardIcon {
-  background: var(--warning);
-  color: white;
+.cardGrid .statCardGreen {
+  background: linear-gradient(145deg, #14532d 0%, #15803d 45%, #22c55e 100%);
+  border-color: #166534;
 }
 
-/* Fix hover selector specificity */
-
-.card:nth-child(4) .cardIcon {
-  background: var(--success-bg);
-  color: var(--success-text);
+.cardGrid .statCardBrown {
+  background: linear-gradient(145deg, #78350f 0%, #a16207 48%, #d97706 100%);
+  border-color: #92400e;
 }
 
-.card:nth-child(4):hover .cardIcon,
-.cardLink:hover .cardIcon {
-  background: var(--success);
-  color: white;
+.cardGrid .statCardOrange {
+  background: linear-gradient(145deg, #c2410c 0%, #e67e0f 48%, #fb8c19 100%);
+  border-color: #ea580c;
+}
+
+.cardGrid .statCardPurple .cardLabel,
+.cardGrid .statCardPurple .cardValue,
+.cardGrid .statCardGreen .cardLabel,
+.cardGrid .statCardGreen .cardValue,
+.cardGrid .statCardBrown .cardLabel,
+.cardGrid .statCardBrown .cardValue,
+.cardGrid .statCardOrange .cardLabel,
+.cardGrid .statCardOrange .cardValue {
+  color: #ffffff;
+}
+
+.cardGrid .statCardPurple .cardLabel,
+.cardGrid .statCardGreen .cardLabel,
+.cardGrid .statCardBrown .cardLabel,
+.cardGrid .statCardOrange .cardLabel {
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.cardGrid .card:hover .cardIcon,
+.cardGrid .cardLink:hover .cardIcon {
+  transform: scale(1.05);
+}
+
+/* Payment overview — soft gradients + borders */
+.paymentCardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2.5rem;
+}
+
+.paymentCardGrid > .card,
+.paymentCardGrid > a.card {
+  border-width: 1.5px;
+  border-style: solid;
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.paymentCardGrid > a.card {
+  display: flex;
+}
+
+.paymentCardGrid > .card:hover,
+.paymentCardGrid > a.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.payCardPurple {
+  background: linear-gradient(155deg, #ede9fe 0%, #f5f3ff 50%, #ffffff 100%);
+  border-color: #c4b5fd;
+}
+
+.payCardTeal {
+  background: linear-gradient(155deg, #ccfbf1 0%, #f0fdfa 50%, #ffffff 100%);
+  border-color: #5eead4;
+}
+
+.payCardGreen {
+  background: linear-gradient(155deg, #dcfce7 0%, #f0fdf4 50%, #ffffff 100%);
+  border-color: #86efac;
+}
+
+.payCardOrange {
+  background: linear-gradient(155deg, #ffedd5 0%, #fff7ed 50%, #ffffff 100%);
+  border-color: #fdba74;
+}
+
+.payCardBrown {
+  background: linear-gradient(155deg, #fef3c7 0%, #fffbeb 50%, #ffffff 100%);
+  border-color: #fcd34d;
+}
+
+.payCardRose {
+  background: linear-gradient(155deg, #ffe4e6 0%, #fff1f2 50%, #ffffff 100%);
+  border-color: #fda4af;
+}
+
+.payCardBlue {
+  background: linear-gradient(155deg, #dbeafe 0%, #eff6ff 50%, #ffffff 100%);
+  border-color: #93c5fd;
+}
+
+.payCardTeal .cardIcon {
+  background: linear-gradient(135deg, #ccfbf1, #e0f2fe);
+  color: #0f766e;
+}
+
+.payCardGreen .cardIcon {
+  background: linear-gradient(135deg, #dcfce7, #ecfdf5);
+  color: #15803d;
+}
+
+.payCardOrange .cardIcon {
+  background: linear-gradient(135deg, #ffedd5, #fff7ed);
+  color: #c2410c;
+}
+
+.payCardBrown .cardIcon {
+  background: linear-gradient(135deg, #fef3c7, #fffbeb);
+  color: #a16207;
+}
+
+.payCardRose .cardIcon {
+  background: linear-gradient(135deg, #ffe4e6, #fef2f2);
+  color: #dc2626;
+}
+
+.payCardBlue .cardIcon {
+  background: linear-gradient(135deg, #dbeafe, #eff6ff);
+  color: #2563eb;
+}
+
+.paymentCardGrid .cardLabel {
+  color: #64748b;
+}
+
+.paymentCardGrid .cardValue {
+  color: #1e293b;
+  font-size: 1.5rem;
 }
 
 .section {
@@ -396,4 +519,126 @@
 .transactionCellStrong {
   font-weight: 600;
   color: var(--color-primary-hover, #c2410c);
+}
+
+/* Live Business Balance — finance dashboard */
+.financeSection {
+  margin-bottom: 2.5rem;
+  padding: 1.5rem;
+  background: var(--bg-surface, #fff);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.financeSectionHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.financeSectionIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg, 12px);
+  background: #ecfdf5;
+  color: #047857;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.financeIntro {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary, #6b7280);
+  max-width: 42rem;
+  line-height: 1.5;
+}
+
+.balanceTableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+}
+
+.balanceTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.balanceTable th,
+.balanceTable td {
+  padding: 1rem 1.25rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+  vertical-align: top;
+}
+
+.balanceTable thead th {
+  background: #fff7ed;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #c2410c;
+}
+
+.balanceTable tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.balanceAmountCol {
+  text-align: right;
+  white-space: nowrap;
+  font-weight: 700;
+  font-size: 1.05rem;
+}
+
+.balanceCategory {
+  font-weight: 600;
+  color: var(--text-primary, #111827);
+}
+
+.balanceDesc {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #6b7280);
+  line-height: 1.45;
+  max-width: 36rem;
+}
+
+.balanceRowProfit {
+  background: #f0fdf4;
+}
+
+.balanceRowExpense {
+  background: #fef2f2;
+}
+
+.balancePositive {
+  color: #047857;
+}
+
+.balanceNegative {
+  color: #dc2626;
+}
+
+.financeFootnote {
+  margin: 1rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.financeLink {
+  color: var(--primary, #fb8c19);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.financeLink:hover {
+  text-decoration: underline;
 }

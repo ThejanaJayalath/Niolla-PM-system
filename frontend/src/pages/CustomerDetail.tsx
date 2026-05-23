@@ -10,7 +10,6 @@ import {
 } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
-import { SOFTWARE_PRODUCT_OPTIONS } from '../constants/customerServiceProducts';
 import { normalizeProjectStatus, PROJECT_LIFECYCLE_LABELS } from '../types/projectLifecycle';
 import styles from './CustomerDetail.module.css';
 
@@ -26,7 +25,17 @@ interface Customer {
     companyName?: string;
     nicNumber?: string;
     status?: 'active' | 'inactive';
+    dateOfBirth?: string;
+    productId?: string;
+    productName?: string;
+    productCode?: string;
     serviceCategories?: string[];
+}
+
+interface ProductOption {
+    _id: string;
+    name: string;
+    code: string;
 }
 
 interface Project {
@@ -207,6 +216,7 @@ export default function CustomerDetail() {
     const [deleteCallLogId, setDeleteCallLogId] = useState<string | null>(null);
     const [deletingCallLog, setDeletingCallLog] = useState(false);
 
+    const [products, setProducts] = useState<ProductOption[]>([]);
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<Partial<Customer>>({});
 
@@ -262,6 +272,12 @@ export default function CustomerDetail() {
         void load();
     }, [id]);
 
+    useEffect(() => {
+        api.get<ProductOption[]>('/products?activeOnly=true').then((res) => {
+            if (res.success && res.data) setProducts(res.data);
+        });
+    }, []);
+
     /** Sidebar flow: /projects-payments → customer → /customer/:id?view=projects-payments */
     useEffect(() => {
         const view = searchParams.get('view');
@@ -295,11 +311,27 @@ export default function CustomerDetail() {
 
     const handleSave = async () => {
         if (!id) return;
+        if (!editForm.productId) {
+            alert('Please select a product from the directory');
+            return;
+        }
         try {
-            const res = await api.patch<Customer>(`/customers/${id}`, editForm);
+            const res = await api.patch<Customer>(`/customers/${id}`, {
+                name: editForm.name,
+                phoneNumber: editForm.phoneNumber,
+                email: editForm.email,
+                companyName: editForm.companyName,
+                address: editForm.address,
+                nicNumber: editForm.nicNumber,
+                productId: editForm.productId,
+                dateOfBirth: editForm.dateOfBirth?.trim() || undefined,
+            });
             if (res.success && res.data) {
                 setCustomer(res.data);
+                setEditForm(res.data);
                 setIsEditing(false);
+            } else {
+                alert(res.error?.message || 'Failed to save customer details');
             }
         } catch (err) {
             console.error('Failed to save', err);
@@ -486,19 +518,6 @@ export default function CustomerDetail() {
         }
     };
 
-    const toggleServiceCategory = (value: string) => {
-        setEditForm((prev) => {
-            const cur = prev.serviceCategories ?? customer?.serviceCategories ?? [];
-            const set = new Set(cur);
-            if (set.has(value)) set.delete(value);
-            else set.add(value);
-            return { ...prev, serviceCategories: [...set] };
-        });
-    };
-
-    const productLabel = (value: string) =>
-        SOFTWARE_PRODUCT_OPTIONS.find((o) => o.value === value)?.label ?? value;
-
     if (loading) return <div className={styles.container}>Loading...</div>;
     if (!customer) return <div className={styles.container}>Customer not found.</div>;
 
@@ -531,13 +550,14 @@ export default function CustomerDetail() {
                 <div>
                     <h1 className={styles.pageTitle}>{customer.name}</h1>
                     <p className={styles.subTitle}>{customer.customerId} • {customer.companyName || 'No Company'}</p>
-                    <div className={styles.productChipRow} aria-label="Linked software products">
-                        {(customer.serviceCategories && customer.serviceCategories.length > 0) ? (
-                            customer.serviceCategories.map((cat) => (
-                                <span key={cat} className={styles.productChip}>{productLabel(cat)}</span>
-                            ))
+                    <div className={styles.productChipRow} aria-label="Linked product">
+                        {customer.productName ? (
+                            <span className={styles.productChip}>
+                                {customer.productName}
+                                {customer.productCode ? ` (${customer.productCode})` : ''}
+                            </span>
                         ) : (
-                            <span className={styles.productChipMuted}>No software products linked</span>
+                            <span className={styles.productChipMuted}>No product linked</span>
                         )}
                     </div>
                 </div>
@@ -674,31 +694,45 @@ export default function CustomerDetail() {
                             </div>
 
                             <div className={styles.formGroup}>
-                                <label>Software products</label>
+                                <label>Date of birth (for birthday cards)</label>
                                 {isEditing ? (
-                                    <div className={styles.productChipRow}>
-                                        {SOFTWARE_PRODUCT_OPTIONS.map(({ value, label }) => {
-                                            const selected = (editForm.serviceCategories ?? customer.serviceCategories ?? []).includes(value);
-                                            return (
-                                                <button
-                                                    key={value}
-                                                    type="button"
-                                                    className={`${styles.productChipBtn} ${selected ? styles.productChipBtnActive : ''}`}
-                                                    onClick={() => toggleServiceCategory(value)}
-                                                >
-                                                    {label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                    <input
+                                        type="date"
+                                        value={editForm.dateOfBirth || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, dateOfBirth: e.target.value })}
+                                        className={styles.inputParam}
+                                    />
+                                ) : (
+                                    <div className={styles.inputReadonly}>{customer.dateOfBirth || '—'}</div>
+                                )}
+                            </div>
+
+                            <div className={styles.formGroup}>
+                                <label>Product</label>
+                                {isEditing ? (
+                                    <select
+                                        value={editForm.productId || ''}
+                                        onChange={(e) => setEditForm({ ...editForm, productId: e.target.value })}
+                                        className={styles.inputParam}
+                                    >
+                                        <option value="">Select product</option>
+                                        {products.map((p) => (
+                                            <option key={p._id} value={p._id}>
+                                                {p.name} ({p.code})
+                                            </option>
+                                        ))}
+                                    </select>
                                 ) : (
                                     <div className={styles.productChipRow}>
-                                        {(customer.serviceCategories && customer.serviceCategories.length > 0) ? (
-                                            customer.serviceCategories.map((v) => (
-                                                <span key={v} className={styles.productChip}>{productLabel(v)}</span>
-                                            ))
+                                        {customer.productName ? (
+                                            <span className={styles.productChip}>
+                                                {customer.productName}
+                                                {customer.productCode ? ` (${customer.productCode})` : ''}
+                                            </span>
                                         ) : (
-                                            <span className={styles.productChipMuted}>None — click Edit to link POS, ERP, website, mobile app, etc.</span>
+                                            <span className={styles.productChipMuted}>
+                                                None — click Edit to link from the Product Directory
+                                            </span>
                                         )}
                                     </div>
                                 )}

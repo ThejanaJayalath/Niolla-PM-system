@@ -7,9 +7,11 @@ import {
     Trash2,
     List,
     DollarSign,
-    CheckSquare
+    CheckSquare,
+    Download,
 } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -115,6 +117,7 @@ export default function ProjectDetail() {
     const [generatingPlan, setGeneratingPlan] = useState(false);
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [downloadingFinancial, setDownloadingFinancial] = useState(false);
     const [deleting, setDeleting] = useState(false);
     const [systemPopup, setSystemPopup] = useState<{ title: string; message: string } | null>(null);
     const [payoutActionKey, setPayoutActionKey] = useState<string | null>(null);
@@ -376,6 +379,18 @@ export default function ProjectDetail() {
     if (!project) return <div className={styles.container}>Project not found.</div>;
     const isAdmin = user?.role === 'owner';
     const canManagePayouts = user?.role === 'owner' || user?.role === 'pm';
+
+    const downloadFinancialSheet = async () => {
+        if (!id) return;
+        setDownloadingFinancial(true);
+        try {
+            await api.download(`/reports/project-financial/${id}/download`, `project-financial.csv`);
+        } catch (err) {
+            pushSystemToast(err instanceof Error ? err.message : 'Download failed.', 'error');
+        } finally {
+            setDownloadingFinancial(false);
+        }
+    };
     const activeStatus = isProjectUnderDevelopment(String(isEditing ? editForm.status : project.status));
     const selectedEmployees = (isEditing ? editForm.assignedEmployees : project.assignedEmployees) || [];
     const payoutMap = ((isEditing ? editForm.assignedEmployeePayouts : project.assignedEmployeePayouts) || {}) as Record<string, number>;
@@ -458,9 +473,22 @@ export default function ProjectDetail() {
                         </Link>
                     )}
                 </div>
-                <button onClick={() => setShowDeleteModal(true)} className={styles.deleteBtn}>
-                    <Trash2 size={16} /> Delete Project
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                    {canManagePayouts ? (
+                        <button
+                            type="button"
+                            disabled={downloadingFinancial}
+                            onClick={() => void downloadFinancialSheet()}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-50"
+                        >
+                            <Download size={16} aria-hidden />
+                            {downloadingFinancial ? 'Exporting…' : 'Financial sheet'}
+                        </button>
+                    ) : null}
+                    <button onClick={() => setShowDeleteModal(true)} className={styles.deleteBtn}>
+                        <Trash2 size={16} /> Delete Project
+                    </button>
+                </div>
             </div>
 
             <div className={styles.grid}>

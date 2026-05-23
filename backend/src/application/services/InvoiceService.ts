@@ -1,9 +1,11 @@
 import { Invoice } from '../../domain/entities/Invoice';
 import type { IncomeInvoiceType } from '../../domain/incomeInvoiceType';
+import { CustomerModel } from '../../infrastructure/database/models/CustomerModel';
 import { InvoiceModel } from '../../infrastructure/database/models/InvoiceModel';
 import { PaymentTransactionModel } from '../../infrastructure/database/models/PaymentTransactionModel';
 import { InstallmentModel } from '../../infrastructure/database/models/InstallmentModel';
 import mongoose from 'mongoose';
+import { MasterLedgerService } from './MasterLedgerService';
 
 /** First sequence number for `INV-YYYYMM-####` when no invoice exists yet for that month. */
 const INVOICE_MONTHLY_SEQUENCE_START = 789;
@@ -32,7 +34,17 @@ export interface ListInvoicesFilters {
   inquiryId?: string;
 }
 
+const masterLedgerService = new MasterLedgerService();
+
 export class InvoiceService {
+  private async resolveProductIdForClient(clientId: string): Promise<mongoose.Types.ObjectId | undefined> {
+    if (!mongoose.Types.ObjectId.isValid(clientId)) return undefined;
+    const customer = await CustomerModel.findById(clientId).select('productId').lean();
+    const pid = customer?.productId;
+    if (!pid) return undefined;
+    return pid instanceof mongoose.Types.ObjectId ? pid : new mongoose.Types.ObjectId(String(pid));
+  }
+
   /**
    * Classifies installment-backed payments: last installment in the plan = balance settlement;
    * earlier installments = monthly (recurring) collections.
@@ -91,6 +103,8 @@ export class InvoiceService {
     if (latest && latest.status !== 'paid') {
       latest.proposalId = args.proposalId as unknown as typeof latest.proposalId;
       latest.clientId = args.clientId as unknown as typeof latest.clientId;
+      const productId = await this.resolveProductIdForClient(args.clientId);
+      if (productId) latest.productId = productId;
       latest.totalAmount = amount;
       latest.description = `Advance Payment (40%) for ${args.projectLabel}`;
       latest.projectName = args.projectName;
@@ -122,11 +136,13 @@ export class InvoiceService {
   }
 
   async create(data: CreateInvoiceInput): Promise<Invoice> {
+    const productId = await this.resolveProductIdForClient(data.clientId);
     const doc = await InvoiceModel.create({
       transactionId: data.transactionId,
       inquiryId: data.inquiryId,
       proposalId: data.proposalId,
       clientId: data.clientId,
+      productId,
       invoiceNumber: data.invoiceNumber,
       invoiceDate: data.invoiceDate instanceof Date ? data.invoiceDate : new Date(data.invoiceDate),
       totalAmount: Number(data.totalAmount),
@@ -139,7 +155,15 @@ export class InvoiceService {
       projectName: data.projectName,
       companyName: data.companyName,
     });
-    return this.toInvoice(doc);
+    const invoice = this.toInvoice(doc);
+    if (invoice.status === 'paid' && invoice._id) {
+      try {
+        await masterLedgerService.recordInvoicePaid(invoice._id);
+      } catch {
+        /* non-fatal */
+      }
+    }
+    return invoice;
   }
 
   async hasProposalAdvanceInvoice(inquiryId: string): Promise<boolean> {
@@ -300,7 +324,19 @@ export class InvoiceService {
       { $set: { status } },
       { new: true }
     ).populate('clientId', 'name companyName email');
-    return { invoice: doc ? this.toInvoice(doc) : null, previousStatus };
+    const invoice = doc ? this.toInvoice(doc) : null;
+    if (invoice?._id) {
+      try {
+        if (status === 'paid') {
+          await masterLedgerService.recordInvoicePaid(invoice._id);
+        } else if (previousStatus === 'paid') {
+          await masterLedgerService.removeInvoiceIncome(invoice._id);
+        }
+      } catch {
+        /* non-fatal */
+      }
+    }
+    return { invoice, previousStatus };
   }
 
   async markCustomerNotified(id: string): Promise<Invoice | null> {
@@ -344,6 +380,12 @@ export class InvoiceService {
         typeof o.proposalId === 'object' && o.proposalId !== null && 'toString' in o.proposalId
           ? (o.proposalId as { toString: () => string }).toString()
           : String(o.proposalId);
+    }
+    if (o.productId) {
+      inv.productId =
+        typeof o.productId === 'object' && o.productId !== null && 'toString' in o.productId
+          ? (o.productId as { toString: () => string }).toString()
+          : String(o.productId);
     }
     if (o.sourceType) inv.sourceType = o.sourceType as 'PAYMENT' | 'PROPOSAL_ADVANCE';
     if (o.invoiceType) inv.invoiceType = o.invoiceType as IncomeInvoiceType;
