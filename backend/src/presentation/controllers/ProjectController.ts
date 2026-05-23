@@ -3,12 +3,14 @@ import { Project } from '../../domain/entities/Project';
 import { ProjectService } from '../../application/services/ProjectService';
 import { CustomerRequirementService } from '../../application/services/CustomerRequirementService';
 import { PaymentPlanService } from '../../application/services/PaymentPlanService';
+import { ExpenseService } from '../../application/services/ExpenseService';
 import { UserModel } from '../../infrastructure/database/models/UserModel';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 const projectService = new ProjectService();
 const customerRequirementService = new CustomerRequirementService();
 const paymentPlanService = new PaymentPlanService();
+const expenseService = new ExpenseService();
 
 function projectForClientRole(project: Project, role: string | undefined): Project {
   if (role === 'employee') {
@@ -31,6 +33,19 @@ export async function createProject(req: AuthenticatedRequest, res: Response): P
     endDate,
     status,
   });
+  const expensesNum = Math.max(0, Number(expenses) || 0);
+  if (expensesNum > 0 && project._id && req.user?.userId) {
+    try {
+      await expenseService.logAutomatedInfrastructureFromProjectExpense({
+        projectId: String(project._id),
+        projectName: project.projectName,
+        deltaAmount: expensesNum,
+        recordedByUserId: req.user.userId,
+      });
+    } catch {
+      /* non-fatal */
+    }
+  }
   res.status(201).json({ success: true, data: project });
 }
 
@@ -167,10 +182,28 @@ export async function listProjects(req: AuthenticatedRequest, res: Response): Pr
 
 export async function updateProject(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
+    const before = await projectService.findById(req.params.id);
     const project = await projectService.update(req.params.id, req.body);
     if (!project) {
       res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Project not found' } });
       return;
+    }
+    if (req.body.expenses !== undefined && before && req.user?.userId) {
+      const oldExp = Math.max(0, Number(before.expenses) || 0);
+      const newExp = Math.max(0, Number(project.expenses) || 0);
+      const delta = newExp - oldExp;
+      if (delta > 0) {
+        try {
+          await expenseService.logAutomatedInfrastructureFromProjectExpense({
+            projectId: String(project._id),
+            projectName: project.projectName,
+            deltaAmount: delta,
+            recordedByUserId: req.user.userId,
+          });
+        } catch {
+          /* non-fatal */
+        }
+      }
     }
     res.json({ success: true, data: projectForClientRole(project, req.user?.role) });
   } catch (err) {
@@ -237,8 +270,8 @@ export async function listMyRequirementTasks(req: AuthenticatedRequest, res: Res
 }
 
 export async function listPendingPayoutApprovals(req: AuthenticatedRequest, res: Response): Promise<void> {
-  if (req.user?.role !== 'owner') {
-    res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only an owner can view payout approvals' } });
+  if (req.user?.role !== 'owner' && req.user?.role !== 'pm') {
+    res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only admin can view payout approvals' } });
     return;
   }
   const data = await projectService.listPendingPayoutApprovals();
@@ -268,8 +301,8 @@ export async function submitDeveloperPayoutCompletion(req: AuthenticatedRequest,
 }
 
 export async function approveDeveloperPayoutRelease(req: AuthenticatedRequest, res: Response): Promise<void> {
-  if (req.user?.role !== 'owner') {
-    res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only an owner can approve payout release' } });
+  if (req.user?.role !== 'owner' && req.user?.role !== 'pm') {
+    res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Only admin can approve payout release' } });
     return;
   }
   const developerId = req.body?.developerId as string | undefined;

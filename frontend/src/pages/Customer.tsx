@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Plus, Search, Pencil, Trash2, Rocket } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AddCustomerModal from '../components/AddCustomerModal';
-import { SOFTWARE_PRODUCT_OPTIONS } from '../constants/customerServiceProducts';
 import styles from './Inquiries.module.css';
+
+interface ProductOption {
+  _id: string;
+  name: string;
+  code: string;
+}
 
 interface Customer {
   _id: string;
@@ -14,31 +19,48 @@ interface Customer {
   phoneNumber: string;
   email?: string;
   projects: string[];
+  productId?: string;
+  productName?: string;
+  productCode?: string;
   serviceCategories?: string[];
   address?: string;
   businessType?: string;
   companyName?: string;
   nicNumber?: string;
   status?: 'active' | 'inactive';
+  dateOfBirth?: string;
 }
 
 export default function Customer() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [productFilter, setProductFilter] = useState('');
+  const [productFilter, setProductFilter] = useState(searchParams.get('productId') || '');
   const [showModal, setShowModal] = useState(false);
   const [editCustomer, setEditCustomer] = useState<Customer | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
+  useEffect(() => {
+    api.get<ProductOption[]>('/products?activeOnly=true').then((res) => {
+      if (res.success && res.data) setProducts(res.data);
+    });
+  }, []);
+
+  useEffect(() => {
+    const fromUrl = searchParams.get('productId') || '';
+    if (fromUrl !== productFilter) setProductFilter(fromUrl);
+  }, [searchParams]);
+
   const load = async () => {
     try {
       const params = new URLSearchParams();
       if (search.trim()) params.append('search', search.trim());
-      if (productFilter.trim()) params.append('serviceCategory', productFilter.trim());
+      if (productFilter.trim()) params.append('productId', productFilter.trim());
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const res = await api.get<Customer[]>(`/customers${queryString}`);
       if (res.success && res.data) setCustomers(res.data);
@@ -60,6 +82,15 @@ export default function Customer() {
   useEffect(() => {
     setCurrentPage(1);
   }, [search, productFilter]);
+
+  const handleProductFilterChange = (value: string) => {
+    setProductFilter(value);
+    if (value) {
+      setSearchParams({ productId: value });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   const handleAdd = () => {
     setEditCustomer(null);
@@ -88,6 +119,11 @@ export default function Customer() {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const productFilterLabel = (id: string) => {
+    const p = products.find((x) => x._id === id);
+    return p ? `${p.name} customers` : 'Filtered customers';
   };
 
   const rowsPerPage = 8;
@@ -122,13 +158,13 @@ export default function Customer() {
           <select
             className={styles.customerProductFilter}
             value={productFilter}
-            onChange={(e) => setProductFilter(e.target.value)}
-            aria-label="Filter by product type"
+            onChange={(e) => handleProductFilterChange(e.target.value)}
+            aria-label="Filter by product"
           >
             <option value="">All customers</option>
-            {SOFTWARE_PRODUCT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label} customers
+            {products.map((p) => (
+              <option key={p._id} value={p._id}>
+                {productFilterLabel(p._id)}
               </option>
             ))}
           </select>
@@ -144,7 +180,7 @@ export default function Customer() {
               <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Phone Number</th>
               <th className="px-6 py-4 w-[14%] text-orange-500 font-bold text-sm">Email</th>
               <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Company Name</th>
-              <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Products</th>
+              <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Product</th>
               <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Projects</th>
               <th className="px-6 py-4 w-[8%] text-orange-500 font-bold text-sm">Status</th>
               <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm !text-center">Action</th>
@@ -172,12 +208,8 @@ export default function Customer() {
                     <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={c.companyName || ''}>
                       {c.companyName || '—'}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 truncate max-w-[140px]" title={(c.serviceCategories || []).join(', ')}>
-                      {(c.serviceCategories && c.serviceCategories.length)
-                        ? c.serviceCategories.length <= 2
-                          ? c.serviceCategories.join(' · ')
-                          : `${c.serviceCategories.slice(0, 2).join(' · ')} · +${c.serviceCategories.length - 2}`
-                        : '—'}
+                    <td className="px-6 py-4 text-gray-600 truncate max-w-[140px]" title={c.productName || ''}>
+                      {c.productName || c.productCode || '—'}
                     </td>
                     <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={(c.projects || []).join(', ')}>
                       {(c.projects && c.projects.length)

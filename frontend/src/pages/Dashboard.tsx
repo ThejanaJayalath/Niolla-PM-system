@@ -19,6 +19,9 @@ import {
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
 import { useAuth } from '../context/AuthContext';
+import CrmEngagementSection from '../components/CrmEngagementSection';
+import TopProductsLeaderboard from '../components/TopProductsLeaderboard';
+import TopSellingProductChart from '../components/TopSellingProductChart';
 import styles from './Dashboard.module.css';
 
 interface Stats {
@@ -36,6 +39,23 @@ interface PaymentSummary {
   pendingBalance: number;
   overdueCount: number;
   dueTodayCount: number;
+}
+
+interface LiveBusinessBalanceRow {
+  key: 'totalRevenue' | 'pendingReceivables' | 'totalExpenses' | 'netProfit' | 'finalProfit';
+  category: string;
+  description: string;
+  amount: number;
+}
+
+interface LiveBusinessBalance {
+  rows: LiveBusinessBalanceRow[];
+  totalRevenue: number;
+  pendingReceivables: number;
+  totalExpenses: number;
+  netProfit: number;
+  finalProfit: number;
+  expenseBreakdown: { marketing: number; payouts: number; overheads: number };
 }
 
 interface ReminderRow {
@@ -117,6 +137,7 @@ export default function Dashboard() {
     proposalsCreated: 0,
   });
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
+  const [liveBalance, setLiveBalance] = useState<LiveBusinessBalance | null>(null);
   const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingEarnings, setPendingEarnings] = useState<DeveloperPendingEarnings | null>(null);
@@ -127,12 +148,16 @@ export default function Dashboard() {
   const [markCompleteProjectId, setMarkCompleteProjectId] = useState<string | null>(null);
 
   useEffect(() => {
+    const isFinanceRole = user?.role === 'owner' || user?.role === 'pm';
     Promise.all([
       api.get<unknown[]>('/inquiries'),
       api.get<ReminderRow[]>('/reminders/upcoming?limit=10'),
       api.get<unknown[]>('/proposals'),
       api.get<PaymentSummary>('/reports/summary'),
-    ]).then(([inqRes, remRes, propRes, summaryRes]) => {
+      isFinanceRole
+        ? api.get<LiveBusinessBalance>('/reports/live-business-balance')
+        : Promise.resolve({ success: false as const, data: undefined }),
+    ]).then(([inqRes, remRes, propRes, summaryRes, balanceRes]) => {
       const inquiries = (inqRes.success && inqRes.data ? inqRes.data : []) as { status?: string }[];
       const total = inquiries.length;
       const newCount = inquiries.filter((i) => i.status === 'new').length;
@@ -155,9 +180,11 @@ export default function Dashboard() {
           overdueCount: 0,
           dueTodayCount: 0,
         });
+      if (balanceRes.success && balanceRes.data) setLiveBalance(balanceRes.data);
+      else setLiveBalance(null);
       setLoading(false);
     });
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
     if (authLoading || user?.role !== 'employee') {
@@ -199,8 +226,8 @@ export default function Dashboard() {
   }, [authLoading, user?.role, user?._id]);
 
   useEffect(() => {
-    if (authLoading || user?.role !== 'owner') {
-      if (!authLoading && user?.role !== 'owner') setPendingApprovals([]);
+    if (authLoading || (user?.role !== 'owner' && user?.role !== 'pm')) {
+      if (!authLoading && user?.role !== 'owner' && user?.role !== 'pm') setPendingApprovals([]);
       return;
     }
     setPendingApprovalsLoading(true);
@@ -263,6 +290,8 @@ export default function Dashboard() {
   return (
     <div>
       <h1 className={styles.pageTitle}>Dashboard</h1>
+
+      {(user?.role === 'owner' || user?.role === 'pm') && <CrmEngagementSection enabled />}
 
       {user?.role === 'employee' && (
         <section className={styles.devWalletSection}>
@@ -430,7 +459,7 @@ export default function Dashboard() {
         </section>
       )}
 
-      {user?.role === 'owner' && (
+      {(user?.role === 'owner' || user?.role === 'pm') && (
         <section style={{ marginBottom: '1.5rem' }}>
           <h2 className={styles.sectionTitle} style={{ marginBottom: '0.75rem' }}>
             Developer payout approvals
@@ -501,7 +530,7 @@ export default function Dashboard() {
       )}
 
       <div className={styles.cardGrid}>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.statCardPurple}`}>
           <div className={styles.cardIcon}>
             <ClipboardList size={24} />
           </div>
@@ -510,7 +539,7 @@ export default function Dashboard() {
             <span className={styles.cardValue}>{loading ? '—' : stats.totalInquiries}</span>
           </div>
         </div>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.statCardGreen}`}>
           <div className={styles.cardIcon}>
             <MessageSquare size={24} />
           </div>
@@ -519,7 +548,7 @@ export default function Dashboard() {
             <span className={styles.cardValue}>{loading ? '—' : stats.newInquiries}</span>
           </div>
         </div>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.statCardBrown}`}>
           <Link to="/reminders" className={styles.cardLink}>
             <div className={styles.cardIcon}>
               <Bell size={24} />
@@ -530,7 +559,7 @@ export default function Dashboard() {
             </div>
           </Link>
         </div>
-        <div className={styles.card}>
+        <div className={`${styles.card} ${styles.statCardOrange}`}>
           <Link to="/proposals" className={styles.cardLink}>
             <div className={styles.cardIcon}>
               <FileText size={24} />
@@ -543,23 +572,96 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {(user?.role === 'owner' || user?.role === 'pm') && (
+        <>
+          <TopProductsLeaderboard enabled />
+          <TopSellingProductChart enabled />
+        </>
+      )}
+
+      {liveBalance && (user?.role === 'owner' || user?.role === 'pm') && (
+        <section className={styles.financeSection}>
+          <div className={styles.financeSectionHeader}>
+            <div className={styles.financeSectionIcon}>
+              <TrendingUp size={22} />
+            </div>
+            <div>
+              <h2 className={styles.sectionTitle}>Live Business Balance</h2>
+              <p className={styles.financeIntro}>
+                Self-accounting master ledger — updates when invoices are marked paid, developer payouts are
+                assigned, and expenses are logged. Final Profit is shown after Marketing, Salaries, and
+                Infrastructure are deducted.
+              </p>
+            </div>
+          </div>
+          <div className={styles.balanceTableWrap}>
+            <table className={styles.balanceTable}>
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th className={styles.balanceAmountCol}>Amount (Rs.)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {liveBalance.rows.map((row) => (
+                  <tr
+                    key={row.key}
+                    className={
+                      row.key === 'finalProfit' || row.key === 'netProfit'
+                        ? styles.balanceRowProfit
+                        : row.key === 'totalExpenses'
+                          ? styles.balanceRowExpense
+                          : undefined
+                    }
+                  >
+                    <td>
+                      <div className={styles.balanceCategory}>{row.category}</div>
+                      <p className={styles.balanceDesc}>{row.description}</p>
+                    </td>
+                    <td className={styles.balanceAmountCol}>
+                      <span
+                        className={
+                          row.key === 'finalProfit' || row.key === 'netProfit'
+                            ? row.amount >= 0
+                              ? styles.balancePositive
+                              : styles.balanceNegative
+                            : undefined
+                        }
+                      >
+                        {loading ? '—' : Number(row.amount).toLocaleString()}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className={styles.financeFootnote}>
+            Expense breakdown — Marketing Rs. {liveBalance.expenseBreakdown.marketing.toLocaleString()} · Payouts Rs.{' '}
+            {liveBalance.expenseBreakdown.payouts.toLocaleString()} · Overheads Rs.{' '}
+            {liveBalance.expenseBreakdown.overheads.toLocaleString()}.{' '}
+            <Link to="/transactions" className={styles.financeLink}>
+              Open master ledger
+            </Link>
+          </p>
+        </section>
+      )}
+
       {paymentSummary !== null && (
         <>
           <h2 className={styles.sectionTitle} style={{ marginTop: '2rem', marginBottom: '1rem' }}>Payment overview</h2>
-          <div className={styles.cardGrid}>
-            <Link to="/customer" className={styles.cardLink}>
-              <div className={styles.card}>
-                <div className={styles.cardIcon}>
-                  <Users size={24} />
-                </div>
-                <div className={styles.cardContent}>
-                  <span className={styles.cardLabel}>Total clients</span>
-                  <span className={styles.cardValue}>{loading ? '—' : paymentSummary.totalClients}</span>
-                </div>
+          <div className={styles.paymentCardGrid}>
+            <Link to="/customer" className={`${styles.card} ${styles.payCardPurple}`}>
+              <div className={styles.cardIcon}>
+                <Users size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Total clients</span>
+                <span className={styles.cardValue}>{loading ? '—' : paymentSummary.totalClients}</span>
               </div>
             </Link>
-            <div className={styles.card}>
-              <div className={styles.cardIcon} style={{ background: 'var(--info-bg)', color: 'var(--info-text)' }}>
+            <div className={`${styles.card} ${styles.payCardTeal}`}>
+              <div className={styles.cardIcon}>
                 <FolderKanban size={24} />
               </div>
               <div className={styles.cardContent}>
@@ -567,8 +669,8 @@ export default function Dashboard() {
                 <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.totalProjectValue).toLocaleString()}`}</span>
               </div>
             </div>
-            <div className={styles.card}>
-              <div className={styles.cardIcon} style={{ background: 'var(--success-bg)', color: 'var(--success-text)' }}>
+            <div className={`${styles.card} ${styles.payCardGreen}`}>
+              <div className={styles.cardIcon}>
                 <Banknote size={24} />
               </div>
               <div className={styles.cardContent}>
@@ -576,21 +678,19 @@ export default function Dashboard() {
                 <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.totalCollected).toLocaleString()}`}</span>
               </div>
             </div>
-            <Link to="/invoices?status=pending" className={styles.cardLink}>
-              <div className={styles.card}>
-                <div className={styles.cardIcon} style={{ background: '#fff7ed', color: '#c2410c' }}>
-                  <Receipt size={24} />
-                </div>
-                <div className={styles.cardContent}>
-                  <span className={styles.cardLabel}>Accounts receivable (pending income)</span>
-                  <span className={styles.cardValue}>
-                    {loading ? '—' : `Rs. ${Number(paymentSummary.accountsReceivablePending).toLocaleString()}`}
-                  </span>
-                </div>
+            <Link to="/invoices?status=pending" className={`${styles.card} ${styles.payCardOrange}`}>
+              <div className={styles.cardIcon}>
+                <Receipt size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Accounts receivable (pending income)</span>
+                <span className={styles.cardValue}>
+                  {loading ? '—' : `Rs. ${Number(paymentSummary.accountsReceivablePending).toLocaleString()}`}
+                </span>
               </div>
             </Link>
-            <div className={styles.card}>
-              <div className={styles.cardIcon} style={{ background: 'var(--warning-bg)', color: 'var(--warning-text)' }}>
+            <div className={`${styles.card} ${styles.payCardBrown}`}>
+              <div className={styles.cardIcon}>
                 <Wallet size={24} />
               </div>
               <div className={styles.cardContent}>
@@ -598,26 +698,22 @@ export default function Dashboard() {
                 <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.pendingBalance).toLocaleString()}`}</span>
               </div>
             </div>
-            <Link to="/installments?status=overdue" className={styles.cardLink}>
-              <div className={styles.card}>
-                <div className={styles.cardIcon} style={{ background: '#fef2f2', color: '#dc2626' }}>
-                  <AlertCircle size={24} />
-                </div>
-                <div className={styles.cardContent}>
-                  <span className={styles.cardLabel}>Overdue installments</span>
-                  <span className={styles.cardValue}>{loading ? '—' : paymentSummary.overdueCount}</span>
-                </div>
+            <Link to="/installments?status=overdue" className={`${styles.card} ${styles.payCardRose}`}>
+              <div className={styles.cardIcon}>
+                <AlertCircle size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Overdue installments</span>
+                <span className={styles.cardValue}>{loading ? '—' : paymentSummary.overdueCount}</span>
               </div>
             </Link>
-            <Link to="/installments" className={styles.cardLink}>
-              <div className={styles.card}>
-                <div className={styles.cardIcon} style={{ background: '#eff6ff', color: '#2563eb' }}>
-                  <CalendarClock size={24} />
-                </div>
-                <div className={styles.cardContent}>
-                  <span className={styles.cardLabel}>Due today</span>
-                  <span className={styles.cardValue}>{loading ? '—' : paymentSummary.dueTodayCount}</span>
-                </div>
+            <Link to="/installments" className={`${styles.card} ${styles.payCardBlue}`}>
+              <div className={styles.cardIcon}>
+                <CalendarClock size={24} />
+              </div>
+              <div className={styles.cardContent}>
+                <span className={styles.cardLabel}>Due today</span>
+                <span className={styles.cardValue}>{loading ? '—' : paymentSummary.dueTodayCount}</span>
               </div>
             </Link>
           </div>

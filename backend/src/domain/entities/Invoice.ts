@@ -5,6 +5,8 @@ export interface Invoice {
   /** Source proposal when this row is generated from a confirmed proposal advance. */
   proposalId?: string;
   clientId: string;
+  /** Linked catalog product (denormalized from client when created). */
+  productId?: string;
   invoiceNumber: string;
   invoiceDate: Date;
   totalAmount: number;

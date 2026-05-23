@@ -43,6 +43,7 @@ interface ProjectTaskRow {
   description?: string;
   assigneeIds: string[];
   completed: boolean;
+  payoutSubmitted?: boolean;
 }
 
 export default function Tasks() {
@@ -160,6 +161,12 @@ export default function Tasks() {
     const res = await api.patch<ProjectTaskRow>(`/project-tasks/${t._id}`, { completed: !t.completed });
     if (res.success && res.data) {
       setProjectTasks((prev) => prev.map((x) => (x._id === t._id ? { ...x, ...res.data! } : x)));
+      if (!t.completed && res.data.payoutSubmitted) {
+        pushSystemToast(
+          'All your tasks on this project are done — submitted to admin for wallet approval.',
+          'success'
+        );
+      }
     } else {
       pushSystemToast(res.error?.message || 'Could not update task.', 'error');
     }

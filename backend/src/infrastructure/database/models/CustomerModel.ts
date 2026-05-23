@@ -13,7 +13,9 @@ export interface CustomerDocument extends Document {
   companyName?: string;
   nicNumber?: string;
   status?: 'active' | 'inactive';
+  productId?: mongoose.Types.ObjectId;
   serviceCategories?: string[];
+  dateOfBirth?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -31,7 +33,9 @@ const customerSchema = new Schema<CustomerDocument>(
     companyName: { type: String },
     nicNumber: { type: String },
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    productId: { type: Schema.Types.ObjectId, ref: 'Product', default: null, index: true },
     serviceCategories: [{ type: String }],
+    dateOfBirth: { type: String, trim: true },
   },
   { timestamps: true }
 );

@@ -1,0 +1,277 @@
+.section {
+  composes: card-base from global;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.headerIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  background: var(--primary-50);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.headerText {
+  flex: 1;
+  min-width: 180px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.viewAll {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.viewAll:hover {
+  text-decoration: underline;
+}
+
+.loading,
+.emptyChart {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  text-align: center;
+  padding: 1.5rem 0;
+}
+
+.highlights {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .highlights {
+    grid-template-columns: 1fr;
+  }
+}
+
+.highlightCard {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+}
+
+.highlightQty {
+  background: linear-gradient(135deg, #fff7ed 0%, #fff 100%);
+  border-color: #fed7aa;
+}
+
+.highlightRev {
+  background: linear-gradient(135deg, #f0fdfa 0%, #fff 100%);
+  border-color: #99f6e4;
+}
+
+.highlightQty .highlightIcon {
+  color: #c2410c;
+}
+
+.highlightRev .highlightIcon {
+  color: #0f766e;
+}
+
+.highlightLabel {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+
+.highlightName {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.highlightMeta {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.highlightEmpty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.chartGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .chartGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chartPanel {
+  background: var(--bg-muted, #f9fafb);
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+}
+
+.chartPanelHead {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.75rem;
+}
+
+.barChart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.75rem;
+  padding-top: 0.25rem;
+}
+
+.barCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 1;
+  max-width: 4.5rem;
+  min-width: 2.5rem;
+}
+
+.barValue {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.barTrack {
+  width: 100%;
+  height: 100px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.barFill {
+  width: 72%;
+  min-width: 12px;
+  border-radius: 6px 6px 2px 2px;
+  transition: height 0.3s ease;
+}
+
+.barLabel {
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.leaderboardWrap {
+  overflow-x: auto;
+}
+
+.leaderboardTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.leaderboardTable th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+
+.leaderboardTable td {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid var(--border-color, #f3f4f6);
+  vertical-align: middle;
+}
+
+.rankBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 1.5rem;
+}
+
+.leaderProductName {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.leaderCode {
+  font-size: 0.6875rem;
+  color: var(--primary);
+  background: var(--primary-50);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  margin-left: 0.35rem;
+}
+
+.leaderRevenue {
+  font-weight: 600;
+  color: #0f766e;
+}
+
+.leaderProfitPos {
+  font-weight: 600;
+  color: #047857;
+}
+
+.leaderProfitNeg {
+  font-weight: 600;
+  color: #b91c1c;
+}

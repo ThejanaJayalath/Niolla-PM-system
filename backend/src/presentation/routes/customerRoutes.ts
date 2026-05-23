@@ -39,8 +39,10 @@ router.post(
     body('companyName').optional().trim(),
     body('nicNumber').optional().trim(),
     body('status').optional().isIn(['active', 'inactive']),
+    body('productId').optional().isMongoId().withMessage('Invalid product'),
     body('serviceCategories').optional().isArray(),
     body('serviceCategories.*').optional().trim(),
+    body('dateOfBirth').optional().matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('dateOfBirth must be YYYY-MM-DD'),
   ],
   validate,
   createCustomer
@@ -50,6 +52,7 @@ router.get(
   '/',
   [
     query('search').optional().isString().trim(),
+    query('productId').optional().isMongoId().withMessage('Invalid product filter'),
     query('serviceCategory')
       .optional({ values: 'falsy' })
       .isIn([...CUSTOMER_SERVICE_CATEGORY_VALUES])
@@ -73,8 +76,10 @@ router.patch(
     body('companyName').optional().trim(),
     body('nicNumber').optional().trim(),
     body('status').optional().isIn(['active', 'inactive']),
+    body('productId').optional({ values: 'null' }).isMongoId().withMessage('Invalid product'),
     body('serviceCategories').optional().isArray(),
     body('serviceCategories.*').optional().trim(),
+    body('dateOfBirth').optional({ values: 'null' }).matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('dateOfBirth must be YYYY-MM-DD'),
   ],
   validate,
   updateCustomer

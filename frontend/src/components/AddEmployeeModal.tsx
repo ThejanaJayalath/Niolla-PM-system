@@ -18,6 +18,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     role: 'employee' as 'pm' | 'employee',
     password: '',
     autoGenerate: true,
+    dateOfBirth: '',
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -69,6 +70,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
       role: 'employee',
       password: '',
       autoGenerate: true,
+      dateOfBirth: '',
     });
   };
 
@@ -136,6 +138,16 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               className={styles.input}
               placeholder="Enter Phone Number"
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label>Date of birth (for birthday cards)</label>
+            <input
+              type="date"
+              value={formData.dateOfBirth}
+              onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+              className={styles.input}
             />
           </div>
 

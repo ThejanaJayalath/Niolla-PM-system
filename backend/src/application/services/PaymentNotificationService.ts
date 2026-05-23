@@ -12,7 +12,8 @@ export interface CreatePaymentNotificationInput {
     | 'receipt'
     | 'assignment'
     | 'payout_review'
-    | 'requirement_addon';
+    | 'requirement_addon'
+    | 'birthday';
   scheduledAt: string | Date;
   messageBody?: string;
   status?: 'pending' | 'sent' | 'failed';

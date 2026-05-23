@@ -28,7 +28,8 @@ export class UserService {
     role: 'pm' | 'employee',
     requesterRole: string,
     phone?: string,
-    address?: string
+    address?: string,
+    dateOfBirth?: string
   ): Promise<PublicUser> {
     // Allow PMs to add users too
     if (requesterRole !== 'owner' && requesterRole !== 'pm') {
@@ -41,6 +42,7 @@ export class UserService {
     if (userDoc) {
       if (phone) userDoc.phone = phone;
       if (address) userDoc.address = address;
+      if (dateOfBirth?.trim()) userDoc.dateOfBirth = dateOfBirth.trim();
       await userDoc.save();
     }
     
@@ -85,13 +87,22 @@ export class UserService {
     if (updates.name) doc.name = updates.name;
     if (updates.phone) doc.phone = updates.phone;
     if (updates.address) doc.address = updates.address;
-    
+    if (updates.dateOfBirth !== undefined) {
+      const dob = updates.dateOfBirth as string | null;
+      doc.dateOfBirth = dob && String(dob).trim() ? String(dob).trim() : undefined;
+    }
+
     // Only owners and PMs can update role and status
     if (requesterRole === 'owner' || requesterRole === 'pm') {
       if (updates.role && (requesterRole === 'owner' || (requesterRole === 'pm' && updates.role !== 'owner'))) {
         doc.role = updates.role;
       }
       if (updates.status) doc.status = updates.status;
+      if (updates.baseSalary !== undefined && doc.role === 'employee') {
+        const base = Number(updates.baseSalary);
+        if (!Number.isFinite(base) || base < 0) throw new Error('baseSalary must be a non-negative number');
+        doc.baseSalary = base;
+      }
     }
 
     await doc.save();

@@ -22,6 +22,7 @@ import BillingDetail from './pages/BillingDetail';
 import CreateBilling from './pages/CreateBilling';
 import Customer from './pages/Customer';
 import CustomerDetail from './pages/CustomerDetail';
+import ProductDirectory from './pages/ProductDirectory';
 import ProjectsPaymentsHub from './pages/ProjectsPaymentsHub';
 import Projects from './pages/Projects';
 import ProjectDetail from './pages/ProjectDetail';
@@ -34,6 +35,7 @@ import Invoices from './pages/Invoices';
 import PaymentNotifications from './pages/PaymentNotifications';
 import Reports from './pages/Reports';
 import Expenses from './pages/Expenses';
+import Transactions from './pages/Transactions';
 import Audit from './pages/Audit';
 import AssignEmployees from './pages/AssignEmployees';
 import Tasks from './pages/Tasks';
@@ -74,6 +76,7 @@ export default function App() {
         <Route path="billing" element={<Billing />} />
         <Route path="billing/new" element={<CreateBilling />} />
         <Route path="billing/:id" element={<BillingDetail />} />
+        <Route path="products" element={<ProductDirectory />} />
         <Route path="customer" element={<Customer />} />
         <Route path="customer/:id" element={<CustomerDetail />} />
         <Route path="projects-payments" element={<ProjectsPaymentsHub />} />
@@ -87,6 +90,7 @@ export default function App() {
         <Route path="payments" element={<Payments />} />
         <Route path="invoices" element={<Invoices />} />
         <Route path="expenses" element={<Expenses />} />
+        <Route path="transactions" element={<Transactions />} />
         <Route path="notifications" element={<PaymentNotifications />} />
         <Route path="reports" element={<Reports />} />
         <Route path="audit" element={<Audit />} />

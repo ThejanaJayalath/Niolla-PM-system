@@ -21,6 +21,7 @@ export interface CreateInquiryInput {
   requiredFeatures: string[];
   internalNotes?: string;
   createdBy?: string;
+  dateOfBirth?: string;
 }
 
 export interface UpdateInquiryInput {
@@ -32,6 +33,7 @@ export interface UpdateInquiryInput {
   requiredFeatures?: string[];
   internalNotes?: string;
   status?: InquiryStatus;
+  dateOfBirth?: string;
 }
 
 export class InquiryService {
@@ -57,6 +59,7 @@ export class InquiryService {
       projectDescription: (data.projectDescription ?? '').trim(),
       requiredFeatures: data.requiredFeatures ?? [],
       businessModel: data.businessModel?.trim() || undefined,
+      dateOfBirth: data.dateOfBirth?.trim() || undefined,
       status: 'NEW' as InquiryStatus,
       createdBy: data.createdBy,
     });
@@ -101,6 +104,7 @@ export class InquiryService {
     if (data.businessModel !== undefined) {
       update.businessModel = data.businessModel?.trim() || undefined;
     }
+    if (data.dateOfBirth !== undefined) update.dateOfBirth = data.dateOfBirth?.trim() || undefined;
     const doc = await InquiryModel.findByIdAndUpdate(id, update, { new: true, runValidators: false });
     const inquiry = doc ? (doc.toObject() as unknown as Inquiry) : null;
     if (inquiry && (data.status === 'PENDING_ADVANCE' || data.status === 'CONFIRMED')) {

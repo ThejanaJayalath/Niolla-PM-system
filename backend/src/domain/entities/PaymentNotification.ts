@@ -13,7 +13,9 @@ export interface PaymentNotification {
     | 'assignment'
     | 'payout_review'
     /** Customer: new billable feature / add-on plan (separate from main contract). */
-    | 'requirement_addon';
+    | 'requirement_addon'
+    | 'birthday'
+    | 'anniversary';
   scheduledAt: Date;
   sentAt?: Date;
   status: 'pending' | 'sent' | 'failed';
