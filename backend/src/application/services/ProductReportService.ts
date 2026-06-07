@@ -3,6 +3,7 @@ import { CustomerModel } from '../../infrastructure/database/models/CustomerMode
 import { InvoiceModel } from '../../infrastructure/database/models/InvoiceModel';
 import { ProductModel } from '../../infrastructure/database/models/ProductModel';
 import { ProjectModel } from '../../infrastructure/database/models/ProjectModel';
+import { InquiryModel } from '../../infrastructure/database/models/InquiryModel';
 import { ProductService } from './ProductService';
 
 export interface ReportPeriodParams {
@@ -108,6 +109,22 @@ function resolvePeriod(params?: ReportPeriodParams): {
   return { period: 'all-time' };
 }
 
+function buildMonthSlots(count: number): { year: number; month: number; label: string }[] {
+  const end = new Date();
+  const slots: { year: number; month: number; label: string }[] = [];
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(end.getFullYear(), end.getMonth() - i, 1);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    slots.push({
+      year,
+      month,
+      label: `${year}-${String(month).padStart(2, '0')}`,
+    });
+  }
+  return slots;
+}
+
 function sumPayoutsMap(payouts: unknown): number {
   if (!payouts || typeof payouts !== 'object') return 0;
   if (payouts instanceof Map) {
@@ -121,8 +138,24 @@ function sumPayoutsMap(payouts: unknown): number {
 export class ProductReportService {
   private productService = new ProductService();
 
-  /** Backfill productId on invoices/projects from linked customers. */
+  /** Backfill product links from inquiries and propagate to invoices/projects. */
   async syncProductLinks(): Promise<void> {
+    const customersMissingProduct = await CustomerModel.find({
+      inquiryId: { $ne: null },
+      $or: [{ productId: null }, { productId: { $exists: false } }],
+    })
+      .select('_id inquiryId')
+      .lean();
+
+    for (const c of customersMissingProduct) {
+      if (!c.inquiryId) continue;
+      const inquiry = await InquiryModel.findById(c.inquiryId).select('businessModel').lean();
+      const resolved = await this.productService.resolveProductIdFromBusinessModel(inquiry?.businessModel);
+      if (resolved && mongoose.Types.ObjectId.isValid(resolved)) {
+        await CustomerModel.updateOne({ _id: c._id }, { $set: { productId: new mongoose.Types.ObjectId(resolved) } });
+      }
+    }
+
     const customers = await CustomerModel.find({ productId: { $ne: null } })
       .select('_id productId')
       .lean();
@@ -154,7 +187,7 @@ export class ProductReportService {
     const periodInfo = resolvePeriod(period);
     const filterPid = await this.productFilterObjectId(period?.productId);
 
-    const invoiceMatch: Record<string, unknown> = { status: 'paid' };
+    const invoiceMatch: Record<string, unknown> = { status: 'paid', productId: { $ne: null } };
     if (periodInfo.from && periodInfo.to) {
       invoiceMatch.invoiceDate = { $gte: periodInfo.from, $lte: periodInfo.to };
     }
@@ -305,10 +338,17 @@ export class ProductReportService {
       { $sort: { '_id.year': 1, '_id.month': 1 } },
     ]);
 
-    const allProducts = await ProductModel.find().lean();
-    const productMeta = new Map(allProducts.map((p) => [String(p._id), p]));
+    const revenueByCodeMonth = new Map<string, number>();
+    for (const row of agg) {
+      const meta = productDocs.find((p) => String(p._id) === String(row._id.productId));
+      if (!meta) continue;
+      revenueByCodeMonth.set(`${meta.code}-${row._id.year}-${row._id.month}`, row.total);
+    }
 
+    const monthSlots = buildMonthSlots(months);
     const byProduct: ProductSalesTrendsReport['byProduct'] = {};
+    const series: ProductSalesTrendPoint[] = [];
+
     for (const p of productDocs) {
       byProduct[p.code] = {
         productId: String(p._id),
@@ -316,39 +356,25 @@ export class ProductReportService {
         productName: p.name,
         points: [],
       };
-    }
-
-    const series: ProductSalesTrendPoint[] = [];
-    const prevRevenue = new Map<string, number>();
-
-    for (const row of agg) {
-      const meta = productMeta.get(String(row._id.productId));
-      if (!meta) continue;
-      const key = `${meta.code}-${row._id.year}-${row._id.month}`;
-      const prevKey = `${meta.code}-${row._id.year}-${row._id.month - 1}`;
-      const prev = prevRevenue.get(prevKey) ?? prevRevenue.get(`${meta.code}-${row._id.year - 1}-12`);
-      const growthPercent = prev != null && prev > 0 ? ((row.total - prev) / prev) * 100 : null;
-      prevRevenue.set(key, row.total);
-
-      const label = `${row._id.year}-${String(row._id.month).padStart(2, '0')}`;
-      const point = {
-        year: row._id.year,
-        month: row._id.month,
-        label,
-        productCode: meta.code,
-        productName: meta.name,
-        revenue: row.total,
-        growthPercent,
-      };
-      series.push(point);
-      if (byProduct[meta.code]) {
-        byProduct[meta.code].points.push({
-          label,
-          year: row._id.year,
-          month: row._id.month,
-          revenue: row.total,
+      let prevRevenue: number | null = null;
+      for (const slot of monthSlots) {
+        const revenue = revenueByCodeMonth.get(`${p.code}-${slot.year}-${slot.month}`) ?? 0;
+        const growthPercent =
+          prevRevenue != null && prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : null;
+        const point = {
+          label: slot.label,
+          year: slot.year,
+          month: slot.month,
+          revenue,
           growthPercent,
+        };
+        byProduct[p.code].points.push(point);
+        series.push({
+          ...point,
+          productCode: p.code,
+          productName: p.name,
         });
+        prevRevenue = revenue;
       }
     }
 

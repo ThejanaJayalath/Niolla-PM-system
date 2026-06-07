@@ -23,6 +23,13 @@ export interface Proposal {
   milestones: ProposalMilestone[];
   advancePayment?: number;
   projectCost?: number;
+  /** Subtotal before festival campaign discount (incl. plan markup when applicable). */
+  originalAmount?: number;
+  campaignDiscountAmount?: number;
+  campaignId?: string;
+  campaignName?: string;
+  discountType?: 'percent' | 'flat';
+  discountValue?: number;
   totalAmount: number;
   paymentPlan?: ProposalPaymentPlan;
   installmentMonths?: number;

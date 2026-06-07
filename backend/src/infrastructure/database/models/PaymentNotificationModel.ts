@@ -12,6 +12,7 @@ export interface PaymentNotificationDocument extends Document {
     | 'receipt'
     | 'assignment'
     | 'payout_review'
+    | 'status_notification'
     | 'requirement_addon'
     | 'birthday'
     | 'anniversary';
@@ -31,7 +32,7 @@ const paymentNotificationSchema = new Schema<PaymentNotificationDocument>(
     type: { type: String, enum: ['sms', 'email', 'system'], required: true },
     triggerType: {
       type: String,
-      enum: ['due_reminder', 'overdue', 'receipt', 'assignment', 'payout_review', 'requirement_addon', 'birthday', 'anniversary'],
+      enum: ['due_reminder', 'overdue', 'receipt', 'assignment', 'payout_review', 'status_notification', 'requirement_addon', 'birthday', 'anniversary'],
       required: true,
       index: true,
     },

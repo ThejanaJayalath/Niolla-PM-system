@@ -93,6 +93,38 @@ export class ProductService {
     return doc ? this.toProduct(doc) : null;
   }
 
+  /** Map inquiry `businessModel` (e.g. POS, ERP) to catalog product Mongo id. */
+  async resolveProductIdFromBusinessModel(businessModel?: string): Promise<string | undefined> {
+    return this.resolveProductIdFromText(businessModel);
+  }
+
+  /** Detect POS / ERP / CRM from free text (business model, categories, proposal title). */
+  async resolveProductIdFromText(text?: string): Promise<string | undefined> {
+    await this.ensureDefaults();
+    if (!text?.trim()) return undefined;
+    const code = this.normalizeCode(text);
+    if (['POS', 'ERP', 'CRM'].includes(code)) {
+      const doc = await ProductModel.findOne({ code, status: 'active' }).select('_id').lean();
+      return doc?._id ? String(doc._id) : undefined;
+    }
+    const lower = text.toLowerCase();
+    for (const hint of ['ERP', 'POS', 'CRM'] as const) {
+      if (lower.includes(hint.toLowerCase())) {
+        const doc = await ProductModel.findOne({ code: hint, status: 'active' }).select('_id').lean();
+        if (doc?._id) return String(doc._id);
+      }
+    }
+    return undefined;
+  }
+
+  async resolveProductIdFromHints(hints: (string | undefined)[]): Promise<string | undefined> {
+    for (const hint of hints) {
+      const id = await this.resolveProductIdFromText(hint);
+      if (id) return id;
+    }
+    return undefined;
+  }
+
   async findAllWithStats(): Promise<ProductWithStats[]> {
     await this.ensureDefaults();
     const docs = await ProductModel.find().sort({ name: 1 });

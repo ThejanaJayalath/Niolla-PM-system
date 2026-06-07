@@ -39,6 +39,7 @@ router.post(
     body('phone').optional().isString(),
     body('address').optional().isString(),
     body('dateOfBirth').optional().matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('dateOfBirth must be YYYY-MM-DD'),
+    body('developerTrack').optional().isIn(['frontend', 'backend', 'fullstack']),
   ],
   (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);
@@ -61,6 +62,7 @@ router.patch(
     body('phone').optional().isString(),
     body('address').optional().isString(),
     body('dateOfBirth').optional({ values: 'null' }).matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('dateOfBirth must be YYYY-MM-DD'),
+    body('developerTrack').optional().isIn(['frontend', 'backend', 'fullstack']),
   ],
   (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req);

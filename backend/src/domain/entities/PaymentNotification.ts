@@ -12,6 +12,8 @@ export interface PaymentNotification {
     | 'receipt'
     | 'assignment'
     | 'payout_review'
+    /** Admin alert when a worker marks an update complete; customer alert when admin approves. */
+    | 'status_notification'
     /** Customer: new billable feature / add-on plan (separate from main contract). */
     | 'requirement_addon'
     | 'birthday'

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Pencil, Trash2, Package } from 'lucide-react';
+import { useMemo } from 'react';
+import { campaignDiscountFields, computePriceBreakdown } from '../lib/campaignPricing';
+import { Plus, Pencil, Trash2, Package, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AddProductModal, { ProductFormItem } from '../components/AddProductModal';
@@ -11,6 +14,30 @@ interface ProductRow extends ProductFormItem {
   customerCount: number;
 }
 
+interface CampaignSummary {
+  _id: string;
+  name: string;
+  discountType?: 'percent' | 'flat';
+  discountValue?: number;
+  discountPercent?: number;
+  productScope: 'all' | 'specific';
+  productIds?: string[];
+  products?: { _id: string }[];
+  isLive: boolean;
+}
+
+function campaignAppliesToProduct(c: CampaignSummary, productId: string): boolean {
+  if (c.productScope === 'all') return true;
+  if (c.productIds?.includes(productId)) return true;
+  return c.products?.some((p) => p._id === productId) ?? false;
+}
+
+interface LiveSaleInfo {
+  campaignName: string;
+  discountPercent: number;
+  salePrice: number;
+}
+
 function formatPrice(amount: number): string {
   return new Intl.NumberFormat('en-LK', { style: 'currency', currency: 'LKR', maximumFractionDigits: 0 }).format(
     amount
@@ -18,7 +45,10 @@ function formatPrice(amount: number): string {
 }
 
 export default function ProductDirectory() {
+  const { user } = useAuth();
+  const showCampaigns = user?.role === 'owner' || user?.role === 'pm';
   const [products, setProducts] = useState<ProductRow[]>([]);
+  const [campaigns, setCampaigns] = useState<CampaignSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editProduct, setEditProduct] = useState<ProductFormItem | null>(null);
@@ -28,14 +58,41 @@ export default function ProductDirectory() {
 
   const load = async () => {
     try {
-      const res = await api.get<ProductRow[]>('/products');
-      if (res.success && res.data) setProducts(res.data);
+      const requests: Promise<unknown>[] = [api.get<ProductRow[]>('/products')];
+      if (showCampaigns) requests.push(api.get<CampaignSummary[]>('/campaigns'));
+      const results = await Promise.all(requests);
+      const prodRes = results[0] as Awaited<ReturnType<typeof api.get<ProductRow[]>>>;
+      if (prodRes.success && prodRes.data) setProducts(prodRes.data);
+      if (showCampaigns && results[1]) {
+        const campRes = results[1] as Awaited<ReturnType<typeof api.get<CampaignSummary[]>>>;
+        if (campRes.success && campRes.data) setCampaigns(campRes.data);
+      }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  const liveSaleByProduct = useMemo(() => {
+    const map: Record<string, LiveSaleInfo> = {};
+    const live = campaigns.filter((c) => c.isLive);
+    for (const p of products) {
+      const match = live
+        .filter((c) => campaignAppliesToProduct(c, p._id))
+        .sort((a, b) => b.discountPercent - a.discountPercent)[0];
+      if (match) {
+        const { discountType, discountValue } = campaignDiscountFields(match);
+        const breakdown = computePriceBreakdown(p.basePricing, discountType, discountValue);
+        map[p._id] = {
+          campaignName: match.name,
+          discountPercent: discountType === 'percent' ? discountValue : 0,
+          salePrice: breakdown.finalPrice,
+        };
+      }
+    }
+    return map;
+  }, [campaigns, products]);
 
   useEffect(() => {
     setLoading(true);
@@ -77,6 +134,15 @@ export default function ProductDirectory() {
           <h1 className="text-2xl font-bold text-gray-900">Product Directory</h1>
           <p className="text-sm text-gray-500 mt-1">
             Manage NIOLLA software products, track sales volume per product, and view best-seller analytics.
+            {showCampaigns ? (
+              <>
+                {' '}
+                <Link to="/campaigns" className="text-primary font-semibold hover:underline inline-flex items-center gap-1">
+                  <Sparkles size={14} />
+                  Festival campaigns
+                </Link>
+              </>
+            ) : null}
           </p>
         </div>
         <button
@@ -122,7 +188,21 @@ export default function ProductDirectory() {
 
               {p.description && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{p.description}</p>}
 
-              <p className="text-sm font-semibold text-gray-800 mb-2">{formatPrice(p.basePricing)} base</p>
+              <div className="mb-2">
+                {liveSaleByProduct[p._id] ? (
+                  <>
+                    <p className="text-xs text-gray-500 line-through">{formatPrice(p.basePricing)}</p>
+                    <p className="text-sm font-bold text-emerald-700">
+                      {formatPrice(liveSaleByProduct[p._id].salePrice)}{' '}
+                      <span className="text-xs font-semibold text-emerald-600">
+                        ({liveSaleByProduct[p._id].discountPercent}% off — {liveSaleByProduct[p._id].campaignName})
+                      </span>
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm font-semibold text-gray-800">{formatPrice(p.basePricing)} base</p>
+                )}
+              </div>
 
               {p.features.length > 0 && (
                 <ul className="text-sm text-gray-600 list-disc list-inside mb-4 flex-1 space-y-0.5">

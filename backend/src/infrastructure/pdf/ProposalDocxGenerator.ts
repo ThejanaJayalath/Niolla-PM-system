@@ -53,6 +53,19 @@ export function getTemplateData(proposal: Proposal): Record<string, string> {
     proposal.totalAmount != null
       ? formatLkr(proposal.totalAmount)
       : formatLkr(0);
+  const hasCampaignDiscount = (proposal.campaignDiscountAmount ?? 0) > 0;
+  const originalPrice = hasCampaignDiscount
+    ? formatLkr(proposal.originalAmount ?? proposal.totalAmount)
+    : '';
+  const discountAmount = hasCampaignDiscount ? formatLkr(proposal.campaignDiscountAmount ?? 0) : '';
+  const finalPayable = totalCost;
+  const pricingSection = hasCampaignDiscount
+    ? [
+        `Original Price: ${originalPrice}`,
+        `Discount (${proposal.campaignName || 'Campaign'}): −${discountAmount}`,
+        `Final Payable Price: ${finalPayable}`,
+      ].join('\n')
+    : `Total Cost: ${totalCost}`;
   const deliverableSection =
     (proposal.milestones || []).length > 0
       ? (proposal.milestones || [])
@@ -71,6 +84,10 @@ export function getTemplateData(proposal: Proposal): Record<string, string> {
     ADVANCE_PAYMENT: advancePayment,
     PROJECT_COST: projectCost,
     TOTAL_COST: totalCost,
+    ORIGINAL_PRICE: originalPrice || totalCost,
+    DISCOUNT_AMOUNT: discountAmount || '—',
+    FINAL_PAYABLE: finalPayable,
+    PRICING_SECTION: pricingSection,
     DELIVERABLE_SECTION: deliverableSection,
   };
 }

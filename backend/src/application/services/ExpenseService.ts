@@ -190,7 +190,7 @@ export class ExpenseService {
     const dev = await UserModel.findById(args.developerId).select('name').lean();
     const devName = (dev?.name as string)?.trim() || 'Developer';
     const desc = `Wallet payout approved — ${args.projectName} (${devName})`;
-    await CompanyExpenseModel.create({
+    const doc = await CompanyExpenseModel.create({
       amount,
       category: 'STAFF_SALARIES',
       description: desc,
@@ -201,6 +201,74 @@ export class ExpenseService {
       automationKind: 'PAYOUT_APPROVAL',
       recordedBy: new mongoose.Types.ObjectId(args.recordedByUserId),
     });
+    try {
+      await this.masterLedgerService.recordCompanyExpense(String(doc._id));
+    } catch {
+      /* non-fatal */
+    }
+  }
+
+  /** Log update-ticket worker payout as a project-linked expense when admin approves completed work. */
+  async logAutomatedUpdatePayoutExpense(args: {
+    amount: number;
+    developerId: string;
+    projectId: string;
+    projectName: string;
+    updateTicketId: string;
+    ticketId: string;
+    ticketTitle: string;
+    quotedPrice?: number;
+    recordedByUserId: string;
+  }): Promise<void> {
+    const amount = Number(args.amount);
+    if (!Number.isFinite(amount) || amount <= 0) return;
+    if (
+      !mongoose.Types.ObjectId.isValid(args.developerId) ||
+      !mongoose.Types.ObjectId.isValid(args.projectId) ||
+      !mongoose.Types.ObjectId.isValid(args.updateTicketId) ||
+      !mongoose.Types.ObjectId.isValid(args.recordedByUserId)
+    ) {
+      return;
+    }
+
+    const updateOid = new mongoose.Types.ObjectId(args.updateTicketId);
+    const existing = await CompanyExpenseModel.findOne({
+      updateTicketId: updateOid,
+      automationKind: 'UPDATE_PAYOUT_APPROVAL',
+      source: 'automated',
+    })
+      .select('_id')
+      .lean();
+    if (existing) return;
+
+    const dev = await UserModel.findById(args.developerId).select('name').lean();
+    const devName = (dev?.name as string)?.trim() || 'Worker';
+    const quoted =
+      args.quotedPrice != null && Number.isFinite(Number(args.quotedPrice)) && Number(args.quotedPrice) > 0
+        ? ` Customer price Rs. ${Number(args.quotedPrice).toLocaleString()};`
+        : '';
+    const desc = `Update worker payout — ${args.ticketId}: ${args.ticketTitle} (${devName}).${quoted} Project: ${args.projectName}`;
+
+    const doc = await CompanyExpenseModel.create({
+      amount,
+      category: 'STAFF_SALARIES',
+      description: desc,
+      expenseDate: new Date(),
+      source: 'automated',
+      developerId: new mongoose.Types.ObjectId(args.developerId),
+      projectId: new mongoose.Types.ObjectId(args.projectId),
+      updateTicketId: updateOid,
+      automationKind: 'UPDATE_PAYOUT_APPROVAL',
+      recordedBy: new mongoose.Types.ObjectId(args.recordedByUserId),
+    });
+
+    await ProjectModel.findByIdAndUpdate(args.projectId, { $inc: { expenses: amount } });
+
+    try {
+      await this.masterLedgerService.recordCompanyExpense(String(doc._id));
+    } catch {
+      /* non-fatal */
+    }
   }
 
   /**

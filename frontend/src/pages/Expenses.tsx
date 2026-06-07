@@ -29,7 +29,7 @@ interface ExpenseRow {
   projectName?: string;
   projectTotalValue?: number;
   roiPercent?: number | null;
-  automationKind?: 'PAYOUT_APPROVAL' | 'PROJECT_OVERHEAD' | 'MONTHLY_PAYROLL';
+  automationKind?: 'PAYOUT_APPROVAL' | 'UPDATE_PAYOUT_APPROVAL' | 'PROJECT_OVERHEAD' | 'MONTHLY_PAYROLL';
 }
 
 interface ProjectOption {
@@ -91,7 +91,7 @@ function formatRoi(roi: number | null | undefined): string {
 
 export default function Expenses() {
   const { user } = useAuth();
-  const canManage = user?.role === 'owner' || user?.role === 'pm';
+  const canManage = user?.role === 'owner';
 
   const [summary, setSummary] = useState<ExpenseSummary[]>([]);
   const [rows, setRows] = useState<ExpenseRow[]>([]);
@@ -100,6 +100,7 @@ export default function Expenses() {
   const [marketingRoi, setMarketingRoi] = useState<MarketingRoiReport | null>(null);
   const [payrollPreview, setPayrollPreview] = useState<PayrollPreview | null>(null);
   const [payrollRunning, setPayrollRunning] = useState(false);
+  const [showPayrollConfirm, setShowPayrollConfirm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -156,6 +157,7 @@ export default function Expenses() {
 
   const automationLabel = (r: ExpenseRow) => {
     if (r.automationKind === 'MONTHLY_PAYROLL') return 'Monthly payroll';
+    if (r.automationKind === 'UPDATE_PAYOUT_APPROVAL') return 'Update payout';
     if (r.automationKind === 'PAYOUT_APPROVAL') return 'Wallet payout';
     if (r.automationKind === 'PROJECT_OVERHEAD') return 'Project overhead';
     return 'Automated';
@@ -163,14 +165,8 @@ export default function Expenses() {
 
   const runMonthlyPayroll = async () => {
     if (!payrollPreview) return;
-    if (
-      !confirm(
-        `Run payroll for ${payrollPreview.period}? Total Rs. ${payrollPreview.totalPayroll.toLocaleString()} will be paid and logged as salary expenses.`
-      )
-    ) {
-      return;
-    }
     setPayrollRunning(true);
+    setShowPayrollConfirm(false);
     try {
       const res = await api.post<{ totalPaid: number; paidCount: number }>('/payroll/run', {
         year: payrollPreview.year,
@@ -272,7 +268,7 @@ export default function Expenses() {
             <button
               type="button"
               disabled={payrollRunning || payrollPreview.totalPayroll <= 0}
-              onClick={() => void runMonthlyPayroll()}
+              onClick={() => setShowPayrollConfirm(true)}
               className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-700 text-white hover:opacity-90 disabled:opacity-50"
             >
               {payrollRunning ? 'Processing…' : 'Run month-end payroll'}
@@ -610,6 +606,46 @@ export default function Expenses() {
           </tbody>
         </table>
       </div>
+
+      {showPayrollConfirm && payrollPreview ? (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="payroll-confirm-title"
+        >
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 id="payroll-confirm-title" className="text-lg font-bold text-gray-900 mb-2">
+              Run month-end payroll?
+            </h3>
+            <p className="text-sm text-gray-600 mb-1">
+              Period: <strong>{payrollPreview.period}</strong>
+            </p>
+            <p className="text-sm text-gray-600 mb-4">
+              Total <strong>Rs. {payrollPreview.totalPayroll.toLocaleString()}</strong> will be paid and logged as
+              salary expenses. Each developer&apos;s wallet will be cleared after payment.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                disabled={payrollRunning}
+                onClick={() => setShowPayrollConfirm(false)}
+                className="px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={payrollRunning}
+                onClick={() => void runMonthlyPayroll()}
+                className="px-4 py-2 rounded-lg bg-emerald-700 text-white text-sm font-bold hover:bg-emerald-800 disabled:opacity-50"
+              >
+                {payrollRunning ? 'Processing…' : 'Confirm payroll'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

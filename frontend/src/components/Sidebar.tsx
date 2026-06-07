@@ -27,8 +27,18 @@ import {
     Receipt,
     Folders,
     Package,
+    Sparkles,
+    Wrench,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import {
+    canAccessLeadsAndBilling,
+    canDeleteAccounts,
+    canManageAccounts,
+  canViewCompanyFinancials,
+  canViewOperationalReports,
+    isDeveloperPortal,
+} from '../lib/roles';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -37,44 +47,64 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
     const { user } = useAuth();
-    const showExpenses = user?.role === 'owner' || user?.role === 'pm';
+    const role = user?.role;
+    const isDev = isDeveloperPortal(role);
+    const showLeads = canAccessLeadsAndBilling(role);
+    const showFinancialNav = canViewCompanyFinancials(role);
+    const showReports = canViewOperationalReports(role) || showFinancialNav;
+    const showCampaigns = canAccessLeadsAndBilling(role);
     const [meetingsMaintenanceOpen, setMeetingsMaintenanceOpen] = useState(false);
 
-    const navItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-        { icon: FolderKanban, label: 'Projects', path: '/projects' },
-        { icon: Users, label: 'Assign Employees', path: '/assign-employees' },
-        { icon: Bell, label: 'Notifications', path: '/notifications' },
-        { icon: BarChart3, label: 'Reports', path: '/reports' },
-        { icon: ListTodo, label: 'Tasks', path: '/tasks' },
-        { icon: FileText, label: 'Work Logs', path: '/work-logs' },
-        { icon: TrendingUp, label: 'Performance', path: '/performance' },
-        { icon: Package, label: 'Product Directory', path: '/products' },
-        { icon: UserCircle, label: 'Customer', path: '/customer' },
-    ];
+    const navItems = isDev
+        ? [
+              { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+              { icon: FolderKanban, label: 'My Projects', path: '/projects' },
+              { icon: ListTodo, label: 'Tasks', path: '/tasks' },
+              { icon: Bell, label: 'Notifications', path: '/notifications' },
+          ]
+        : [
+              { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+              { icon: FolderKanban, label: 'Projects', path: '/projects' },
+              ...(showLeads ? [{ icon: Wrench, label: 'Update Tickets', path: '/update-tickets' }] : []),
+              ...(canManageAccounts(role)
+                  ? [{ icon: Users, label: 'Assign Employees', path: '/assign-employees' }]
+                  : []),
+              { icon: Bell, label: 'Notifications', path: '/notifications' },
+              ...(showReports ? [{ icon: BarChart3, label: 'Reports', path: '/reports' }] : []),
+              { icon: ListTodo, label: 'Tasks', path: '/tasks' },
+              { icon: FileText, label: 'Work Logs', path: '/work-logs' },
+              { icon: TrendingUp, label: 'Performance', path: '/performance' },
+              ...(showLeads ? [{ icon: Package, label: 'Product Directory', path: '/products' }] : []),
+              ...(showCampaigns ? [{ icon: Sparkles, label: 'Festival Campaigns', path: '/campaigns' }] : []),
+              ...(showLeads ? [{ icon: UserCircle, label: 'Customer', path: '/customer' }] : []),
+          ];
 
-    const paymentItems = [
-        { icon: Folders, label: 'Projects & payments', path: '/projects-payments' },
-        { icon: Wallet, label: 'Payment Plans', path: '/payment-plans' },
-        { icon: CalendarCheck, label: 'Installments', path: '/installments' },
-        { icon: Banknote, label: 'Payments', path: '/payments' },
-        { icon: CreditCard, label: 'Billing', path: '/billing' },
-        { icon: Receipt, label: 'Invoices', path: '/invoices' },
-        ...(showExpenses ? [{ icon: TrendingDown, label: 'Expenses', path: '/expenses' }] : []),
-        ...(showExpenses ? [{ icon: ArrowLeftRight, label: 'Transactions', path: '/transactions' }] : []),
-    ];
+    const paymentItems = showLeads
+        ? [
+              { icon: Folders, label: 'Projects & payments', path: '/projects-payments' },
+              { icon: Wallet, label: 'Payment Plans', path: '/payment-plans' },
+              { icon: CalendarCheck, label: 'Installments', path: '/installments' },
+              { icon: Banknote, label: 'Payments', path: '/payments' },
+              { icon: CreditCard, label: 'Billing', path: '/billing' },
+              { icon: Receipt, label: 'Invoices', path: '/invoices' },
+              ...(showFinancialNav ? [{ icon: TrendingDown, label: 'Expenses', path: '/expenses' }] : []),
+              ...(showFinancialNav ? [{ icon: ArrowLeftRight, label: 'Transactions', path: '/transactions' }] : []),
+          ]
+        : [];
 
-    const leadsItems = [
-        { icon: UserRoundSearch, label: 'Prospects', path: '/prospects' },
-        { icon: MessageSquare, label: 'Inquiries', path: '/inquiries' },
-        { icon: FileText, label: 'Proposal', path: '/proposals' },
-        { icon: Calendar, label: 'Meetings', path: '/meetings', locked: true },
-    ];
+    const leadsItems = showLeads
+        ? [
+              { icon: UserRoundSearch, label: 'Prospects', path: '/prospects' },
+              { icon: MessageSquare, label: 'Inquiries', path: '/inquiries' },
+              { icon: FileText, label: 'Proposal', path: '/proposals' },
+              { icon: Calendar, label: 'Meetings', path: '/meetings', locked: true },
+          ]
+        : [];
 
     const adminItems = [
-        { icon: Settings, label: 'Settings', path: '/settings' },
-        { icon: Users, label: 'Team Management', path: '/team' },
-        { icon: ScrollText, label: 'Audit', path: '/audit' },
+        ...(showLeads ? [{ icon: Settings, label: 'Settings', path: '/settings' }] : []),
+        ...(canManageAccounts(role) ? [{ icon: Users, label: 'Team Management', path: '/team' }] : []),
+        ...(canDeleteAccounts(role) ? [{ icon: ScrollText, label: 'Audit', path: '/audit' }] : []),
         { icon: User, label: 'Profile', path: '/profile' },
     ];
 
@@ -138,6 +168,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                         ))}
                     </nav>
 
+                    {leadsItems.length > 0 ? (
                     <div className="mt-8 px-4">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                             LEADS MANAGEMENT
@@ -184,7 +215,9 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             )}
                         </nav>
                     </div>
+                    ) : null}
 
+                    {paymentItems.length > 0 ? (
                     <div className="mt-8 px-4">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                             PAYMENT MANAGEMENT
@@ -215,6 +248,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             ))}
                         </nav>
                     </div>
+                    ) : null}
 
                     <div className="mt-8 px-4">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
@@ -287,6 +321,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                         ))}
                     </nav>
 
+                    {leadsItems.length > 0 ? (
                     <div className="mt-8 px-4">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                             LEADS MANAGEMENT
@@ -329,7 +364,9 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             )}
                         </nav>
                     </div>
+                    ) : null}
 
+                    {paymentItems.length > 0 ? (
                     <div className="mt-8 px-4">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
                             PAYMENT MANAGEMENT
@@ -359,6 +396,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             ))}
                         </nav>
                     </div>
+                    ) : null}
 
                     <div className="mt-8 px-4">
                         <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">

@@ -20,6 +20,8 @@ export interface Customer {
   serviceCategories?: string[];
   /** YYYY-MM-DD — used for birthday card automation */
   dateOfBirth?: string;
+  /** Aggregated from projects/invoices when listing customers (owner/pm). */
+  summary?: import('./CustomerProfile').CustomerListSummary;
   createdAt?: Date;
   updatedAt?: Date;
 }

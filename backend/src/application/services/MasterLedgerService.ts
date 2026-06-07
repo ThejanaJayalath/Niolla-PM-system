@@ -50,11 +50,24 @@ export class MasterLedgerService {
     const inv = await InvoiceModel.findById(invoiceId).populate('clientId', 'name companyName').lean();
     if (!inv || inv.status !== 'paid') return;
 
-    const amount = Number(inv.totalAmount) || 0;
-    if (amount <= 0) return;
+    const netAmount = Number(inv.totalAmount) || 0;
+    if (netAmount <= 0) return;
+
+    const discountAmount = Number(inv.discountAmt) || 0;
+    const grossAmount =
+      inv.originalAmount != null && Number(inv.originalAmount) > 0
+        ? Number(inv.originalAmount)
+        : discountAmount > 0
+          ? netAmount + discountAmount
+          : netAmount;
 
     const client = inv.clientId as { name?: string; companyName?: string } | null;
     const clientName = client ? (client.companyName as string) || (client.name as string) : undefined;
+
+    let description = inv.description?.trim() || `Paid invoice ${inv.invoiceNumber}`;
+    if (discountAmount > 0) {
+      description = `${description} (gross Rs. ${grossAmount.toLocaleString()}, discount −Rs. ${discountAmount.toLocaleString()}, net Rs. ${netAmount.toLocaleString()})`;
+    }
 
     await MasterLedgerModel.findOneAndUpdate(
       { uniqueKey: `income:invoice:${invoiceId}` },
@@ -63,8 +76,10 @@ export class MasterLedgerService {
           kind: 'income',
           source: 'INVOICE_PAID',
           category: 'Income',
-          amount,
-          description: inv.description?.trim() || `Paid invoice ${inv.invoiceNumber}`,
+          amount: netAmount,
+          grossAmount: discountAmount > 0 ? grossAmount : undefined,
+          discountAmount: discountAmount > 0 ? discountAmount : undefined,
+          description,
           occurredAt: inv.invoiceDate ? new Date(inv.invoiceDate) : new Date(),
           invoiceId: new mongoose.Types.ObjectId(invoiceId),
           clientName,

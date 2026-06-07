@@ -7,9 +7,19 @@ import {
     Trash2,
     FolderKanban,
     Pencil,
+    TrendingUp,
+    Wallet,
+    Receipt,
+    FileText,
+    Calendar,
+    Gift,
+    Activity,
+    PiggyBank,
 } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { useAuth } from '../context/AuthContext';
+import { canViewCompanyFinancials } from '../lib/roles';
 import { normalizeProjectStatus, PROJECT_LIFECYCLE_LABELS } from '../types/projectLifecycle';
 import styles from './CustomerDetail.module.css';
 
@@ -20,6 +30,7 @@ interface Customer {
     phoneNumber: string;
     email?: string;
     projects: string[];
+    inquiryId?: string;
     address?: string;
     businessType?: string;
     companyName?: string;
@@ -30,6 +41,52 @@ interface Customer {
     productName?: string;
     productCode?: string;
     serviceCategories?: string[];
+}
+
+interface CustomerProfile360 {
+    clientId: string;
+    clientName: string;
+    customerId: string;
+    servicesPurchased: string[];
+    projectHistory: {
+        projectId: string;
+        projectName: string;
+        productName?: string;
+        productCode?: string;
+        systemType?: string;
+        status: string;
+        totalValue: number;
+        startDate?: string;
+        endDate?: string;
+    }[];
+    financialSummary: {
+        totalRevenue: number;
+        paidAmount: number;
+        outstandingBalance: number;
+        totalProfit: number;
+        paidInvoiceTotal: number;
+        pendingInvoiceTotal: number;
+    };
+    engagement: {
+        proposalsSent: number;
+        meetingsHeld: number;
+        birthdayCardsSent: number;
+        callsLogged: number;
+        interactionsTotal: number;
+    };
+    activityLog: {
+        id: string;
+        occurredAt: string;
+        staffName: string;
+        action: string;
+        summary: string;
+        projectId?: string;
+        projectName?: string;
+    }[];
+}
+
+function fmtRs(n: number): string {
+    return `Rs. ${Number(n || 0).toLocaleString()}`;
 }
 
 interface ProductOption {
@@ -43,6 +100,9 @@ interface Project {
     projectName: string;
     totalValue: number;
     status: string;
+    systemType?: string;
+    productName?: string;
+    productCode?: string;
 }
 
 interface Invoice {
@@ -144,9 +204,12 @@ function installmentProjectId(inst: { projectId?: string; planId?: unknown }, pl
 export default function CustomerDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const showProfit = canViewCompanyFinancials(user?.role);
     const [searchParams] = useSearchParams();
 
     const [customer, setCustomer] = useState<Customer | null>(null);
+    const [profile360, setProfile360] = useState<CustomerProfile360 | null>(null);
     const [projects, setProjects] = useState<Project[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [paymentPlans, setPaymentPlans] = useState<any[]>([]);
@@ -255,11 +318,24 @@ export default function CustomerDetail() {
                 setEditForm(custRes.data);
             }
             await fetchCustomerFinancialSnapshot();
-            const interactionRes = await api.get<Interaction[]>(`/customers/${id}/interactions`);
+            const [profileRes, interactionRes, callsRes, requirementsRes] = await Promise.all([
+                api.get<CustomerProfile360>(`/customers/${id}/profile`),
+                api.get<Interaction[]>(`/customers/${id}/interactions`),
+                api.get<Interaction[]>(`/customers/${id}/call-logs`),
+                api.get<CustomerRequirement[]>(`/customers/${id}/requirements`),
+            ]);
+            if (profileRes.success && profileRes.data) {
+                setProfile360(profileRes.data);
+                const projRes = await api.get<Project[]>(`/projects?clientId=${id}`);
+                if (projRes.success && projRes.data) setProjects(projRes.data);
+                const custRefresh = await api.get<Customer>(`/customers/${id}`);
+                if (custRefresh.success && custRefresh.data) {
+                    setCustomer(custRefresh.data);
+                    setEditForm(custRefresh.data);
+                }
+            } else setProfile360(null);
             if (interactionRes.success && interactionRes.data) setInteractions(interactionRes.data);
-            const callsRes = await api.get<Interaction[]>(`/customers/${id}/call-logs`);
             if (callsRes.success && callsRes.data) setCallLogs(callsRes.data);
-            const requirementsRes = await api.get<CustomerRequirement[]>(`/customers/${id}/requirements`);
             if (requirementsRes.success && requirementsRes.data) setRequirements(requirementsRes.data);
         } catch (err) {
             console.error(err);
@@ -534,6 +610,25 @@ export default function CustomerDetail() {
     const summaryAddonPaidInstallments = installmentPaidByKind('addon');
     const selectedCashflowProject = cashflowProjectId ? projects.find((p) => p._id === cashflowProjectId) : undefined;
 
+    const projectHistoryById = Object.fromEntries(
+        (profile360?.projectHistory ?? []).map((row) => [row.projectId, row])
+    );
+
+    const projectProductLabel = (p: Project): string | undefined => {
+        const hist = projectHistoryById[p._id];
+        return (
+            hist?.productName ||
+            hist?.productCode ||
+            hist?.systemType ||
+            p.productName ||
+            p.productCode ||
+            p.systemType ||
+            customer?.productName ||
+            customer?.productCode ||
+            customer?.serviceCategories?.[0]
+        );
+    };
+
     return (
         <div className={styles.container}>
             <div className="flex flex-col gap-4 mb-6">
@@ -565,6 +660,192 @@ export default function CustomerDetail() {
                     <Trash2 size={16} /> Delete Customer
                 </button>
             </div>
+
+            {profile360 && (
+                <section className={styles.profile360} aria-label="360 degree client profile">
+                    <div className={styles.profile360Header}>
+                        <div>
+                            <h2 className={styles.profile360Title}>360° Client Profile</h2>
+                            <p className={styles.profile360Intro}>
+                                Real-time customer lifetime value — aggregated from projects, invoices, and engagement
+                                activity. Advance payments count toward <strong>Paid</strong> once the invoice is marked paid.
+                            </p>
+                        </div>
+                    </div>
+
+                    {profile360.servicesPurchased.length > 0 ? (
+                        <div className={styles.servicesPurchasedRow} aria-label="Services purchased">
+                            {profile360.servicesPurchased.map((svc) => (
+                                <span key={svc} className={styles.serviceChip}>
+                                    {svc}
+                                </span>
+                            ))}
+                        </div>
+                    ) : null}
+
+                    <div className={styles.profile360Grid}>
+                        <div className={`${styles.profileStatCard} ${styles.profileStatPurple}`}>
+                            <TrendingUp size={22} aria-hidden />
+                            <span className={styles.profileStatLabel}>Total revenue (CLV)</span>
+                            <span className={styles.profileStatValue}>{fmtRs(profile360.financialSummary.totalRevenue)}</span>
+                            <span className={styles.profileStatHelp}>Sum of all project contract values</span>
+                        </div>
+                        <div className={`${styles.profileStatCard} ${styles.profileStatGreen}`}>
+                            <Wallet size={22} aria-hidden />
+                            <span className={styles.profileStatLabel}>Paid amount</span>
+                            <span className={styles.profileStatValue}>{fmtRs(profile360.financialSummary.paidAmount)}</span>
+                            <span className={styles.profileStatHelp}>
+                                Collected (payments + paid invoices) · invoiced paid {fmtRs(profile360.financialSummary.paidInvoiceTotal)}
+                            </span>
+                        </div>
+                        {showProfit ? (
+                            <div className={`${styles.profileStatCard} ${styles.profileStatTeal}`}>
+                                <PiggyBank size={22} aria-hidden />
+                                <span className={styles.profileStatLabel}>Total profit</span>
+                                <span className={styles.profileStatValue}>
+                                    {fmtRs(profile360.financialSummary.totalProfit)}
+                                </span>
+                                <span className={styles.profileStatHelp}>
+                                    Sum of project margins (value − developer payouts − expenses)
+                                </span>
+                            </div>
+                        ) : null}
+                        <div className={`${styles.profileStatCard} ${styles.profileStatOrange}`}>
+                            <Receipt size={22} aria-hidden />
+                            <span className={styles.profileStatLabel}>Outstanding balance</span>
+                            <span className={styles.profileStatValue}>
+                                {fmtRs(profile360.financialSummary.outstandingBalance)}
+                            </span>
+                            <span className={styles.profileStatHelp}>
+                                Remaining on payment plans
+                                {profile360.financialSummary.pendingInvoiceTotal > 0
+                                    ? ` · pending invoices ${fmtRs(profile360.financialSummary.pendingInvoiceTotal)}`
+                                    : ''}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className={styles.profileEngagementRow}>
+                        <div className={styles.profileEngagementCard}>
+                            <FileText size={18} className="text-orange-500" aria-hidden />
+                            <div>
+                                <div className={styles.profileEngagementValue}>{profile360.engagement.proposalsSent}</div>
+                                <div className={styles.profileEngagementLabel}>Proposals sent</div>
+                            </div>
+                        </div>
+                        <div className={styles.profileEngagementCard}>
+                            <Calendar size={18} className="text-orange-500" aria-hidden />
+                            <div>
+                                <div className={styles.profileEngagementValue}>{profile360.engagement.meetingsHeld}</div>
+                                <div className={styles.profileEngagementLabel}>Meetings held</div>
+                            </div>
+                        </div>
+                        <div className={styles.profileEngagementCard}>
+                            <Gift size={18} className="text-orange-500" aria-hidden />
+                            <div>
+                                <div className={styles.profileEngagementValue}>{profile360.engagement.birthdayCardsSent}</div>
+                                <div className={styles.profileEngagementLabel}>Birthday cards sent</div>
+                            </div>
+                        </div>
+                        <div className={styles.profileEngagementCard}>
+                            <Activity size={18} className="text-orange-500" aria-hidden />
+                            <div>
+                                <div className={styles.profileEngagementValue}>{profile360.engagement.interactionsTotal}</div>
+                                <div className={styles.profileEngagementLabel}>Total touchpoints</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={styles.profilePanels}>
+                        <div className={styles.profilePanel}>
+                            <h3 className={styles.profilePanelTitle}>
+                                <FolderKanban size={18} aria-hidden /> Project history
+                            </h3>
+                            {profile360.projectHistory.length === 0 ? (
+                                <p className={styles.emptyText}>No NIOLLA products / projects linked yet.</p>
+                            ) : (
+                                <div className={styles.profileTableWrap}>
+                                    <table className={styles.profileTable}>
+                                        <thead>
+                                            <tr>
+                                                <th>Product / system</th>
+                                                <th>Project</th>
+                                                <th>Status</th>
+                                                <th className={styles.profileAmountCol}>Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {profile360.projectHistory.map((row) => {
+                                                const lifecycle = normalizeProjectStatus(row.status);
+                                                const productLabel =
+                                                    row.productName ||
+                                                    row.systemType ||
+                                                    row.productCode ||
+                                                    '—';
+                                                return (
+                                                    <tr key={row.projectId}>
+                                                        <td>{productLabel}</td>
+                                                        <td>
+                                                            <Link
+                                                                to={`/projects/${row.projectId}`}
+                                                                className="text-orange-600 font-medium hover:underline"
+                                                            >
+                                                                {row.projectName}
+                                                            </Link>
+                                                        </td>
+                                                        <td>
+                                                            <span className={styles.profileStatusBadge}>
+                                                                {PROJECT_LIFECYCLE_LABELS[lifecycle]}
+                                                            </span>
+                                                        </td>
+                                                        <td className={styles.profileAmountCol}>{fmtRs(row.totalValue)}</td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className={styles.profilePanel}>
+                            <h3 className={styles.profilePanelTitle}>
+                                <Activity size={18} aria-hidden /> Staff activity log
+                            </h3>
+                            {profile360.activityLog.length === 0 ? (
+                                <p className={styles.emptyText}>No staff actions recorded on this client yet.</p>
+                            ) : (
+                                <ul className={styles.activityList}>
+                                    {profile360.activityLog.slice(0, 12).map((entry) => (
+                                        <li key={entry.id} className={styles.activityItem}>
+                                            <div className={styles.activityMeta}>
+                                                <span className={styles.activityStaff}>{entry.staffName}</span>
+                                                <span className={styles.activityAction}>{entry.action}</span>
+                                                <span className={styles.activityDate}>
+                                                    {new Date(entry.occurredAt).toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <div className={styles.activitySummary}>{entry.summary}</div>
+                                            {entry.projectName ? (
+                                                <div className={styles.activityProject}>{entry.projectName}</div>
+                                            ) : null}
+                                        </li>
+                                    ))}
+                                </ul>
+                            )}
+                            {profile360.activityLog.length > 12 ? (
+                                <button
+                                    type="button"
+                                    className={styles.profileLinkBtn}
+                                    onClick={() => setActiveTab('history')}
+                                >
+                                    View all interactions
+                                </button>
+                            ) : null}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             <div className={`${styles.grid} mt-4`}>
                 {/* Main Content: Tabs and Details */}
@@ -767,7 +1048,9 @@ export default function CustomerDetail() {
                                         <p className="text-gray-500 font-medium text-sm">No Projects Linked</p>
                                     </div>
                                 ) : (
-                                    projects.map(p => (
+                                    projects.map(p => {
+                                        const productLabel = projectProductLabel(p);
+                                        return (
                                         <div key={p._id} className="flex items-center justify-between p-4 border border-gray-100 rounded-xl hover:shadow-md transition-shadow cursor-pointer bg-gray-50 hover:bg-white" onClick={() => navigate(`/projects/${p._id}`)}>
                                             <div className="flex items-center gap-4">
                                                 <div className="h-10 w-10 bg-orange-100 rounded-full flex items-center justify-center text-orange-600 font-bold">
@@ -775,6 +1058,9 @@ export default function CustomerDetail() {
                                                 </div>
                                                 <div>
                                                     <div className="font-medium text-gray-900">{p.projectName}</div>
+                                                    {productLabel ? (
+                                                        <div className="text-xs font-semibold text-orange-700 mt-0.5">{productLabel}</div>
+                                                    ) : null}
                                                     <div className="text-sm text-gray-500">Total Value: Rs. {Number(p.totalValue || 0).toLocaleString()}</div>
                                                 </div>
                                             </div>
@@ -792,7 +1078,8 @@ export default function CustomerDetail() {
                                                 {PROJECT_LIFECYCLE_LABELS[normalizeProjectStatus(p.status)]}
                                             </span>
                                         </div>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </div>
                         </div>
