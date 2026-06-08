@@ -12,8 +12,10 @@ export interface CreatePaymentNotificationInput {
     | 'receipt'
     | 'assignment'
     | 'payout_review'
+    | 'status_notification'
     | 'requirement_addon'
-    | 'birthday';
+    | 'birthday'
+    | 'anniversary';
   scheduledAt: string | Date;
   messageBody?: string;
   status?: 'pending' | 'sent' | 'failed';
@@ -152,6 +154,7 @@ export class PaymentNotificationService {
         | 'receipt'
         | 'assignment'
         | 'payout_review'
+        | 'status_notification'
         | 'requirement_addon',
       scheduledAt: o.scheduledAt as Date,
       status: o.status as 'pending' | 'sent' | 'failed',

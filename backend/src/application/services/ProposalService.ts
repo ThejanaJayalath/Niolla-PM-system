@@ -1,8 +1,10 @@
+import mongoose from 'mongoose';
 import { Proposal, ProposalMilestone, ProposalStatus } from '../../domain/entities/Proposal';
 import { InquiryModel } from '../../infrastructure/database/models/InquiryModel';
 import { ProposalModel } from '../../infrastructure/database/models/ProposalModel';
 import { CustomerService } from './CustomerService';
 import { InvoiceService } from './InvoiceService';
+import { CampaignService } from './CampaignService';
 
 export interface CreateProposalInput {
   inquiryId: string;
@@ -24,6 +26,7 @@ export interface CreateProposalInput {
 export class ProposalService {
   private customerService = new CustomerService();
   private invoiceService = new InvoiceService();
+  private campaignService = new CampaignService();
 
   /** Next numeric suffix so `proposalId` stays unique even if the newest row uses a non-standard id. */
   private async getNextProposalIdNumber(): Promise<number> {
@@ -45,6 +48,41 @@ export class ProposalService {
     const nextIdNumber = await this.getNextProposalIdNumber();
     const newProposalId = `Proposal_num${String(nextIdNumber).padStart(2, '0')}`;
 
+    const subtotalBeforeDiscount = Number(data.totalAmount);
+    const campaign = await this.campaignService.findBestActiveForInquiry(
+      data.inquiryId,
+      subtotalBeforeDiscount
+    );
+
+    let totalAmount = subtotalBeforeDiscount;
+    let advancePayment = data.advancePayment;
+    let monthlyInstallment = data.monthlyInstallment;
+    let originalAmount: number | undefined;
+    let campaignDiscountAmount: number | undefined;
+    let campaignId: string | undefined;
+    let campaignName: string | undefined;
+    let discountType: 'percent' | 'flat' | undefined;
+    let discountValue: number | undefined;
+
+    if (campaign && subtotalBeforeDiscount > 0) {
+      const breakdown = this.campaignService.applyCampaignToPrice(subtotalBeforeDiscount, campaign);
+      originalAmount = breakdown.originalPrice;
+      campaignDiscountAmount = breakdown.discountAmount;
+      totalAmount = breakdown.finalPrice;
+      campaignId = campaign._id;
+      campaignName = campaign.name;
+      discountType = campaign.discountType;
+      discountValue = campaign.discountValue;
+      if (advancePayment != null && subtotalBeforeDiscount > 0) {
+        const ratio = Number(advancePayment) / subtotalBeforeDiscount;
+        advancePayment = Math.round(totalAmount * ratio * 100) / 100;
+      }
+      if (monthlyInstallment != null && data.installmentMonths && data.installmentMonths > 0) {
+        const adv = Number(advancePayment ?? totalAmount * 0.4);
+        monthlyInstallment = Math.round(((totalAmount - adv) / data.installmentMonths) * 100) / 100;
+      }
+    }
+
     const proposal = await ProposalModel.create({
       inquiryId: data.inquiryId,
       proposalId: newProposalId,
@@ -53,12 +91,18 @@ export class ProposalService {
       projectDescription: String(inquiry.projectDescription ?? '').trim(),
       requiredFeatures: inquiry.requiredFeatures || [],
       milestones: data.milestones,
-      advancePayment: data.advancePayment,
+      advancePayment,
       projectCost: data.projectCost,
-      totalAmount: data.totalAmount,
+      originalAmount,
+      campaignDiscountAmount,
+      campaignId: campaignId ? new mongoose.Types.ObjectId(campaignId) : undefined,
+      campaignName,
+      discountType,
+      discountValue,
+      totalAmount,
       paymentPlan: data.paymentPlan,
       installmentMonths: data.installmentMonths,
-      monthlyInstallment: data.monthlyInstallment,
+      monthlyInstallment,
       maintenanceCostPerMonth: data.maintenanceCostPerMonth,
       maintenanceNote: data.maintenanceNote,
       validUntil: data.validUntil,

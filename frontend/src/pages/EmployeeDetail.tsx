@@ -4,6 +4,7 @@ import { User, Shield, Briefcase, Edit2, Save, X, Trash2, Lock, ArrowLeft } from
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import ConfirmDialog from '../components/ConfirmDialog';
+import { DEVELOPER_TRACK_LABELS, ROLE_LABELS } from '../lib/roles';
 import styles from './Profile.module.css';
 
 interface UserType {
@@ -11,6 +12,7 @@ interface UserType {
   name: string;
   email: string;
   role: 'owner' | 'pm' | 'employee';
+  developerTrack?: 'frontend' | 'backend' | 'fullstack';
   status: 'active' | 'suspended';
   phone?: string;
   address?: string;
@@ -22,12 +24,6 @@ interface UserType {
   lastLogin?: string;
   dateOfBirth?: string;
 }
-
-const ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner',
-  pm: 'Project Manager',
-  employee: 'Software Engineer',
-};
 
 export default function EmployeeDetail() {
   const { id } = useParams<{ id: string }>();
@@ -262,7 +258,12 @@ export default function EmployeeDetail() {
               <h2 className={styles.name}>
                 {editing ? (editData.name ?? user.name) : user.name}
               </h2>
-              <p className={styles.role}>{ROLE_LABELS[user.role]}</p>
+              <p className={styles.role}>
+                {ROLE_LABELS[user.role]}
+                {user.role === 'employee' && user.developerTrack
+                  ? ` · ${DEVELOPER_TRACK_LABELS[user.developerTrack]}`
+                  : ''}
+              </p>
             </div>
           </div>
 
@@ -429,9 +430,9 @@ export default function EmployeeDetail() {
                     className={styles.input}
                     style={{ minHeight: 'auto', padding: '0.5rem 1rem' }}
                   >
-                    <option value="owner">Owner</option>
-                    <option value="pm">Project Manager</option>
-                    <option value="employee">Software Engineer</option>
+                    {isOwner ? <option value="owner">{ROLE_LABELS.owner}</option> : null}
+                    {isOwner ? <option value="pm">{ROLE_LABELS.pm}</option> : null}
+                    <option value="employee">{ROLE_LABELS.employee}</option>
                   </select>
                 ) : (
                   <div className={styles.readOnlyValue}>{ROLE_LABELS[user.role]}</div>

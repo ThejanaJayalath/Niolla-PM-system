@@ -14,7 +14,14 @@ const expenseService = new ExpenseService();
 
 function projectForClientRole(project: Project, role: string | undefined): Project {
   if (role === 'employee') {
-    const { totalDeveloperPayouts: _tdp, netProfit: _np, expenses: _ex, ...rest } = project;
+    const {
+      totalDeveloperPayouts: _tdp,
+      netProfit: _np,
+      expenses: _ex,
+      totalValue: _tv,
+      assignedEmployeePayouts: _aep,
+      ...rest
+    } = project;
     return rest as Project;
   }
   return project;

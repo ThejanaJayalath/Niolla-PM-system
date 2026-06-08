@@ -4,7 +4,7 @@ import { createExpense, createExpenseValidators, expenseSummary, getMarketingRoi
 
 const router = Router();
 router.use(authMiddleware);
-router.use(requireRole('owner', 'pm'));
+router.use(requireRole('owner'));
 
 router.get('/summary', expenseSummary);
 router.get('/marketing-roi', getMarketingRoi);

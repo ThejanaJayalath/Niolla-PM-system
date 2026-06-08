@@ -487,70 +487,50 @@ export class ProjectService {
     approvedByUserId?: string
   ): Promise<Project | null> {
     await ensureWalletLedgerWalletStatusMigrated();
-    const session = await mongoose.startSession();
-    session.startTransaction();
-    let payoutLogContext: {
-      amount: number;
-      projectName: string;
-      pid: string;
-      devId: string;
-    } | null = null;
-    try {
-      const doc = await ProjectModel.findById(projectId).session(session);
-      if (!doc || !isProjectInDevelopment(String(doc.status))) {
-        await session.abortTransaction();
-        return null;
-      }
-      const assignees = (doc.assignedEmployees || []).map((id) => id.toString());
-      if (!assignees.includes(developerUserId)) {
-        await session.abortTransaction();
-        return null;
-      }
-      const cur = ProjectService.payoutReleaseForUser(doc.assignedEmployeePayoutRelease, developerUserId);
-      if (cur !== 'submitted') {
-        await session.abortTransaction();
-        return null;
-      }
-      const amount = ProjectService.payoutAmountForUser(doc.assignedEmployeePayouts, developerUserId);
-      if (!Number.isFinite(amount) || amount <= 0) {
-        await session.abortTransaction();
-        return null;
-      }
-
-      await UserModel.findByIdAndUpdate(
-        developerUserId,
-        { $inc: { walletBalance: amount } },
-        { session, new: true }
-      );
-
-      const devOid = new mongoose.Types.ObjectId(developerUserId);
-      await DeveloperWalletLedgerModel.findOneAndUpdate(
-        { developerId: devOid, projectId: doc._id, walletStatus: 'Pending' },
-        { $set: { walletStatus: 'Available' as const, approvedAt: new Date() } },
-        { session }
-      );
-
-      if (!doc.assignedEmployeePayoutRelease) doc.assignedEmployeePayoutRelease = new Map();
-      doc.assignedEmployeePayoutRelease.set(developerUserId, 'released');
-      doc.markModified('assignedEmployeePayoutRelease');
-      await doc.save({ session });
-
-      await session.commitTransaction();
-      payoutLogContext = {
-        amount,
-        projectName: doc.projectName as string,
-        pid: (doc._id as mongoose.Types.ObjectId).toString(),
-        devId: developerUserId,
-      };
-    } catch (e) {
-      await session.abortTransaction();
-      throw e;
-    } finally {
-      session.endSession();
+    const doc = await ProjectModel.findById(projectId);
+    if (!doc || !isProjectInDevelopment(String(doc.status))) {
+      return null;
+    }
+    const assignees = (doc.assignedEmployees || []).map((id) => id.toString());
+    if (!assignees.includes(developerUserId)) {
+      return null;
+    }
+    const cur = ProjectService.payoutReleaseForUser(doc.assignedEmployeePayoutRelease, developerUserId);
+    if (cur !== 'submitted') {
+      return null;
+    }
+    const amount = ProjectService.payoutAmountForUser(doc.assignedEmployeePayouts, developerUserId);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return null;
     }
 
-    if (payoutLogContext && approvedByUserId?.trim()) {
-      /* Wallet credited; salary expense is logged at month-end payroll (base + wallet). */
+    const devOid = new mongoose.Types.ObjectId(developerUserId);
+    const approvedAt = new Date();
+
+    await UserModel.findByIdAndUpdate(developerUserId, { $inc: { walletBalance: amount } });
+
+    await DeveloperWalletLedgerModel.findOneAndUpdate(
+      { developerId: devOid, projectId: doc._id, walletStatus: 'Pending' },
+      { $set: { walletStatus: 'Available' as const, approvedAt } }
+    );
+
+    if (!doc.assignedEmployeePayoutRelease) doc.assignedEmployeePayoutRelease = new Map();
+    doc.assignedEmployeePayoutRelease.set(developerUserId, 'released');
+    doc.markModified('assignedEmployeePayoutRelease');
+    await doc.save();
+
+    if (approvedByUserId?.trim()) {
+      try {
+        await this.expenseService.logAutomatedStaffSalaryFromPayoutApproval({
+          amount,
+          developerId: developerUserId,
+          projectId,
+          projectName: doc.projectName as string,
+          recordedByUserId: approvedByUserId.trim(),
+        });
+      } catch {
+        /* non-fatal */
+      }
     }
 
     await this.syncStaffAssignmentsForProject(projectId);

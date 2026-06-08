@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { X, User, Mail, Phone, MapPin, Briefcase, Lock } from 'lucide-react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import {
+  canCreateRole,
+  DEVELOPER_TRACK_LABELS,
+  ROLE_LABELS,
+  type DeveloperTrack,
+} from '../lib/roles';
 import styles from './AddEmployeeModal.module.css';
 
 interface AddEmployeeModalProps {
@@ -10,12 +17,14 @@ interface AddEmployeeModalProps {
 }
 
 export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmployeeModalProps) {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     address: '',
     role: 'employee' as 'pm' | 'employee',
+    developerTrack: 'fullstack' as DeveloperTrack,
     password: '',
     autoGenerate: true,
     dateOfBirth: '',
@@ -42,10 +51,19 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     try {
       const password = formData.autoGenerate ? generatePassword() : formData.password;
       
-      const res = await api.post('/users', {
-        ...formData,
+      const payload: Record<string, unknown> = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        address: formData.address,
+        role: formData.role,
         password,
-      });
+        dateOfBirth: formData.dateOfBirth || undefined,
+      };
+      if (formData.role === 'employee') {
+        payload.developerTrack = formData.developerTrack;
+      }
+      const res = await api.post('/users', payload);
 
       if (res.success) {
         onSuccess();
@@ -68,11 +86,14 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
       phone: '',
       address: '',
       role: 'employee',
+      developerTrack: 'fullstack',
       password: '',
       autoGenerate: true,
       dateOfBirth: '',
     });
   };
+
+  const allowManagementRole = canCreateRole(user?.role, 'pm');
 
   const handleClose = () => {
     setError('');
@@ -84,7 +105,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
     <div className={styles.overlay}>
       <div className={styles.modal}>
         <div className={styles.header}>
-          <h2 className={styles.title}>Add New Employee</h2>
+          <h2 className={styles.title}>Create staff account</h2>
           <button type="button" onClick={handleClose} className={styles.closeBtn} aria-label="Close">
             <X size={22} />
           </button>
@@ -172,14 +193,44 @@ export default function AddEmployeeModal({ isOpen, onClose, onSuccess }: AddEmpl
             </label>
             <select
               value={formData.role}
-              onChange={(e) => setFormData({ ...formData, role: e.target.value as 'pm' | 'employee' })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  role: e.target.value as 'pm' | 'employee',
+                })
+              }
               className={styles.input}
               required
             >
-              <option value="employee">Software Engineer</option>
-              <option value="pm">Project Manager</option>
+              <option value="employee">{ROLE_LABELS.employee}</option>
+              {allowManagementRole ? <option value="pm">{ROLE_LABELS.pm}</option> : null}
             </select>
+            {!allowManagementRole ? (
+              <p className="text-xs text-gray-500 mt-1">Management can only create Developer accounts.</p>
+            ) : null}
           </div>
+
+          {formData.role === 'employee' ? (
+            <div className={styles.formGroup}>
+              <label>Developer track</label>
+              <select
+                value={formData.developerTrack}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    developerTrack: e.target.value as DeveloperTrack,
+                  })
+                }
+                className={styles.input}
+              >
+                {(Object.keys(DEVELOPER_TRACK_LABELS) as DeveloperTrack[]).map((track) => (
+                  <option key={track} value={track}>
+                    {DEVELOPER_TRACK_LABELS[track]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           <div className={styles.radioGroup}>
             <div className={styles.radioRow}>

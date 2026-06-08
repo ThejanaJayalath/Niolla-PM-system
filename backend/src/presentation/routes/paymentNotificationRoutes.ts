@@ -35,6 +35,7 @@ router.get(
       'receipt',
       'assignment',
       'payout_review',
+      'status_notification',
       'requirement_addon',
     ]),
   ],
@@ -63,6 +64,7 @@ router.post(
         'receipt',
         'assignment',
         'payout_review',
+        'status_notification',
         'requirement_addon',
       ])
       .withMessage('Invalid trigger type'),

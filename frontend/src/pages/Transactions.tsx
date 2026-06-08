@@ -42,7 +42,7 @@ function monthBounds(year: number, month: number): { from: string; to: string } 
 
 export default function Transactions() {
   const { user } = useAuth();
-  const canView = user?.role === 'owner' || user?.role === 'pm';
+  const canView = user?.role === 'owner';
 
   const now = new Date();
   const defaultRange = monthBounds(now.getFullYear(), now.getMonth() + 1);

@@ -478,3 +478,252 @@
     background: #fef2f2;
     color: #dc2626;
 }
+
+.profile360 {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid #fed7aa;
+    background: linear-gradient(180deg, #fffbf7 0%, #ffffff 100%);
+}
+
+.profile360Header {
+    margin-bottom: 1.25rem;
+}
+
+.profile360Title {
+    margin: 0 0 0.35rem;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.profile360Intro {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6b7280;
+    max-width: 52rem;
+}
+
+.profile360Grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.servicesPurchasedRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.serviceChip {
+    display: inline-flex;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+}
+
+.profileStatTeal { border-color: #99f6e4; }
+
+.profileStatCard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1.1rem;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+}
+
+.profileStatPurple { border-color: #e9d5ff; }
+.profileStatGreen { border-color: #bbf7d0; }
+.profileStatOrange { border-color: #fed7aa; }
+
+.profileStatLabel {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6b7280;
+}
+
+.profileStatValue {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.profileStatHelp {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    line-height: 1.35;
+}
+
+.profileEngagementRow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+    .profileEngagementRow {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.profileEngagementCard {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: #fff;
+    border: 1px solid #f3f4f6;
+}
+
+.profileEngagementValue {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1.1;
+}
+
+.profileEngagementLabel {
+    font-size: 0.78rem;
+    color: #6b7280;
+}
+
+.profilePanels {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+    .profilePanels {
+        grid-template-columns: 1fr;
+    }
+}
+
+.profilePanel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+}
+
+.profilePanelTitle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.profileTableWrap {
+    overflow-x: auto;
+}
+
+.profileTable {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.profileTable th,
+.profileTable td {
+    padding: 0.55rem 0.5rem;
+    border-bottom: 1px solid #f3f4f6;
+    text-align: left;
+}
+
+.profileTable th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #9ca3af;
+}
+
+.profileAmountCol {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.profileStatusBadge {
+    display: inline-flex;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.activityList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.activityItem {
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.activityMeta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.65rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-bottom: 0.2rem;
+}
+
+.activityStaff {
+    font-weight: 700;
+    color: #374151;
+}
+
+.activityAction {
+    text-transform: capitalize;
+}
+
+.activitySummary {
+    font-size: 0.88rem;
+    color: #111827;
+    font-weight: 500;
+}
+
+.activityProject {
+    font-size: 0.78rem;
+    color: #ea580c;
+    margin-top: 0.15rem;
+}
+
+.profileLinkBtn {
+    margin-top: 0.75rem;
+    background: none;
+    border: none;
+    padding: 0;
+    color: #ea580c;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.profileLinkBtn:hover {
+    text-decoration: underline;
+}

@@ -306,11 +306,27 @@ const DATE_FILTERED_TABS: ReportTab[] = [
   'product-reports',
 ];
 
+/** Super Admin only — company financials and P&L. */
+const FINANCIAL_ONLY_TABS: ReportTab[] = [
+  'project-summary',
+  'client-statement',
+  'transactions',
+  'income',
+  'expenses',
+  'pl',
+  'product-reports',
+];
+
 type ExportFormat = 'csv' | 'excel' | 'pdf';
 
 export default function Reports() {
   const { user } = useAuth();
-  const canViewFinancial = user?.role === 'owner' || user?.role === 'pm';
+  const canViewFinancial = user?.role === 'owner';
+  const canViewReports = user?.role === 'owner' || user?.role === 'pm';
+  const visibleTabGroups = TAB_GROUPS.map((group) => ({
+    ...group,
+    tabs: group.tabs.filter((tab) => canViewFinancial || !FINANCIAL_ONLY_TABS.includes(tab)),
+  })).filter((group) => group.tabs.length > 0);
   const [datePreset, setDatePreset] = useState<DatePreset>('monthly');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
@@ -1488,12 +1504,21 @@ export default function Reports() {
         <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
       </div>
 
-      {canViewFinancial ? (
+      {canViewReports ? (
         <>
           <p className="text-sm text-gray-600 max-w-3xl mb-6">
-            At any time: check <strong className="font-semibold text-gray-800">Project Summary</strong> for developer
-            payouts, <strong className="font-semibold text-gray-800">Marketing Report</strong> for spend vs profit, and{' '}
-            <strong className="font-semibold text-gray-800">Client Statement</strong> for remaining client balances.
+            {canViewFinancial ? (
+              <>
+                Super Admin view: <strong className="font-semibold text-gray-800">Project Summary</strong>,{' '}
+                <strong className="font-semibold text-gray-800">Marketing Report</strong>, and{' '}
+                <strong className="font-semibold text-gray-800">Client Statement</strong> plus full financial tabs.
+              </>
+            ) : (
+              <>
+                Management view: operational reports (project progress, staff performance, marketing ROI). Company
+                financial reports are Super Admin only.
+              </>
+            )}
           </p>
 
           <div className="flex flex-wrap items-center gap-3 mb-6 p-4 bg-gray-50 border border-gray-200 rounded-xl">
@@ -1596,7 +1621,7 @@ export default function Reports() {
           </div>
 
           <div className="space-y-4 mb-6">
-            {TAB_GROUPS.map((group) => (
+            {visibleTabGroups.map((group) => (
               <div key={group.label}>
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">{group.label}</p>
                 <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-0">
@@ -1643,7 +1668,7 @@ export default function Reports() {
         </>
       ) : (
         <p className="text-sm text-gray-600 mb-8">
-          Reports are available to owners and project managers only.
+          Reports are available to Super Admin and Management accounts. Developers use Projects and Tasks only.
         </p>
       )}
 

@@ -12,7 +12,11 @@ export interface MasterLedgerDocument extends Document {
   kind: MasterLedgerKind;
   source: MasterLedgerSource;
   category: string;
+  /** Net amount recorded (after discount). */
   amount: number;
+  /** Gross before discount, when applicable. */
+  grossAmount?: number;
+  discountAmount?: number;
   description: string;
   occurredAt: Date;
   /** Idempotency key — one row per business event. */
@@ -38,6 +42,8 @@ const masterLedgerSchema = new Schema<MasterLedgerDocument>(
     },
     category: { type: String, required: true, index: true },
     amount: { type: Number, required: true, min: 0 },
+    grossAmount: { type: Number, min: 0 },
+    discountAmount: { type: Number, min: 0 },
     description: { type: String, required: true, trim: true },
     occurredAt: { type: Date, required: true, index: true },
     uniqueKey: { type: String, required: true, unique: true, index: true },

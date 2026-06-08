@@ -10,8 +10,13 @@ export interface InvoiceDocument extends Document {
   invoiceNumber: string;
   invoiceDate: Date;
   totalAmount: number;
+  originalAmount?: number;
   taxAmount?: number;
   discountAmt?: number;
+  campaignId?: mongoose.Types.ObjectId;
+  campaignName?: string;
+  discountType?: 'percent' | 'flat';
+  discountValue?: number;
   status: 'draft' | 'sent' | 'paid' | 'pending';
   sourceType?: 'PAYMENT' | 'PROPOSAL_ADVANCE';
   invoiceType?: 'ADVANCE_PAYMENT' | 'MONTHLY_INSTALLMENT' | 'BALANCE_PAYMENT';
@@ -34,8 +39,13 @@ const invoiceSchema = new Schema<InvoiceDocument>(
     invoiceNumber: { type: String, required: true, unique: true },
     invoiceDate: { type: Date, required: true },
     totalAmount: { type: Number, required: true },
+    originalAmount: { type: Number },
     taxAmount: { type: Number },
     discountAmt: { type: Number },
+    campaignId: { type: Schema.Types.ObjectId, ref: 'FestivalCampaign' },
+    campaignName: { type: String },
+    discountType: { type: String, enum: ['percent', 'flat'] },
+    discountValue: { type: Number },
     status: { type: String, enum: ['draft', 'sent', 'paid', 'pending'], default: 'paid' },
     sourceType: { type: String, enum: ['PAYMENT', 'PROPOSAL_ADVANCE'], default: 'PAYMENT', index: true },
     invoiceType: {

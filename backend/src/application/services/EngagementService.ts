@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import path from 'path';
-import { AnniversaryTodayRow, EngagementStatRow, FestivalKey, FestivalProspectRow } from '../../domain/entities/Engagement';
+import { AnniversaryTodayRow, EngagementOverview, EngagementStatRow, FestivalKey, FestivalProspectRow } from '../../domain/entities/Engagement';
 import { BirthdaySubjectType } from '../../domain/entities/BirthdayCard';
 import { BirthdayCardModel } from '../../infrastructure/database/models/BirthdayCardModel';
 import { CustomerModel } from '../../infrastructure/database/models/CustomerModel';

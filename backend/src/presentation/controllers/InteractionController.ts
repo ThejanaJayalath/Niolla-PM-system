@@ -3,11 +3,13 @@ import { CallMeta, InteractionType } from '../../domain/entities/Interaction';
 import { CustomerService } from '../../application/services/CustomerService';
 import { InteractionService } from '../../application/services/InteractionService';
 import { CustomerRequirementService } from '../../application/services/CustomerRequirementService';
+import { UpdateTicketService } from '../../application/services/UpdateTicketService';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 const customerService = new CustomerService();
 const interactionService = new InteractionService();
 const customerRequirementService = new CustomerRequirementService();
+const updateTicketService = new UpdateTicketService();
 
 async function ensureCustomerExists(customerId: string, res: Response): Promise<boolean> {
   const customer = await customerService.findById(customerId);
@@ -200,6 +202,7 @@ export async function updateRequirement(req: AuthenticatedRequest, res: Response
       return;
     }
     const requirement = await customerRequirementService.update(req.params.requirementId, { status: 'DONE' });
+    await updateTicketService.completeByLinkedRequirement(req.params.requirementId, req.user.userId);
     res.json({ success: true, data: requirement });
     return;
   }

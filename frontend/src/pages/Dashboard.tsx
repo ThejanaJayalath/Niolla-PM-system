@@ -15,10 +15,16 @@ import {
   CalendarClock,
   PiggyBank,
   TrendingUp,
+  Wrench,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
 import { useAuth } from '../context/AuthContext';
+import {
+  canAccessLeadsAndBilling,
+  canViewCompanyFinancials,
+  canViewPaymentOverview,
+} from '../lib/roles';
 import CrmEngagementSection from '../components/CrmEngagementSection';
 import TopProductsLeaderboard from '../components/TopProductsLeaderboard';
 import TopSellingProductChart from '../components/TopSellingProductChart';
@@ -122,6 +128,31 @@ interface PendingPayoutApprovalRow {
   amount: number;
 }
 
+interface WorkerUpdateAssignment {
+  _id?: string;
+  ticketId: string;
+  title: string;
+  description?: string;
+  status: string;
+  projectRef: string;
+  projectName?: string;
+  productName?: string;
+  workerPayoutValue?: number;
+  developerPayoutValue?: number;
+}
+
+interface PendingUpdateReviewRow {
+  _id?: string;
+  ticketId: string;
+  title: string;
+  projectRef: string;
+  projectName?: string;
+  workerPayoutValue?: number;
+  developerPayoutValue?: number;
+  completedByWorkerName?: string;
+  workerSubmittedAt?: string;
+}
+
 function releaseStatusLabel(s: PayoutReleaseStatus): string {
   if (s === 'submitted') return 'Awaiting admin approval';
   if (s === 'released') return 'Credited to wallet';
@@ -146,15 +177,26 @@ export default function Dashboard() {
   const [pendingApprovalsLoading, setPendingApprovalsLoading] = useState(false);
   const [approveKey, setApproveKey] = useState<string | null>(null);
   const [markCompleteProjectId, setMarkCompleteProjectId] = useState<string | null>(null);
+  const [updateAssignments, setUpdateAssignments] = useState<WorkerUpdateAssignment[]>([]);
+  const [updateAssignmentsLoading, setUpdateAssignmentsLoading] = useState(false);
+  const [completingUpdateId, setCompletingUpdateId] = useState<string | null>(null);
+  const [pendingUpdateReviews, setPendingUpdateReviews] = useState<PendingUpdateReviewRow[]>([]);
+  const [pendingUpdateReviewsLoading, setPendingUpdateReviewsLoading] = useState(false);
+  const [approvingUpdateId, setApprovingUpdateId] = useState<string | null>(null);
 
   useEffect(() => {
-    const isFinanceRole = user?.role === 'owner' || user?.role === 'pm';
+    const showPaymentOverview = canViewPaymentOverview(user?.role);
+    const showCompanyFinancials = canViewCompanyFinancials(user?.role);
     Promise.all([
-      api.get<unknown[]>('/inquiries'),
-      api.get<ReminderRow[]>('/reminders/upcoming?limit=10'),
-      api.get<unknown[]>('/proposals'),
-      api.get<PaymentSummary>('/reports/summary'),
-      isFinanceRole
+      canAccessLeadsAndBilling(user?.role) ? api.get<unknown[]>('/inquiries') : Promise.resolve({ success: true, data: [] }),
+      canAccessLeadsAndBilling(user?.role)
+        ? api.get<ReminderRow[]>('/reminders/upcoming?limit=10')
+        : Promise.resolve({ success: true, data: [] }),
+      canAccessLeadsAndBilling(user?.role) ? api.get<unknown[]>('/proposals') : Promise.resolve({ success: true, data: [] }),
+      showPaymentOverview
+        ? api.get<PaymentSummary>('/reports/summary')
+        : Promise.resolve({ success: false as const, data: undefined }),
+      showCompanyFinancials
         ? api.get<LiveBusinessBalance>('/reports/live-business-balance')
         : Promise.resolve({ success: false as const, data: undefined }),
     ]).then(([inqRes, remRes, propRes, summaryRes, balanceRes]) => {
@@ -226,6 +268,21 @@ export default function Dashboard() {
   }, [authLoading, user?.role, user?._id]);
 
   useEffect(() => {
+    if (authLoading || user?.role !== 'employee') {
+      if (!authLoading && user?.role !== 'employee') setUpdateAssignments([]);
+      return;
+    }
+    setUpdateAssignmentsLoading(true);
+    api
+      .get<WorkerUpdateAssignment[]>('/update-tickets/my-assignments')
+      .then((res) => {
+        if (res.success && res.data) setUpdateAssignments(res.data);
+        else setUpdateAssignments([]);
+      })
+      .finally(() => setUpdateAssignmentsLoading(false));
+  }, [authLoading, user?.role, user?._id]);
+
+  useEffect(() => {
     if (authLoading || (user?.role !== 'owner' && user?.role !== 'pm')) {
       if (!authLoading && user?.role !== 'owner' && user?.role !== 'pm') setPendingApprovals([]);
       return;
@@ -240,12 +297,20 @@ export default function Dashboard() {
       .finally(() => setPendingApprovalsLoading(false));
   }, [authLoading, user?.role]);
 
-  const viewProposalPdf = (proposalId: string, projectName: string) => {
-    const safe = projectName.replace(/\s+/g, '-').slice(0, 60) || 'proposal';
-    api.download(`/proposals/${proposalId}/pdf`, `proposal-${safe}.pdf`).catch((err) => {
-      pushSystemToast(err instanceof Error ? err.message : 'Could not open proposal PDF', 'error');
-    });
-  };
+  useEffect(() => {
+    if (authLoading || (user?.role !== 'owner' && user?.role !== 'pm')) {
+      if (!authLoading && user?.role !== 'owner' && user?.role !== 'pm') setPendingUpdateReviews([]);
+      return;
+    }
+    setPendingUpdateReviewsLoading(true);
+    api
+      .get<PendingUpdateReviewRow[]>('/update-tickets/pending-review')
+      .then((res) => {
+        if (res.success && res.data) setPendingUpdateReviews(res.data);
+        else setPendingUpdateReviews([]);
+      })
+      .finally(() => setPendingUpdateReviewsLoading(false));
+  }, [authLoading, user?.role]);
 
   const markTaskCompleted = async (projectId: string) => {
     setMarkCompleteProjectId(projectId);
@@ -276,6 +341,37 @@ export default function Dashboard() {
     }
   };
 
+  const viewProposalPdf = (proposalId: string, projectName: string) => {
+    const safe = projectName.replace(/\s+/g, '-').slice(0, 60) || 'proposal';
+    api.download(`/proposals/${proposalId}/pdf`, `proposal-${safe}.pdf`).catch((err) => {
+      pushSystemToast(err instanceof Error ? err.message : 'Could not open proposal PDF', 'error');
+    });
+  };
+
+  const completeUpdateAssignment = async (ticketId: string) => {
+    setCompletingUpdateId(ticketId);
+    const res = await api.patch(`/update-tickets/${ticketId}/worker-complete`, {});
+    setCompletingUpdateId(null);
+    if (res.success) {
+      setUpdateAssignments((prev) => prev.filter((t) => t._id !== ticketId));
+      pushSystemToast('Submitted for admin review. You will be notified when approved.', 'success');
+    } else {
+      pushSystemToast(res.error?.message ?? 'Could not complete update.', 'error');
+    }
+  };
+
+  const approveUpdateFromDashboard = async (ticketId: string) => {
+    setApprovingUpdateId(ticketId);
+    const res = await api.patch(`/update-tickets/${ticketId}/approve-completion`, {});
+    setApprovingUpdateId(null);
+    if (res.success) {
+      setPendingUpdateReviews((prev) => prev.filter((t) => t._id !== ticketId));
+      pushSystemToast('Update approved — worker payout credited and customer notified.', 'success');
+    } else {
+      pushSystemToast(res.error?.message ?? 'Could not approve update.', 'error');
+    }
+  };
+
   const approvePayoutFromDashboard = async (projectId: string, developerId: string) => {
     const key = `${projectId}:${developerId}`;
     setApproveKey(key);
@@ -291,7 +387,7 @@ export default function Dashboard() {
     <div>
       <h1 className={styles.pageTitle}>Dashboard</h1>
 
-      {(user?.role === 'owner' || user?.role === 'pm') && <CrmEngagementSection enabled />}
+      {canAccessLeadsAndBilling(user?.role) && <CrmEngagementSection enabled />}
 
       {user?.role === 'employee' && (
         <section className={styles.devWalletSection}>
@@ -358,6 +454,69 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          <h3 className={styles.sectionTitle} style={{ marginTop: '1.75rem', marginBottom: '0.5rem', fontSize: '1rem' }}>
+            Update Tasks
+          </h3>
+          {updateAssignmentsLoading ? (
+            <p className={styles.muted} style={{ textAlign: 'left', padding: '0.5rem 0' }}>
+              Loading…
+            </p>
+          ) : updateAssignments.length === 0 ? (
+            <p className={styles.muted} style={{ textAlign: 'left', padding: '0.5rem 0' }}>
+              No customer update tasks assigned to you right now.
+            </p>
+          ) : (
+            <div className={styles.devProjectGrid}>
+              {updateAssignments.map((row) => {
+                const busy = completingUpdateId === row._id;
+                const payout = row.workerPayoutValue ?? row.developerPayoutValue;
+                return (
+                  <div key={row._id ?? row.ticketId} className={styles.devProjectCard}>
+                    <div className={styles.devInlineMuted} style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <Wrench size={14} />
+                      {row.ticketId}
+                    </div>
+                    <h4 className={styles.devProjectTitle}>{row.title}</h4>
+                    {row.description ? (
+                      <p className={styles.devInlineMuted} style={{ marginTop: '0.35rem' }}>
+                        {row.description}
+                      </p>
+                    ) : null}
+                    <div className={styles.devProjectPayout} style={{ marginTop: '0.5rem' }}>
+                      {row.projectName ? (
+                        <>
+                          Project: <strong>{row.projectName}</strong>
+                          {row.productName ? ` · ${row.productName}` : ''}
+                        </>
+                      ) : null}
+                    </div>
+                    {payout != null && Number(payout) > 0 ? (
+                      <div className={styles.devProjectPayout}>
+                        Your payout: <strong>LKR {Number(payout).toLocaleString()}</strong>
+                      </div>
+                    ) : null}
+                    <div className={styles.devInlineMuted}>{row.status.replace('_', ' ')}</div>
+                    <div className={styles.devProjectActions}>
+                      {row.projectRef ? (
+                        <Link to={`/projects/${row.projectRef}`} className={styles.viewLink}>
+                          Open project
+                        </Link>
+                      ) : null}
+                      <button
+                        type="button"
+                        className={styles.devBtnPrimary}
+                        disabled={!!completingUpdateId || !row._id}
+                        onClick={() => row._id && void completeUpdateAssignment(row._id)}
+                      >
+                        {busy ? 'Submitting…' : 'Task Completed'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <h3 className={styles.sectionTitle} style={{ marginTop: '1.5rem', marginBottom: '0.5rem', fontSize: '1rem' }}>
             Your projects
@@ -462,6 +621,77 @@ export default function Dashboard() {
       {(user?.role === 'owner' || user?.role === 'pm') && (
         <section style={{ marginBottom: '1.5rem' }}>
           <h2 className={styles.sectionTitle} style={{ marginBottom: '0.75rem' }}>
+            Update reviews awaiting approval
+          </h2>
+          {pendingUpdateReviewsLoading ? (
+            <p className={styles.muted}>Loading…</p>
+          ) : pendingUpdateReviews.length === 0 ? (
+            <p className={styles.muted}>No completed updates waiting for your review.</p>
+          ) : (
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead>
+                  <tr>
+                    <th>Ticket</th>
+                    <th>Project</th>
+                    <th>Worker</th>
+                    <th>Payout</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingUpdateReviews.map((row) => {
+                    const busy = approvingUpdateId === row._id;
+                    const payout = row.workerPayoutValue ?? row.developerPayoutValue;
+                    return (
+                      <tr key={row._id ?? row.ticketId}>
+                        <td>
+                          <div className="font-medium">{row.ticketId}</div>
+                          <div className={styles.muted} style={{ fontSize: '0.85rem' }}>
+                            {row.title}
+                          </div>
+                        </td>
+                        <td className="font-medium">{row.projectName || '—'}</td>
+                        <td>{row.completedByWorkerName || '—'}</td>
+                        <td>{payout != null && payout > 0 ? `Rs. ${Number(payout).toLocaleString()}` : '—'}</td>
+                        <td>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
+                            <button
+                              type="button"
+                              disabled={!!approvingUpdateId || !row._id}
+                              onClick={() => row._id && void approveUpdateFromDashboard(row._id)}
+                              className={styles.viewLink}
+                              style={{
+                                cursor: approvingUpdateId ? 'not-allowed' : 'pointer',
+                                border: '1px solid #16a34a',
+                                borderRadius: '6px',
+                                padding: '0.25rem 0.5rem',
+                                background: '#f0fdf4',
+                                color: '#15803d',
+                                textDecoration: 'none',
+                                fontSize: '0.85rem',
+                              }}
+                            >
+                              {busy ? 'Approving…' : 'Approve'}
+                            </button>
+                            <Link to="/update-tickets?status=PENDING_REVIEW" className={styles.viewLink}>
+                              All updates
+                            </Link>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
+      {(user?.role === 'owner' || user?.role === 'pm') && (
+        <section style={{ marginBottom: '1.5rem' }}>
+          <h2 className={styles.sectionTitle} style={{ marginBottom: '0.75rem' }}>
             Developer payout approvals
           </h2>
           {pendingApprovalsLoading ? (
@@ -529,6 +759,7 @@ export default function Dashboard() {
         </section>
       )}
 
+      {canAccessLeadsAndBilling(user?.role) && (
       <div className={styles.cardGrid}>
         <div className={`${styles.card} ${styles.statCardPurple}`}>
           <div className={styles.cardIcon}>
@@ -571,15 +802,16 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
+      )}
 
-      {(user?.role === 'owner' || user?.role === 'pm') && (
+      {canViewCompanyFinancials(user?.role) && (
         <>
           <TopProductsLeaderboard enabled />
           <TopSellingProductChart enabled />
         </>
       )}
 
-      {liveBalance && (user?.role === 'owner' || user?.role === 'pm') && (
+      {liveBalance && canViewCompanyFinancials(user?.role) && (
         <section className={styles.financeSection}>
           <div className={styles.financeSectionHeader}>
             <div className={styles.financeSectionIcon}>
@@ -647,7 +879,7 @@ export default function Dashboard() {
         </section>
       )}
 
-      {paymentSummary !== null && (
+      {paymentSummary !== null && canViewPaymentOverview(user?.role) && (
         <>
           <h2 className={styles.sectionTitle} style={{ marginTop: '2rem', marginBottom: '1rem' }}>Payment overview</h2>
           <div className={styles.paymentCardGrid}>
@@ -720,6 +952,7 @@ export default function Dashboard() {
         </>
       )}
 
+      {canAccessLeadsAndBilling(user?.role) && (
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Upcoming Reminders</h2>
@@ -759,6 +992,7 @@ export default function Dashboard() {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

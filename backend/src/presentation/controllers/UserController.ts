@@ -22,14 +22,24 @@ export async function listUsers(req: AuthenticatedRequest, res: Response): Promi
 }
 
 export async function addUser(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const { email, password, name, role, phone, address, dateOfBirth } = req.body;
+  const { email, password, name, role, phone, address, dateOfBirth, developerTrack } = req.body;
   const requesterRole = req.user?.role;
   if (!requesterRole) {
     res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
     return;
   }
   try {
-    const user = await userService.addUser(email, password, name, role, requesterRole, phone, address, dateOfBirth);
+    const user = await userService.addUser(
+      email,
+      password,
+      name,
+      role,
+      requesterRole,
+      phone,
+      address,
+      dateOfBirth,
+      developerTrack
+    );
     res.status(201).json({ success: true, data: user });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Failed to add user';

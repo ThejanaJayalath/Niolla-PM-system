@@ -2,15 +2,24 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Eye, Pencil, Trash2, ChevronDown, User } from 'lucide-react';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AddEmployeeModal from '../components/AddEmployeeModal';
+import {
+  canDeleteAccounts,
+  canManageAccounts,
+  ROLE_DESCRIPTIONS,
+  ROLE_LABELS,
+  type StaffRole,
+} from '../lib/roles';
 import styles from './TeamManagement.module.css';
 
 interface User {
   _id: string;
   name: string;
   email: string;
-  role: 'owner' | 'pm' | 'employee';
+  role: StaffRole;
+  developerTrack?: 'frontend' | 'backend' | 'fullstack';
   status: 'active' | 'suspended';
   phone?: string;
   address?: string;
@@ -20,14 +29,11 @@ interface User {
   lastLogin?: string;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  owner: 'Owner',
-  pm: 'Project Manager',
-  employee: 'Software Engineer',
-};
-
 export default function TeamManagement() {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
+  const canManage = canManageAccounts(currentUser?.role);
+  const canDelete = canDeleteAccounts(currentUser?.role);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -119,17 +125,34 @@ export default function TeamManagement() {
     }
   };
 
+  if (!canManage) {
+    return (
+      <div className={`${styles.page} font-sans`}>
+        <p className="text-gray-600">Account management is available to Super Admin and Management only.</p>
+      </div>
+    );
+  }
+
   return (
     <div className={`${styles.page} font-sans`}>
       <div className={styles.headerRow}>
-        <h1 className="text-2xl font-bold text-gray-900">Team Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Staff &amp; Account Management</h1>
         <button
           onClick={() => setShowAddModal(true)}
           className="bg-primary hover:bg-primary-hover text-white px-6 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2"
         >
           <Plus size={18} />
-          Add New Employee
+          Add account
         </button>
+      </div>
+
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-3">
+        {(['owner', 'pm', 'employee'] as StaffRole[]).map((r) => (
+          <div key={r} className="rounded-lg border border-gray-200 bg-white p-4 text-sm">
+            <div className="font-semibold text-gray-900">{ROLE_LABELS[r]}</div>
+            <p className="text-gray-600 mt-1 text-xs leading-relaxed">{ROLE_DESCRIPTIONS[r]}</p>
+          </div>
+        ))}
       </div>
 
       <div className={styles.filtersRow}>
@@ -188,6 +211,9 @@ export default function TeamManagement() {
                     <td className="px-6 py-4">
                       <span className={`${styles.roleBadge} ${getRoleClass(user.role)}`}>
                         {ROLE_LABELS[user.role]}
+                        {user.role === 'employee' && user.developerTrack
+                          ? ` · ${user.developerTrack}`
+                          : ''}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center" onClick={(e) => e.stopPropagation()}>
@@ -219,13 +245,15 @@ export default function TeamManagement() {
                         >
                           <Pencil size={20} />
                         </button>
-                        <button
-                          onClick={() => setDeleteId(user._id)}
-                          className="text-gray-900 hover:text-red-600 transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 size={20} />
-                        </button>
+                        {canDelete && user.role !== 'owner' ? (
+                          <button
+                            onClick={() => setDeleteId(user._id)}
+                            className="text-gray-900 hover:text-red-600 transition-colors"
+                            title="Delete account (Super Admin only)"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+                        ) : null}
                       </div>
                     </td>
                   </tr>
