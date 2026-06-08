@@ -9,11 +9,13 @@ import {
     DollarSign,
     CheckSquare,
     Download,
+    Wrench,
 } from 'lucide-react';
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useAuth } from '../context/AuthContext';
+import { canViewProjectFinancials } from '../lib/roles';
 import {
     normalizeProjectStatus,
     isProjectUnderDevelopment,
@@ -377,7 +379,7 @@ export default function ProjectDetail() {
 
     if (loading) return <div className={styles.container}>Loading...</div>;
     if (!project) return <div className={styles.container}>Project not found.</div>;
-    const isAdmin = user?.role === 'owner';
+    const showProjectFinancials = canViewProjectFinancials(user?.role);
     const canManagePayouts = user?.role === 'owner' || user?.role === 'pm';
 
     const downloadFinancialSheet = async () => {
@@ -474,6 +476,15 @@ export default function ProjectDetail() {
                     )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                    {user?.role !== 'employee' && project.clientId ? (
+                        <Link
+                            to={`/update-tickets?customerId=${project.clientId}&projectId=${project._id}`}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-orange-200 bg-orange-50 text-sm font-semibold text-orange-800 hover:bg-orange-100"
+                        >
+                            <Wrench size={16} aria-hidden />
+                            New update ticket
+                        </Link>
+                    ) : null}
                     {canManagePayouts ? (
                         <button
                             type="button"
@@ -559,7 +570,7 @@ export default function ProjectDetail() {
                                 />
                             </div>
 
-                            {isAdmin && (
+                            {showProjectFinancials && (
                                 <div className={styles.formGroup}>
                                     <label>Other expenses (Rs.)</label>
                                     <p className="text-xs text-gray-500 mb-1">
@@ -754,7 +765,7 @@ export default function ProjectDetail() {
                 {/* Sidebar: Payment Plans & Installments */}
                 <div className={styles.sidebar}>
 
-                    {isAdmin && (
+                    {showProjectFinancials && (
                         <div className={styles.sideCard}>
                             <div className={styles.sideHeader}>
                                 <DollarSign size={18} className="text-orange-500" />

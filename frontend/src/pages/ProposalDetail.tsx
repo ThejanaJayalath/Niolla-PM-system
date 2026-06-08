@@ -4,6 +4,7 @@ import { ArrowLeft, Save, FileText, Info, Flag, DollarSign, Trash2, Edit3, Plus,
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
 import ConfirmDialog from '../components/ConfirmDialog';
+import PriceBreakdownPanel from '../components/PriceBreakdownPanel';
 import styles from './ProposalDetail.module.css';
 
 interface Proposal {
@@ -18,6 +19,11 @@ interface Proposal {
   advancePayment?: number;
   projectCost?: number;
   totalAmount: number;
+  originalAmount?: number;
+  campaignDiscountAmount?: number;
+  campaignName?: string;
+  discountType?: 'percent' | 'flat';
+  discountValue?: number;
   maintenanceCostPerMonth?: number;
   maintenanceNote?: string;
   validUntil?: string;
@@ -440,8 +446,24 @@ export default function ProposalDetail() {
                   />
                 </div>
 
+                {!isEditing && (proposal.campaignDiscountAmount ?? 0) > 0 ? (
+                  <PriceBreakdownPanel
+                    originalPrice={proposal.originalAmount ?? proposal.totalAmount}
+                    discountAmount={proposal.campaignDiscountAmount ?? 0}
+                    finalPrice={proposal.totalAmount}
+                    campaignName={proposal.campaignName}
+                    discountLabel={
+                      proposal.discountType === 'flat'
+                        ? `LKR ${Number(proposal.discountValue ?? 0).toLocaleString()} OFF`
+                        : `${proposal.discountValue ?? 0}% OFF`
+                    }
+                    compact
+                  />
+                ) : null}
                 <div className={styles.totalCostContainer}>
-                  <div className={styles.totalCostLabel}>Total Cost</div>
+                  <div className={styles.totalCostLabel}>
+                    {(proposal.campaignDiscountAmount ?? 0) > 0 ? 'Final payable' : 'Total Cost'}
+                  </div>
                   <div className={styles.totalCostDisplay}>
                     <div className={styles.totalCostAmount}>
                       LKR {(isEditing ? calculateTotal() : proposal.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

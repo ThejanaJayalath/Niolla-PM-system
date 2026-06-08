@@ -90,7 +90,13 @@ export async function buildProposalPdf(proposal: Proposal): Promise<Buffer> {
   drawText('Financials', { size: HEADING_SIZE, bold: true });
   drawText(`Advance Payment: ${data.ADVANCE_PAYMENT}`);
   drawText(`Project Cost: ${data.PROJECT_COST}`);
-  drawText(`Total Cost: ${data.TOTAL_COST}`);
+  if (data.DISCOUNT_AMOUNT && data.DISCOUNT_AMOUNT !== '—') {
+    drawText(`Original Price: ${data.ORIGINAL_PRICE}`);
+    drawText(`Discount: −${data.DISCOUNT_AMOUNT}`);
+    drawText(`Final Payable Price: ${data.FINAL_PAYABLE}`, { bold: true });
+  } else {
+    drawText(`Total Cost: ${data.TOTAL_COST}`);
+  }
   y -= 12;
 
   drawText('Deliverables', { size: HEADING_SIZE, bold: true });

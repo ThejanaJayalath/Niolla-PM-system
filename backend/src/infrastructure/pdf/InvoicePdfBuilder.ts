@@ -14,7 +14,10 @@ export interface InvoicePdfData {
   invoiceNumber: string;
   invoiceDate: string;
   clientName?: string;
+  originalAmount?: number;
+  discountAmt?: number;
   totalAmount: number;
+  campaignName?: string;
   status: string;
   transactionRef?: string;
   paymentMethod?: string;
@@ -66,23 +69,57 @@ export async function buildInvoicePdf(data: InvoicePdfData): Promise<Buffer> {
   }
 
   y -= LINE_HEIGHT;
-  page.drawText('Amount Paid', {
-    x: MARGIN,
-    y,
-    size: BODY_SIZE,
-    font,
-    color: rgb(0.3, 0.3, 0.3),
-  });
-  y -= LINE_HEIGHT;
-
-  page.drawText(`Rs. ${Number(data.totalAmount).toLocaleString()}`, {
-    x: MARGIN,
-    y,
-    size: 16,
-    font: fontBold,
-    color: rgb(0, 0, 0),
-  });
-  y -= LINE_HEIGHT * 2;
+  const hasDiscount = (data.discountAmt ?? 0) > 0 && (data.originalAmount ?? 0) > 0;
+  if (hasDiscount) {
+    page.drawText('Original Price', { x: MARGIN, y, size: BODY_SIZE, font, color: rgb(0.3, 0.3, 0.3) });
+    y -= LINE_HEIGHT;
+    page.drawText(`Rs. ${Number(data.originalAmount).toLocaleString()}`, {
+      x: MARGIN,
+      y,
+      size: BODY_SIZE,
+      font,
+      color: rgb(0, 0, 0),
+    });
+    y -= LINE_HEIGHT;
+    const discountLabel = data.campaignName ? `Discount (${data.campaignName})` : 'Discount';
+    page.drawText(discountLabel, { x: MARGIN, y, size: BODY_SIZE, font, color: rgb(0.3, 0.3, 0.3) });
+    y -= LINE_HEIGHT;
+    page.drawText(`− Rs. ${Number(data.discountAmt).toLocaleString()}`, {
+      x: MARGIN,
+      y,
+      size: BODY_SIZE,
+      font: fontBold,
+      color: rgb(0.75, 0.1, 0.1),
+    });
+    y -= LINE_HEIGHT;
+    page.drawText('Final Payable', { x: MARGIN, y, size: BODY_SIZE, font, color: rgb(0.3, 0.3, 0.3) });
+    y -= LINE_HEIGHT;
+    page.drawText(`Rs. ${Number(data.totalAmount).toLocaleString()}`, {
+      x: MARGIN,
+      y,
+      size: 16,
+      font: fontBold,
+      color: rgb(0.1, 0.45, 0.2),
+    });
+    y -= LINE_HEIGHT * 2;
+  } else {
+    page.drawText('Amount Paid', {
+      x: MARGIN,
+      y,
+      size: BODY_SIZE,
+      font,
+      color: rgb(0.3, 0.3, 0.3),
+    });
+    y -= LINE_HEIGHT;
+    page.drawText(`Rs. ${Number(data.totalAmount).toLocaleString()}`, {
+      x: MARGIN,
+      y,
+      size: 16,
+      font: fontBold,
+      color: rgb(0, 0, 0),
+    });
+    y -= LINE_HEIGHT * 2;
+  }
 
   if (data.paymentMethod) {
     page.drawText(`Payment Method: ${data.paymentMethod}`, {

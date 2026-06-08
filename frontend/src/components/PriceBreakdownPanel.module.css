@@ -1,0 +1,85 @@
+.panel {
+  margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #fff7ed 0%, #fff 100%);
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+}
+
+.panelCompact {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+}
+
+.formula {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 0 0 0.5rem;
+  font-style: italic;
+}
+
+.campaignName {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #9a3412;
+  margin: 0 0 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #ffedd5;
+  color: #c2410c;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.rows {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  font-size: 0.875rem;
+}
+
+.row dt {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.row dd {
+  margin: 0;
+  font-weight: 600;
+  color: #111827;
+}
+
+.discount {
+  color: #dc2626 !important;
+}
+
+.finalRow {
+  margin-top: 0.35rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed #fdba74;
+}
+
+.final {
+  color: #047857 !important;
+  font-size: 1rem !important;
+}

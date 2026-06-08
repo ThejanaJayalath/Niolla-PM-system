@@ -4,7 +4,11 @@ export type CompanyExpenseCategory = 'MARKETING' | 'STAFF_SALARIES' | 'INFRASTRU
 /** @deprecated stored as INFRASTRUCTURE — kept for reads of legacy rows */
 export type LegacyExpenseCategory = 'OPERATIONAL';
 export type CompanyExpenseSource = 'manual' | 'automated';
-export type CompanyExpenseAutomationKind = 'PAYOUT_APPROVAL' | 'PROJECT_OVERHEAD' | 'MONTHLY_PAYROLL';
+export type CompanyExpenseAutomationKind =
+  | 'PAYOUT_APPROVAL'
+  | 'UPDATE_PAYOUT_APPROVAL'
+  | 'PROJECT_OVERHEAD'
+  | 'MONTHLY_PAYROLL';
 
 export interface CompanyExpenseDocument extends Document {
   amount: number;
@@ -15,6 +19,8 @@ export interface CompanyExpenseDocument extends Document {
   /** When category is STAFF_SALARIES from wallet payout approval. */
   developerId?: mongoose.Types.ObjectId;
   projectId?: mongoose.Types.ObjectId;
+  /** When expense is from an approved customer update ticket worker payout. */
+  updateTicketId?: mongoose.Types.ObjectId;
   automationKind?: CompanyExpenseAutomationKind;
   payrollPeriod?: string;
   recordedBy: mongoose.Types.ObjectId;
@@ -36,7 +42,11 @@ const companyExpenseSchema = new Schema<CompanyExpenseDocument>(
     source: { type: String, enum: ['manual', 'automated'], required: true, index: true },
     developerId: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', index: true },
-    automationKind: { type: String, enum: ['PAYOUT_APPROVAL', 'PROJECT_OVERHEAD', 'MONTHLY_PAYROLL'] },
+    updateTicketId: { type: Schema.Types.ObjectId, ref: 'UpdateTicket', index: true },
+    automationKind: {
+      type: String,
+      enum: ['PAYOUT_APPROVAL', 'UPDATE_PAYOUT_APPROVAL', 'PROJECT_OVERHEAD', 'MONTHLY_PAYROLL'],
+    },
     payrollPeriod: { type: String, index: true },
     recordedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   },
@@ -45,5 +55,6 @@ const companyExpenseSchema = new Schema<CompanyExpenseDocument>(
 
 companyExpenseSchema.index({ expenseDate: -1, category: 1 });
 companyExpenseSchema.index({ developerId: 1, payrollPeriod: 1, automationKind: 1 });
+companyExpenseSchema.index({ updateTicketId: 1, automationKind: 1 }, { unique: true, sparse: true });
 
 export const CompanyExpenseModel = mongoose.model<CompanyExpenseDocument>('CompanyExpense', companyExpenseSchema);

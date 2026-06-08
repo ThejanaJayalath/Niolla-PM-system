@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Pencil, Trash2, Rocket } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api/client';
+import { useAuth } from '../context/AuthContext';
+import { canViewCompanyFinancials } from '../lib/roles';
 import ConfirmDialog from '../components/ConfirmDialog';
 import AddCustomerModal from '../components/AddCustomerModal';
 import styles from './Inquiries.module.css';
@@ -29,10 +31,19 @@ interface Customer {
   nicNumber?: string;
   status?: 'active' | 'inactive';
   dateOfBirth?: string;
+  summary?: {
+    servicesPurchased: string[];
+    projectCount: number;
+    totalRevenue: number;
+    paidAmount: number;
+    totalProfit: number;
+  };
 }
 
 export default function Customer() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const showProfit = canViewCompanyFinancials(user?.role);
   const [searchParams, setSearchParams] = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
@@ -180,16 +191,20 @@ export default function Customer() {
               <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Phone Number</th>
               <th className="px-6 py-4 w-[14%] text-orange-500 font-bold text-sm">Email</th>
               <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Company Name</th>
-              <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Product</th>
-              <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm">Projects</th>
+              <th className="px-6 py-4 w-[14%] text-orange-500 font-bold text-sm">Services</th>
+              <th className="px-6 py-4 w-[10%] text-orange-500 font-bold text-sm">Revenue</th>
+              <th className="px-6 py-4 w-[10%] text-orange-500 font-bold text-sm">Paid</th>
+              {showProfit ? (
+                <th className="px-6 py-4 w-[10%] text-orange-500 font-bold text-sm">Profit</th>
+              ) : null}
               <th className="px-6 py-4 w-[8%] text-orange-500 font-bold text-sm">Status</th>
-              <th className="px-6 py-4 w-[12%] text-orange-500 font-bold text-sm !text-center">Action</th>
+              <th className="px-6 py-4 w-[10%] text-orange-500 font-bold text-sm !text-center">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y-0">
             {loading ? (
               <tr>
-                <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={showProfit ? 10 : 9} className="px-6 py-8 text-center text-gray-500">
                   Loading...
                 </td>
               </tr>
@@ -208,16 +223,26 @@ export default function Customer() {
                     <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={c.companyName || ''}>
                       {c.companyName || '—'}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 truncate max-w-[140px]" title={c.productName || ''}>
-                      {c.productName || c.productCode || '—'}
+                    <td className="px-6 py-4 text-gray-600 truncate max-w-[160px]" title={(c.summary?.servicesPurchased || []).join(', ') || c.productName || ''}>
+                      {c.summary?.servicesPurchased?.length
+                        ? c.summary.servicesPurchased.join(', ')
+                        : c.productName || c.productCode || '—'}
                     </td>
-                    <td className="px-6 py-4 text-gray-600 truncate max-w-xs" title={(c.projects || []).join(', ')}>
-                      {(c.projects && c.projects.length)
-                        ? c.projects.length === 1
-                          ? c.projects[0]
-                          : `${c.projects[0]} • +${c.projects.length - 1} more`
-                        : '—'}
+                    <td className="px-6 py-4 text-gray-900 font-medium whitespace-nowrap">
+                      {c.summary ? `Rs. ${Number(c.summary.totalRevenue).toLocaleString()}` : '—'}
                     </td>
+                    <td className="px-6 py-4 text-emerald-800 font-medium whitespace-nowrap">
+                      {c.summary ? `Rs. ${Number(c.summary.paidAmount).toLocaleString()}` : '—'}
+                    </td>
+                    {showProfit ? (
+                      <td
+                        className={`px-6 py-4 font-semibold whitespace-nowrap ${
+                          (c.summary?.totalProfit ?? 0) >= 0 ? 'text-green-700' : 'text-red-700'
+                        }`}
+                      >
+                        {c.summary ? `Rs. ${Number(c.summary.totalProfit).toLocaleString()}` : '—'}
+                      </td>
+                    ) : null}
                     <td className="px-6 py-4">
                       <span
                         className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${(c.status ?? 'active') === 'active'

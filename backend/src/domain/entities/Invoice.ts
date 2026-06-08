@@ -10,8 +10,14 @@ export interface Invoice {
   invoiceNumber: string;
   invoiceDate: Date;
   totalAmount: number;
+  /** Line amount before campaign / manual discount. */
+  originalAmount?: number;
   taxAmount?: number;
   discountAmt?: number;
+  campaignId?: string;
+  campaignName?: string;
+  discountType?: 'percent' | 'flat';
+  discountValue?: number;
   status: 'draft' | 'sent' | 'paid' | 'pending';
   sourceType?: 'PAYMENT' | 'PROPOSAL_ADVANCE';
   /**

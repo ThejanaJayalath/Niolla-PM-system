@@ -13,8 +13,10 @@ interface Invoice {
   invoiceNumber: string;
   invoiceDate: string;
   totalAmount: number;
+  originalAmount?: number;
   taxAmount?: number;
   discountAmt?: number;
+  campaignName?: string;
   status: 'draft' | 'sent' | 'paid' | 'pending';
   clientName?: string;
   emailedAt?: string;
@@ -242,7 +244,7 @@ export default function Invoices() {
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Client</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Date</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Income type</th>
-              <th className="px-6 py-4 text-orange-500 font-bold text-sm">Total Amount</th>
+              <th className="px-6 py-4 text-orange-500 font-bold text-sm">Pricing</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Status</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm">Emailed</th>
               <th className="px-6 py-4 text-orange-500 font-bold text-sm !text-center">Action</th>
@@ -283,8 +285,25 @@ export default function Invoices() {
                     </td>
                     <td className="px-6 py-4 text-gray-600">{formatDate(inv.invoiceDate)}</td>
                     <td className="px-6 py-4 text-gray-700 text-sm">{invoiceTypeLabel(inv)}</td>
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      Rs. {Number(inv.totalAmount).toLocaleString()}
+                    <td className="px-6 py-4 text-sm">
+                      {(inv.discountAmt ?? 0) > 0 && (inv.originalAmount ?? 0) > 0 ? (
+                        <div className="space-y-0.5">
+                          <div className="text-gray-500 line-through text-xs">
+                            Rs. {Number(inv.originalAmount).toLocaleString()}
+                          </div>
+                          <div className="text-red-600 text-xs">
+                            − Rs. {Number(inv.discountAmt).toLocaleString()}
+                            {inv.campaignName ? ` (${inv.campaignName})` : ''}
+                          </div>
+                          <div className="font-semibold text-emerald-800">
+                            Rs. {Number(inv.totalAmount).toLocaleString()}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="font-medium text-gray-900">
+                          Rs. {Number(inv.totalAmount).toLocaleString()}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex px-2 py-0.5 text-xs font-semibold rounded-full ${statusClass(inv.status)}`}>

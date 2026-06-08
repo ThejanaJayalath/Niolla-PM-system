@@ -16,6 +16,20 @@ interface RequirementTask {
   projectName?: string;
 }
 
+interface WorkerUpdateAssignment {
+  _id?: string;
+  ticketId: string;
+  title: string;
+  description?: string;
+  status: string;
+  projectRef: string;
+  projectName?: string;
+  productName?: string;
+  workerPayoutValue?: number;
+  developerPayoutValue?: number;
+  linkedRequirementId?: string;
+}
+
 interface ProjectRow {
   _id: string;
   projectName: string;
@@ -57,6 +71,8 @@ export default function Tasks() {
   const [devOptions, setDevOptions] = useState<DevOption[]>([]);
   const [projectTasks, setProjectTasks] = useState<ProjectTaskRow[]>([]);
   const [reqTasks, setReqTasks] = useState<RequirementTask[]>([]);
+  const [updateTasks, setUpdateTasks] = useState<WorkerUpdateAssignment[]>([]);
+  const [completingUpdateId, setCompletingUpdateId] = useState<string | null>(null);
   const [newTitle, setNewTitle] = useState('');
   const [newDesc, setNewDesc] = useState('');
   const [newReqId, setNewReqId] = useState('');
@@ -93,14 +109,17 @@ export default function Tasks() {
   }, []);
 
   const loadEmployeeData = useCallback(async () => {
-    const [pt, rt] = await Promise.all([
+    const [pt, rt, ut] = await Promise.all([
       api.get<ProjectTaskRow[]>('/project-tasks'),
       api.get<RequirementTask[]>('/projects/developer/requirement-tasks'),
+      api.get<WorkerUpdateAssignment[]>('/update-tickets/my-assignments'),
     ]);
     if (pt.success && pt.data) setProjectTasks(pt.data);
     else setProjectTasks([]);
     if (rt.success && rt.data) setReqTasks(rt.data);
     else setReqTasks([]);
+    if (ut.success && ut.data) setUpdateTasks(ut.data);
+    else setUpdateTasks([]);
   }, []);
 
   useEffect(() => {
@@ -187,12 +206,35 @@ export default function Tasks() {
   const markRequirementDone = async (reqId: string) => {
     const res = await api.patch(`/requirements/${reqId}`, { status: 'DONE' });
     if (res.success) {
-      pushSystemToast('Marked complete.', 'success');
+      pushSystemToast('Submitted for admin review.', 'success');
       setReqTasks((prev) => prev.filter((t) => t._id !== reqId));
+      setUpdateTasks((prev) => prev.filter((t) => t.linkedRequirementId !== reqId));
     } else {
       pushSystemToast(res.error?.message || 'Could not update.', 'error');
     }
   };
+
+  const completeUpdateTask = async (ticketId: string, linkedRequirementId?: string) => {
+    setCompletingUpdateId(ticketId);
+    const res = await api.patch(`/update-tickets/${ticketId}/worker-complete`, {});
+    setCompletingUpdateId(null);
+    if (res.success) {
+      pushSystemToast('Submitted for admin review. You will be notified when approved.', 'success');
+      setUpdateTasks((prev) => prev.filter((t) => t._id !== ticketId));
+      if (linkedRequirementId) {
+        setReqTasks((prev) => prev.filter((t) => t._id !== linkedRequirementId));
+      }
+    } else {
+      pushSystemToast(res.error?.message || 'Could not complete update.', 'error');
+    }
+  };
+
+  const linkedUpdateReqIds = new Set(
+    updateTasks.map((t) => t.linkedRequirementId).filter(Boolean) as string[]
+  );
+  const standaloneReqTasks = reqTasks.filter(
+    (t) => !linkedUpdateReqIds.has(t._id) && !t.title.startsWith('[Update]')
+  );
 
   if (!isAdmin && !isEmployee) {
     return (
@@ -366,6 +408,69 @@ export default function Tasks() {
       ) : (
         <div className="space-y-10">
           <section>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Update Tasks</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Customer update tickets assigned to you. Mark Task Completed when the work is delivered — admin will be notified for review.
+            </p>
+            {updateTasks.length === 0 ? (
+              <p className="text-gray-500 text-sm border border-dashed border-gray-200 rounded-xl p-6 text-center">
+                No update tasks assigned to you yet.
+              </p>
+            ) : (
+              <ul className="space-y-3">
+                {updateTasks.map((t) => {
+                  const busy = completingUpdateId === t._id;
+                  const payout = t.workerPayoutValue ?? t.developerPayoutValue;
+                  return (
+                    <li
+                      key={t._id ?? t.ticketId}
+                      className="border border-orange-100 rounded-xl p-4 bg-white shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold text-orange-600 uppercase">{t.ticketId}</div>
+                        <div className="font-semibold text-gray-900 mt-0.5">{t.title}</div>
+                        {t.description ? (
+                          <p className="text-sm text-gray-600 mt-1 line-clamp-3 whitespace-pre-wrap">{t.description}</p>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2 mt-2 text-xs text-gray-500">
+                          <span className="px-2 py-0.5 rounded-full bg-gray-100">{t.status.replace('_', ' ')}</span>
+                          {t.projectName ? (
+                            <span className="px-2 py-0.5 rounded-full bg-orange-50 text-orange-800">{t.projectName}</span>
+                          ) : null}
+                          {payout != null && Number(payout) > 0 ? (
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800">
+                              Payout LKR {Number(payout).toLocaleString()}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
+                        {t.projectRef ? (
+                          <Link
+                            to={`/projects/${t.projectRef}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg border border-orange-200 text-orange-700 hover:bg-orange-50"
+                          >
+                            <ExternalLink size={14} />
+                            Project
+                          </Link>
+                        ) : null}
+                        <button
+                          type="button"
+                          disabled={!!completingUpdateId || !t._id}
+                          onClick={() => t._id && void completeUpdateTask(t._id, t.linkedRequirementId)}
+                          className="px-3 py-2 text-xs font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                        >
+                          {busy ? 'Submitting…' : 'Task Completed'}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+
+          <section>
             <h2 className="text-lg font-bold text-gray-900 mb-2">Project tasks</h2>
             <p className="text-sm text-gray-600 mb-4">
               Admin-assigned tasks for your projects. Tick the box when finished.
@@ -422,13 +527,13 @@ export default function Tasks() {
             <p className="text-sm text-gray-600 mb-4">
               Requirements you are assigned on projects (from workflow). Mark done when delivered.
             </p>
-            {reqTasks.length === 0 ? (
+            {standaloneReqTasks.length === 0 ? (
               <p className="text-gray-500 text-sm border border-dashed border-gray-200 rounded-xl p-6 text-center">
                 No requirement tasks assigned to you yet.
               </p>
             ) : (
               <ul className="space-y-3">
-                {reqTasks.map((t) => (
+                {standaloneReqTasks.map((t) => (
                   <li
                     key={t._id}
                     className="border border-orange-100 rounded-xl p-4 bg-white shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"

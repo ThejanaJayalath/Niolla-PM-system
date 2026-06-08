@@ -11,6 +11,12 @@ import { InvoiceService } from './InvoiceService';
 import { buildInvoicePdfPublicUrl } from '../../infrastructure/security/invoicePublicLink';
 import { ProjectService } from './ProjectService';
 import { PaymentPlanService } from './PaymentPlanService';
+import { ProductService } from './ProductService';
+import { CustomerModel } from '../../infrastructure/database/models/CustomerModel';
+import { ProjectModel } from '../../infrastructure/database/models/ProjectModel';
+import { ProductModel } from '../../infrastructure/database/models/ProductModel';
+import mongoose from 'mongoose';
+import { extractMongoId } from '../../infrastructure/database/mongoId';
 
 export interface CreateInquiryInput {
   customerName: string;
@@ -46,6 +52,7 @@ export class InquiryService {
   private invoiceService = new InvoiceService();
   private projectService = new ProjectService();
   private paymentPlanService = new PaymentPlanService();
+  private productService = new ProductService();
 
   async create(data: CreateInquiryInput): Promise<{ inquiry: Inquiry; duplicatePhone: boolean }> {
     const normalizedPhone = this.normalizePhone(data.phoneNumber);
@@ -125,6 +132,14 @@ export class InquiryService {
           ? projectTitles
           : [inquiry.projectDescription].filter(Boolean);
         const serviceCategories = this.identifyServiceCategories(inquiry);
+        let productId = await this.productService.resolveProductIdFromBusinessModel(inquiry.businessModel);
+        if (!productId) {
+          productId = await this.productService.resolveProductIdFromHints([
+            ...serviceCategories,
+            inquiry.projectDescription,
+            ...(inquiry.requiredFeatures || []),
+          ]);
+        }
         customer = await this.customerService.create({
           name: inquiry.customerName,
           phoneNumber: inquiry.phoneNumber,
@@ -132,6 +147,7 @@ export class InquiryService {
           inquiryId: String(inquiry._id),
           companyName: inquiry.companyName?.trim() || undefined,
           serviceCategories,
+          productId,
         });
         await this.interactionService.create({
           customerRef: String(customer._id),
@@ -237,6 +253,14 @@ export class InquiryService {
         advanceInvoiceId = invoice._id;
         advanceInvoiceNumber = invoice.invoiceNumber;
       }
+      await this.interactionService.create({
+        customerRef: String(customer._id),
+        inquiryRef: inquiryId,
+        type: 'STATUS_CHANGE',
+        summary: `Advance invoice ${advanceInvoiceNumber || 'issued'} — Rs ${Number(advance).toLocaleString()} for ${projectLabel}`,
+        details: 'Recorded as pending income until marked paid; then posted to revenue.',
+        occurredAt: new Date(),
+      });
     }
 
     // Queue immediate customer communication that advance invoice is generated.
@@ -298,27 +322,80 @@ export class InquiryService {
     const proposal = await this.proposalService.findByInquiryId(inquiryId);
     if (!proposal || !Number.isFinite(Number(proposal.totalAmount)) || Number(proposal.totalAmount) <= 0) return;
 
-    const projectName =
-      (proposal.projectName || inquiry.projectDescription || 'Project').trim() || 'Project';
     const clientId = String(customer._id);
+    const customerDoc = await CustomerModel.findById(clientId).populate('productId', 'name code').lean();
+    const inquiryDoc = await InquiryModel.findById(inquiryId).lean();
+    const proposalName = (proposal.projectName || inquiry.projectDescription || '').trim();
+
+    const resolvedProductId =
+      extractMongoId(customerDoc?.productId) ||
+      (await this.productService.resolveProductIdFromHints([
+        inquiryDoc?.businessModel,
+        ...(customerDoc?.serviceCategories || []),
+        inquiry.projectDescription,
+        proposalName,
+        proposal.projectDescription,
+        ...(inquiry.requiredFeatures || []),
+      ]));
+
+    let product = customerDoc?.productId as { _id?: mongoose.Types.ObjectId; name?: string; code?: string } | null;
+    if (resolvedProductId && (!product || !product.name)) {
+      const fromDb = await ProductModel.findById(resolvedProductId).select('name code').lean();
+      if (fromDb) product = { name: fromDb.name, code: fromDb.code };
+    }
+
+    if (resolvedProductId && !extractMongoId(customerDoc?.productId)) {
+      await CustomerModel.findByIdAndUpdate(clientId, {
+        productId: new mongoose.Types.ObjectId(resolvedProductId),
+      });
+    }
+
+    const productLabel = product?.name || product?.code || inquiry.businessModel?.trim();
+    const projectName =
+      proposalName ||
+      (productLabel ? `${productLabel} Project` : 'Project');
+    const systemType = product?.name || product?.code || inquiry.businessModel?.trim() || undefined;
 
     const existingProjects = await this.projectService.findByClientId(clientId);
     const match = existingProjects.find((p) => p.projectName.trim() === projectName.trim());
     let projectId: string;
     if (match?._id) {
       projectId = match._id;
-      await this.projectService.update(projectId, { totalValue: Number(proposal.totalAmount) });
+      await this.projectService.update(projectId, {
+        totalValue: Number(proposal.totalAmount),
+        systemType,
+      });
     } else {
       const created = await this.projectService.create({
         clientId,
         projectName,
         description: proposal.projectDescription || inquiry.projectDescription || undefined,
+        systemType,
         totalValue: Number(proposal.totalAmount),
         status: 'unassigned',
       });
       if (!created._id) return;
       projectId = created._id;
+      await this.interactionService.create({
+        customerRef: clientId,
+        inquiryRef: inquiryId,
+        type: 'STATUS_CHANGE',
+        summary: `${projectName} created${productLabel ? ` (${productLabel})` : ''} — deal confirmed`,
+        details: `Contract value Rs ${Number(proposal.totalAmount).toLocaleString()}`,
+        occurredAt: new Date(),
+      });
     }
+
+    if (resolvedProductId) {
+      await ProjectModel.findByIdAndUpdate(projectId, {
+        productId: new mongoose.Types.ObjectId(resolvedProductId),
+        ...(systemType ? { systemType } : {}),
+      });
+    }
+
+    await CustomerModel.findByIdAndUpdate(clientId, {
+      $addToSet: { projects: projectName },
+    });
 
     await this.paymentPlanService.createPrimaryPlanFromProposal({
       projectId,

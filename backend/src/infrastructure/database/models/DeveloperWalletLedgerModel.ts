@@ -6,6 +6,8 @@ export type WalletStatus = 'Pending' | 'Available';
 export interface DeveloperWalletLedgerDocument extends Document {
   developerId: mongoose.Types.ObjectId;
   projectId: mongoose.Types.ObjectId;
+  /** Update task payout credited on admin approval (separate from main project payout row). */
+  updateTicketId?: mongoose.Types.ObjectId;
   projectName: string;
   amount: number;
   walletStatus: WalletStatus;
@@ -21,6 +23,7 @@ const developerWalletLedgerSchema = new Schema<DeveloperWalletLedgerDocument>(
   {
     developerId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
+    updateTicketId: { type: Schema.Types.ObjectId, ref: 'UpdateTicket', index: true },
     projectName: { type: String, required: true },
     amount: { type: Number, required: true },
     walletStatus: {
@@ -36,7 +39,14 @@ const developerWalletLedgerSchema = new Schema<DeveloperWalletLedgerDocument>(
   { timestamps: true, collection: 'developerwalletledgers' }
 );
 
-developerWalletLedgerSchema.index({ developerId: 1, projectId: 1 }, { unique: true });
+developerWalletLedgerSchema.index(
+  { developerId: 1, projectId: 1 },
+  { unique: true, partialFilterExpression: { updateTicketId: { $exists: false } } }
+);
+developerWalletLedgerSchema.index(
+  { developerId: 1, updateTicketId: 1 },
+  { unique: true, partialFilterExpression: { updateTicketId: { $exists: true } } }
+);
 
 /** MongoDB model name `Wallet`; physical collection stays `developerwalletledgers` for existing data. */
 export const WalletModel = mongoose.model<DeveloperWalletLedgerDocument>(
@@ -62,5 +72,26 @@ export async function ensureWalletLedgerWalletStatusMigrated(): Promise<void> {
     { $set: { walletStatus: 'Available' } }
   );
   await col.updateMany({ walletStatus: { $exists: false } }, { $set: { walletStatus: 'Pending' } });
+  try {
+    await col.dropIndex('developerId_1_projectId_1');
+  } catch {
+    /* index may already be partial or absent */
+  }
+  try {
+    await col.createIndex(
+      { developerId: 1, projectId: 1 },
+      { unique: true, partialFilterExpression: { updateTicketId: { $exists: false } } }
+    );
+  } catch {
+    /* already exists */
+  }
+  try {
+    await col.createIndex(
+      { developerId: 1, updateTicketId: 1 },
+      { unique: true, partialFilterExpression: { updateTicketId: { $exists: true } } }
+    );
+  } catch {
+    /* already exists */
+  }
   walletLedgerMigrated = true;
 }

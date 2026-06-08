@@ -3,15 +3,33 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ArrowLeft, Plus, FileText, Info, Flag, DollarSign, Trash2, Upload, Check } from 'lucide-react';
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
+import PriceBreakdownPanel from '../components/PriceBreakdownPanel';
+import type { PriceBreakdown } from '../lib/campaignPricing';
 import styles from './CreateProposal.module.css';
 
 interface Inquiry {
     _id: string;
     customerId?: string;
     customerName: string;
+    phoneNumber?: string;
     projectDescription: string;
     requiredFeatures: string[];
 }
+
+interface CustomerOption {
+    _id: string;
+    customerId: string;
+    name: string;
+    phoneNumber: string;
+    inquiryId?: string;
+    companyName?: string;
+    productName?: string;
+    productCode?: string;
+}
+
+type PickerEntry =
+    | { kind: 'inquiry'; inquiry: Inquiry }
+    | { kind: 'customer'; customer: CustomerOption };
 
 interface Milestone {
     title: string;
@@ -24,7 +42,9 @@ type PaymentPlan = 'FULL_PAYMENT' | 'THREE_MONTH' | 'SIX_MONTH';
 export default function CreateProposal() {
     const navigate = useNavigate();
     const [inquiries, setInquiries] = useState<Inquiry[]>([]);
+    const [customersWithoutInquiry, setCustomersWithoutInquiry] = useState<CustomerOption[]>([]);
     const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
+    const [linkingCustomer, setLinkingCustomer] = useState(false);
     const [searchInquiry, setSearchInquiry] = useState('');
     const [showInquiryDropdown, setShowInquiryDropdown] = useState(false);
 
@@ -39,6 +59,11 @@ export default function CreateProposal() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     /** Blocks double POST before React re-renders `submitting` (avoids duplicate 500 toasts). */
     const submitLockRef = useRef(false);
+    const [pricingPreview, setPricingPreview] = useState<{
+        breakdown: PriceBreakdown | null;
+        campaignName?: string;
+        discountLabel?: string;
+    } | null>(null);
 
     const location = useLocation();
 
@@ -79,18 +104,43 @@ export default function CreateProposal() {
 
     const loadInquiries = async () => {
         try {
-            const res = await api.get<Inquiry[]>('/inquiries');
-            if (res.success && res.data) {
-                setInquiries(res.data);
+            const [inqRes, custRes] = await Promise.all([
+                api.get<Inquiry[]>('/inquiries'),
+                api.get<CustomerOption[]>('/customers'),
+            ]);
+            if (inqRes.success && inqRes.data) {
+                setInquiries(inqRes.data);
 
-                // Check for pre-selected inquiry from navigation state
-                const preSelectedId = location.state?.inquiryId;
+                const preSelectedId = location.state?.inquiryId as string | undefined;
                 if (preSelectedId) {
-                    const found = res.data.find(i => i._id === preSelectedId);
+                    const found = inqRes.data.find(i => i._id === preSelectedId);
                     if (found) {
                         handleSelectInquiry(found);
                     }
+                } else {
+                    const preSelectedCustomerId = location.state?.customerId as string | undefined;
+                    if (preSelectedCustomerId && custRes.success && custRes.data) {
+                        const cust = custRes.data.find((c) => c._id === preSelectedCustomerId);
+                        if (cust) {
+                            void handleSelectCustomer(cust);
+                        }
+                    }
                 }
+            }
+            if (custRes.success && custRes.data) {
+                const linkedInquiryIds = new Set(
+                    custRes.data.map((c) => c.inquiryId).filter((id): id is string => Boolean(id))
+                );
+                const inquiryPhones = new Set(
+                    (inqRes.data || []).map((i) => i.phoneNumber?.replace(/\D/g, '') || '')
+                );
+                const unlinked = custRes.data.filter(
+                    (c) =>
+                        !c.inquiryId &&
+                        !linkedInquiryIds.has(c.inquiryId || '') &&
+                        !inquiryPhones.has(c.phoneNumber?.replace(/\D/g, '') || '')
+                );
+                setCustomersWithoutInquiry(unlinked);
             }
         } catch (err) {
             console.error(err);
@@ -101,6 +151,28 @@ export default function CreateProposal() {
         setSelectedInquiry(inquiry);
         setSearchInquiry(inquiry.customerName);
         setShowInquiryDropdown(false);
+    };
+
+    const handleSelectCustomer = async (customer: CustomerOption) => {
+        setLinkingCustomer(true);
+        try {
+            const res = await api.post<{ inquiryId: string; inquiry: Inquiry }>(
+                `/customers/${customer._id}/ensure-inquiry`
+            );
+            if (!res.success || !res.data?.inquiry) {
+                pushSystemToast(res.error?.message || 'Could not link customer to inquiry', 'error');
+                return;
+            }
+            const inquiry = res.data.inquiry;
+            setInquiries((prev) => (prev.some((i) => i._id === inquiry._id) ? prev : [inquiry, ...prev]));
+            setCustomersWithoutInquiry((prev) => prev.filter((c) => c._id !== customer._id));
+            handleSelectInquiry(inquiry);
+        } catch (err) {
+            console.error(err);
+            pushSystemToast('Could not link customer to inquiry', 'error');
+        } finally {
+            setLinkingCustomer(false);
+        }
     };
 
     const addMilestone = () => {
@@ -119,13 +191,44 @@ export default function CreateProposal() {
     };
 
     const installmentMonths = paymentPlan === 'THREE_MONTH' ? 3 : paymentPlan === 'SIX_MONTH' ? 6 : 0;
-    const calculatedTotal = paymentPlan === 'FULL_PAYMENT'
+    const subtotalBeforeDiscount = paymentPlan === 'FULL_PAYMENT'
         ? parseAmount(basePrice)
         : parseAmount(basePrice) * 1.1;
-    const calculatedAdvance = calculatedTotal * 0.4;
+    const finalTotal = pricingPreview?.breakdown?.finalPrice ?? subtotalBeforeDiscount;
+    const calculatedAdvance = finalTotal * 0.4;
     const calculatedMonthly = installmentMonths > 0
-        ? (calculatedTotal - calculatedAdvance) / installmentMonths
+        ? (finalTotal - calculatedAdvance) / installmentMonths
         : 0;
+
+    useEffect(() => {
+        if (!selectedInquiry || subtotalBeforeDiscount <= 0) {
+            setPricingPreview(null);
+            return;
+        }
+        let cancelled = false;
+        api.get<{
+            breakdown: PriceBreakdown | null;
+            campaign: { name: string; discountType: string; discountValue: number } | null;
+        }>(`/campaigns/preview?inquiryId=${selectedInquiry._id}&originalAmount=${subtotalBeforeDiscount}`)
+            .then((res) => {
+                if (cancelled || !res.success || !res.data) return;
+                const label =
+                    res.data.campaign?.discountType === 'flat'
+                        ? `LKR ${Number(res.data.campaign.discountValue).toLocaleString()} OFF`
+                        : `${res.data.campaign?.discountValue ?? 0}% OFF`;
+                setPricingPreview({
+                    breakdown: res.data.breakdown,
+                    campaignName: res.data.campaign?.name,
+                    discountLabel: res.data.breakdown ? label : undefined,
+                });
+            })
+            .catch(() => {
+                if (!cancelled) setPricingPreview(null);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [selectedInquiry?._id, subtotalBeforeDiscount, paymentPlan, basePrice]);
 
     const handleSubmit = async () => {
         if (submitLockRef.current || submitting) return;
@@ -162,7 +265,7 @@ export default function CreateProposal() {
                 milestones: mappedMilestones,
                 paymentPlan,
                 projectCost: parsedBasePrice,
-                totalAmount: calculatedTotal,
+                totalAmount: subtotalBeforeDiscount,
                 advancePayment: calculatedAdvance,
                 installmentMonths: installmentMonths || undefined,
                 monthlyInstallment: installmentMonths > 0 ? calculatedMonthly : undefined,
@@ -181,10 +284,26 @@ export default function CreateProposal() {
         }
     };
 
-    const filteredInquiries = inquiries.filter(inq =>
-        inq.customerName.toLowerCase().includes(searchInquiry.toLowerCase()) ||
-        (inq.customerId && inq.customerId.toLowerCase().includes(searchInquiry.toLowerCase()))
-    );
+    const searchLower = searchInquiry.toLowerCase();
+    const pickerEntries: PickerEntry[] = [
+        ...inquiries.map((inquiry) => ({ kind: 'inquiry' as const, inquiry })),
+        ...customersWithoutInquiry.map((customer) => ({ kind: 'customer' as const, customer })),
+    ];
+    const filteredPickerEntries = pickerEntries.filter((entry) => {
+        if (entry.kind === 'inquiry') {
+            const inq = entry.inquiry;
+            return (
+                inq.customerName.toLowerCase().includes(searchLower) ||
+                (inq.customerId && inq.customerId.toLowerCase().includes(searchLower))
+            );
+        }
+        const c = entry.customer;
+        return (
+            c.name.toLowerCase().includes(searchLower) ||
+            c.customerId.toLowerCase().includes(searchLower) ||
+            (c.companyName && c.companyName.toLowerCase().includes(searchLower))
+        );
+    });
 
     return (
         <div className={styles.container}>
@@ -258,33 +377,60 @@ export default function CreateProposal() {
                                             type="button"
                                             onClick={() => setShowInquiryDropdown(!showInquiryDropdown)}
                                             className={styles.addCustomerBtn}
+                                            disabled={linkingCustomer}
                                         >
                                             <Plus size={16} />
-                                            Add Customer
+                                            {linkingCustomer ? 'Linking...' : 'Select Customer'}
                                         </button>
                                         {showInquiryDropdown && (
                                             <div className={styles.dropdown}>
                                                 <div className={styles.dropdownSearch}>
                                                     <input
                                                         type="text"
-                                                        placeholder="Search inquiries..."
+                                                        placeholder="Search inquiries or customers..."
                                                         value={searchInquiry}
                                                         onChange={(e) => setSearchInquiry(e.target.value)}
                                                         autoFocus
                                                     />
                                                 </div>
                                                 <div className={styles.dropdownList}>
-                                                    {filteredInquiries.map((inq) => (
-                                                        <button
-                                                            key={inq._id}
-                                                            type="button"
-                                                            onClick={() => handleSelectInquiry(inq)}
-                                                            className={styles.dropdownItem}
-                                                        >
-                                                            <div className={styles.dropdownItemName}>{inq.customerName}</div>
-                                                            {inq.customerId && <div className={styles.dropdownItemId}>{inq.customerId}</div>}
-                                                        </button>
-                                                    ))}
+                                                    {filteredPickerEntries.length === 0 ? (
+                                                        <div className={styles.dropdownItem} style={{ cursor: 'default', opacity: 0.7 }}>
+                                                            No inquiries or customers found. Add a customer in the Customer tab or register an inquiry first.
+                                                        </div>
+                                                    ) : (
+                                                        filteredPickerEntries.map((entry) =>
+                                                            entry.kind === 'inquiry' ? (
+                                                                <button
+                                                                    key={`inq-${entry.inquiry._id}`}
+                                                                    type="button"
+                                                                    onClick={() => handleSelectInquiry(entry.inquiry)}
+                                                                    className={styles.dropdownItem}
+                                                                >
+                                                                    <div className={styles.dropdownItemName}>{entry.inquiry.customerName}</div>
+                                                                    {entry.inquiry.customerId && (
+                                                                        <div className={styles.dropdownItemId}>{entry.inquiry.customerId}</div>
+                                                                    )}
+                                                                </button>
+                                                            ) : (
+                                                                <button
+                                                                    key={`cust-${entry.customer._id}`}
+                                                                    type="button"
+                                                                    onClick={() => handleSelectCustomer(entry.customer)}
+                                                                    className={styles.dropdownItem}
+                                                                    disabled={linkingCustomer}
+                                                                >
+                                                                    <div className={styles.dropdownItemName}>
+                                                                        {entry.customer.name}
+                                                                        <span style={{ marginLeft: 8, fontSize: '0.75rem', color: '#6b7280' }}>
+                                                                            (Customer tab)
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className={styles.dropdownItemId}>{entry.customer.customerId}</div>
+                                                                </button>
+                                                            )
+                                                        )
+                                                    )}
                                                 </div>
                                             </div>
                                         )}
@@ -439,14 +585,24 @@ export default function CreateProposal() {
                                     />
                                 </div>
                                 <div className={styles.formGroup}>
-                                    <label>Total Price (Auto)</label>
+                                    <label>Subtotal before campaign</label>
                                     <input
                                         type="number"
-                                        value={calculatedTotal.toFixed(2)}
+                                        value={subtotalBeforeDiscount.toFixed(2)}
                                         readOnly
                                         className={styles.inputReadonly}
                                     />
                                 </div>
+                                {pricingPreview?.breakdown ? (
+                                    <PriceBreakdownPanel
+                                        originalPrice={pricingPreview.breakdown.originalPrice}
+                                        discountAmount={pricingPreview.breakdown.discountAmount}
+                                        finalPrice={pricingPreview.breakdown.finalPrice}
+                                        campaignName={pricingPreview.campaignName}
+                                        discountLabel={pricingPreview.discountLabel}
+                                        compact
+                                    />
+                                ) : null}
                                 <div className={styles.formGroup}>
                                     <label>Advance Amount (40%)</label>
                                     <input
@@ -468,10 +624,10 @@ export default function CreateProposal() {
                                     </div>
                                 )}
                                 <div className={styles.totalCostContainer}>
-                                    <div className={styles.totalCostLabel}>Total Cost</div>
+                                    <div className={styles.totalCostLabel}>Final payable</div>
                                     <div className={styles.totalCostDisplay}>
                                         <div className={styles.totalCostAmount}>
-                                            LKR {calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            LKR {finalTotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                         </div>
                                     </div>
                                 </div>

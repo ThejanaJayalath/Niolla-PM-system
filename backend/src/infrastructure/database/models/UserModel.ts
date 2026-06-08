@@ -1,11 +1,12 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { User, UserRole } from '../../../domain/entities/User';
+import { DeveloperTrack, User, UserRole } from '../../../domain/entities/User';
 
 export interface UserDocument extends Document {
   email: string;
   passwordHash: string;
   name: string;
   role: UserRole;
+  developerTrack?: DeveloperTrack;
   status: 'active' | 'suspended';
   phone?: string;
   address?: string;
@@ -24,6 +25,7 @@ const userSchema = new Schema<UserDocument>(
     passwordHash: { type: String, required: true },
     name: { type: String, required: true },
     role: { type: String, enum: ['owner', 'pm', 'employee'] as UserRole[], default: 'employee' },
+    developerTrack: { type: String, enum: ['frontend', 'backend', 'fullstack'] },
     status: { type: String, enum: ['active', 'suspended'], default: 'active' },
     phone: { type: String },
     address: { type: String },

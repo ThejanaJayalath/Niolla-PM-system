@@ -4,7 +4,9 @@ import { CUSTOMER_SERVICE_CATEGORY_VALUES } from '../../constants/customerServic
 import { authMiddleware, requireRole } from '../middleware/auth';
 import {
   createCustomer,
+  ensureCustomerInquiry,
   getCustomer,
+  getCustomerProfile,
   listCustomers,
   updateCustomer,
   deleteCustomer,
@@ -61,6 +63,14 @@ router.get(
   validate,
   listCustomers
 );
+router.post(
+  '/:id/ensure-inquiry',
+  requireRole('owner', 'pm'),
+  [param('id').isMongoId()],
+  validate,
+  ensureCustomerInquiry
+);
+router.get('/:id/profile', requireRole('owner', 'pm'), [param('id').isMongoId()], validate, getCustomerProfile);
 router.get('/:id', [param('id').isMongoId()], validate, getCustomer);
 router.patch(
   '/:id',

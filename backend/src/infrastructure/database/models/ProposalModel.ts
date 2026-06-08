@@ -12,6 +12,12 @@ export interface ProposalDocument extends Document {
   milestones: ProposalMilestone[];
   advancePayment?: number;
   projectCost?: number;
+  originalAmount?: number;
+  campaignDiscountAmount?: number;
+  campaignId?: mongoose.Types.ObjectId;
+  campaignName?: string;
+  discountType?: 'percent' | 'flat';
+  discountValue?: number;
   totalAmount: number;
   paymentPlan?: 'FULL_PAYMENT' | 'THREE_MONTH' | 'SIX_MONTH';
   installmentMonths?: number;
@@ -47,6 +53,12 @@ const proposalSchema = new Schema<ProposalDocument>(
     milestones: [milestoneSchema],
     advancePayment: { type: Number },
     projectCost: { type: Number },
+    originalAmount: { type: Number },
+    campaignDiscountAmount: { type: Number },
+    campaignId: { type: Schema.Types.ObjectId, ref: 'FestivalCampaign' },
+    campaignName: { type: String },
+    discountType: { type: String, enum: ['percent', 'flat'] },
+    discountValue: { type: Number },
     totalAmount: { type: Number, required: true },
     paymentPlan: { type: String, enum: ['FULL_PAYMENT', 'THREE_MONTH', 'SIX_MONTH'] },
     installmentMonths: { type: Number },

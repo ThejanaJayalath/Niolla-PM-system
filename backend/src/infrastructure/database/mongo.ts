@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import dns from 'node:dns';
 import { ProjectModel } from './models/ProjectModel';
+import { CampaignService } from '../../application/services/CampaignService';
 
 async function migrateLegacyProjectStatuses(): Promise<void> {
   try {
@@ -34,4 +35,10 @@ export async function connectDatabase(): Promise<void> {
   await mongoose.connect(uri);
   console.log('MongoDB connected');
   await migrateLegacyProjectStatuses();
+  try {
+    const expired = await new CampaignService().expireEndedCampaigns();
+    if (expired > 0) console.log(`Campaign auto-expiry: deactivated ${expired} ended discount(s).`);
+  } catch (e) {
+    console.warn('Campaign auto-expiry skipped:', e);
+  }
 }

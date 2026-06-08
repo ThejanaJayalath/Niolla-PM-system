@@ -5,7 +5,7 @@ import { listAuditLogs, getAuditLog } from '../controllers/AuditLogController';
 
 const router = Router();
 router.use(authMiddleware);
-router.use(requireRole('owner', 'pm'));
+router.use(requireRole('owner'));
 
 const validate = (req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => {
   const errors = validationResult(req);

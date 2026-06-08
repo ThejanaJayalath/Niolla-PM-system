@@ -1,5 +1,10 @@
 import bcrypt from 'bcryptjs';
-import { User, UserRole } from '../../domain/entities/User';
+import { DeveloperTrack, User, UserRole } from '../../domain/entities/User';
+import {
+  canCreateRole,
+  canDeleteAccounts,
+  canManageAccounts,
+} from '../../domain/roles';
 import { UserModel } from '../../infrastructure/database/models/UserModel';
 import { AuthService } from './AuthService';
 
@@ -9,9 +14,8 @@ export class UserService {
   constructor(private authService: AuthService) {}
 
   async listUsers(requesterRole: string): Promise<PublicUser[]> {
-    // Allow PMs to list users too, but with limited permissions
-    if (requesterRole !== 'owner' && requesterRole !== 'pm') {
-      throw new Error('Only owner or PM can list all users');
+    if (!canManageAccounts(requesterRole)) {
+      throw new Error('Only Super Admin or Management can list staff accounts');
     }
     const docs = await UserModel.find().sort({ createdAt: -1 });
     return docs.map((d) => {
@@ -29,20 +33,25 @@ export class UserService {
     requesterRole: string,
     phone?: string,
     address?: string,
-    dateOfBirth?: string
+    dateOfBirth?: string,
+    developerTrack?: DeveloperTrack
   ): Promise<PublicUser> {
-    // Allow PMs to add users too
-    if (requesterRole !== 'owner' && requesterRole !== 'pm') {
-      throw new Error('Only owner or PM can add users');
+    if (!canManageAccounts(requesterRole)) {
+      throw new Error('Only Super Admin or Management can create accounts');
+    }
+    if (!canCreateRole(requesterRole, role)) {
+      throw new Error('Management can only create Developer accounts. Super Admin creates Management and Developers.');
     }
     const user = await this.authService.register(email, password, name, role);
-    
-    // Update with additional fields
+
     const userDoc = await UserModel.findById(user._id);
     if (userDoc) {
       if (phone) userDoc.phone = phone;
       if (address) userDoc.address = address;
       if (dateOfBirth?.trim()) userDoc.dateOfBirth = dateOfBirth.trim();
+      if (role === 'employee' && developerTrack) {
+        userDoc.developerTrack = developerTrack;
+      }
       await userDoc.save();
     }
     
@@ -62,13 +71,20 @@ export class UserService {
     // Check permissions
     const isOwnProfile = requesterUserId === targetUserId;
     
-    if (!isOwnProfile && requesterRole !== 'owner' && requesterRole !== 'pm') {
-      throw new Error('Only owner or PM can update other users');
+    if (!isOwnProfile && !canManageAccounts(requesterRole)) {
+      throw new Error('Only Super Admin or Management can update other accounts');
     }
-    
-    // Check if updating role to owner
+
     if (updates.role === 'owner' && requesterRole !== 'owner') {
-      throw new Error('Only owner can set owner role');
+      throw new Error('Only Super Admin can assign Super Admin role');
+    }
+
+    if (updates.role === 'pm' && requesterRole === 'pm') {
+      throw new Error('Management cannot change roles to Management');
+    }
+
+    if (updates.role && requesterRole === 'pm' && updates.role !== 'employee') {
+      throw new Error('Management can only manage Developer accounts');
     }
     
     // Cannot update own role to non-owner if you're the only owner
@@ -92,10 +108,21 @@ export class UserService {
       doc.dateOfBirth = dob && String(dob).trim() ? String(dob).trim() : undefined;
     }
 
-    // Only owners and PMs can update role and status
+    if (updates.developerTrack !== undefined) {
+      const track = updates.developerTrack as DeveloperTrack | null | undefined;
+      doc.developerTrack =
+        doc.role === 'employee' && track && ['frontend', 'backend', 'fullstack'].includes(track)
+          ? track
+          : undefined;
+    }
+
     if (requesterRole === 'owner' || requesterRole === 'pm') {
-      if (updates.role && (requesterRole === 'owner' || (requesterRole === 'pm' && updates.role !== 'owner'))) {
+      if (
+        updates.role &&
+        (requesterRole === 'owner' || (requesterRole === 'pm' && updates.role === 'employee'))
+      ) {
         doc.role = updates.role;
+        if (doc.role !== 'employee') doc.developerTrack = undefined;
       }
       if (updates.status) doc.status = updates.status;
       if (updates.baseSalary !== undefined && doc.role === 'employee') {
@@ -115,8 +142,8 @@ export class UserService {
   }
 
   async removeUser(targetUserId: string, requesterUserId: string, requesterRole: string): Promise<void> {
-    if (requesterRole !== 'owner') {
-      throw new Error('Only owner can remove users');
+    if (!canDeleteAccounts(requesterRole)) {
+      throw new Error('Only Super Admin can delete accounts');
     }
     if (targetUserId === requesterUserId) {
       throw new Error('Cannot remove yourself');

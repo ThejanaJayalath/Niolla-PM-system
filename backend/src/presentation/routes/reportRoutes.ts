@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { param, query, validationResult } from 'express-validator';
-import { authMiddleware, requireRole } from '../middleware/auth';
+import { authMiddleware, requireCompanyFinancials, requireRole } from '../middleware/auth';
 import {
   getPaymentSummary,
   getMonthlyCollection,
@@ -36,7 +36,16 @@ import {
 
 const router = Router();
 router.use(authMiddleware);
-router.use(requireRole('owner', 'pm', 'employee'));
+router.use((req: import('../middleware/auth').AuthenticatedRequest, res, next) => {
+  if (req.user?.role === 'employee') {
+    res.status(403).json({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'Reports are not available for developer accounts' },
+    });
+    return;
+  }
+  next();
+});
 
 const validate = (req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => {
   const errors = validationResult(req);
@@ -50,10 +59,10 @@ const validate = (req: import('express').Request, res: import('express').Respons
 };
 
 router.get('/summary', getPaymentSummary);
-router.get('/live-business-balance', requireRole('owner', 'pm'), getLiveBusinessBalance);
+router.get('/live-business-balance', requireCompanyFinancials, getLiveBusinessBalance);
 router.get(
   '/finance-ledger',
-  requireRole('owner', 'pm'),
+  requireCompanyFinancials,
   [
     query('from').optional().isISO8601().withMessage('from must be a valid date'),
     query('to').optional().isISO8601().withMessage('to must be a valid date'),
@@ -67,7 +76,7 @@ router.get('/monthly-collection', [query('year').isInt({ min: 2020, max: 2100 })
 router.get('/overdue-list', getOverdueList);
 router.get(
   '/financial/income',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [
     query('year').optional().isInt({ min: 2020, max: 2100 }),
     query('month').optional().isInt({ min: 1, max: 12 }),
@@ -79,7 +88,7 @@ router.get(
 );
 router.get(
   '/financial/expenses',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [
     query('year').optional().isInt({ min: 2020, max: 2100 }),
     query('month').optional().isInt({ min: 1, max: 12 }),
@@ -91,7 +100,7 @@ router.get(
 );
 router.get(
   '/financial/pl',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [
     query('year').optional().isInt({ min: 2020, max: 2100 }),
     query('month').optional().isInt({ min: 1, max: 12 }),
@@ -103,7 +112,7 @@ router.get(
 );
 router.get(
   '/financial/income/download',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [
     query('year').optional().isInt({ min: 2020, max: 2100 }),
     query('month').optional().isInt({ min: 1, max: 12 }),
@@ -115,7 +124,7 @@ router.get(
 );
 router.get(
   '/financial/expenses/download',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [
     query('year').optional().isInt({ min: 2020, max: 2100 }),
     query('month').optional().isInt({ min: 1, max: 12 }),
@@ -127,7 +136,7 @@ router.get(
 );
 router.get(
   '/monthly-profit-loss/download',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [
     query('year').optional().isInt({ min: 2020, max: 2100 }),
     query('month').optional().isInt({ min: 1, max: 12 }),
@@ -139,14 +148,14 @@ router.get(
 );
 router.get(
   '/project-financial/:projectId',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [param('projectId').isMongoId()],
   validate,
   getProjectFinancialSheet
 );
 router.get(
   '/project-financial/:projectId/download',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [param('projectId').isMongoId()],
   validate,
   downloadProjectFinancialSheet
@@ -171,7 +180,7 @@ router.get(
 );
 router.get(
   '/transactions',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [
     query('year').optional().isInt({ min: 2020, max: 2100 }),
     query('month').optional().isInt({ min: 1, max: 12 }),
@@ -183,7 +192,7 @@ router.get(
 );
 router.get(
   '/transactions/download',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [
     query('year').optional().isInt({ min: 2020, max: 2100 }),
     query('month').optional().isInt({ min: 1, max: 12 }),
@@ -219,14 +228,14 @@ router.get(
 );
 router.get(
   '/client-statement/:clientId',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [param('clientId').isMongoId()],
   validate,
   getClientStatement
 );
 router.get(
   '/client-statement/:clientId/download',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [param('clientId').isMongoId()],
   validate,
   downloadClientStatement
@@ -247,18 +256,18 @@ router.get(
 );
 router.get(
   '/products/customer-density',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [query('productId').optional().isMongoId()],
   validate,
   getProductCustomerDensityReport
 );
 router.get(
   '/products/sales-trends',
-  requireRole('owner', 'pm'),
+  requireRole('owner'),
   [query('months').optional().isInt({ min: 3, max: 24 })],
   validate,
   getProductSalesTrendsReport
 );
-router.get('/products/top-leaderboard', requireRole('owner', 'pm'), getTopProductsLeaderboard);
+router.get('/products/top-leaderboard', requireRole('owner'), getTopProductsLeaderboard);
 
 export default router;

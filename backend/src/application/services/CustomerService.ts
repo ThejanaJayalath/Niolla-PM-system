@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import { Customer } from '../../domain/entities/Customer';
+import { Inquiry } from '../../domain/entities/Inquiry';
 import { CustomerModel } from '../../infrastructure/database/models/CustomerModel';
+import { InquiryModel } from '../../infrastructure/database/models/InquiryModel';
 import { ProductModel } from '../../infrastructure/database/models/ProductModel';
 
 export interface CreateCustomerInput {
@@ -97,7 +99,64 @@ export class CustomerService {
           : [],
       dateOfBirth: data.dateOfBirth?.trim() || undefined,
     });
+
+    if (!data.inquiryId) {
+      await this.ensureInquiryForCustomer(String(doc._id));
+      const refreshed = await CustomerModel.findById(doc._id).populate('productId', 'name code');
+      return refreshed ? this.toCustomer(refreshed) : this.toCustomer(doc);
+    }
+
     return this.toCustomer(doc);
+  }
+
+  /**
+   * Proposals require an inquiry. Customers added from the Customer tab get a linked inquiry
+   * so they appear in Create Proposal.
+   */
+  async ensureInquiryForCustomer(
+    customerId: string
+  ): Promise<{ inquiryId: string; inquiry: Inquiry }> {
+    const doc = await CustomerModel.findById(customerId).populate('productId', 'name code');
+    if (!doc) throw new Error('Customer not found');
+
+    if (doc.inquiryId) {
+      const existing = await InquiryModel.findById(doc.inquiryId);
+      if (existing) {
+        return {
+          inquiryId: String(existing._id),
+          inquiry: existing.toObject() as unknown as Inquiry,
+        };
+      }
+    }
+
+    const o = doc.toObject() as Record<string, unknown>;
+    const product = o.productId as { name?: string; code?: string } | null | undefined;
+    const serviceCategories = (o.serviceCategories as string[]) || [];
+    const businessModel =
+      product?.code?.trim() ||
+      product?.name?.trim() ||
+      (o.businessType as string | undefined)?.trim() ||
+      undefined;
+    const requiredFeatures =
+      serviceCategories.length > 0 ? serviceCategories : businessModel ? [businessModel] : [];
+
+    const inquiry = await InquiryModel.create({
+      customerName: o.name as string,
+      companyName: (o.companyName as string | undefined)?.trim() || undefined,
+      phoneNumber: this.normalizePhone(o.phoneNumber as string),
+      businessModel,
+      projectDescription: Array.isArray(o.projects) ? (o.projects as string[]).join(', ') : '',
+      requiredFeatures,
+      dateOfBirth: (o.dateOfBirth as string | undefined)?.trim() || undefined,
+      status: 'NEW',
+    });
+
+    await CustomerModel.findByIdAndUpdate(customerId, { inquiryId: inquiry._id });
+
+    return {
+      inquiryId: String(inquiry._id),
+      inquiry: inquiry.toObject() as unknown as Inquiry,
+    };
   }
 
   async findById(id: string): Promise<Customer | null> {

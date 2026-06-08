@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../../application/services/AuthService';
+import { canViewCompanyFinancials } from '../../domain/roles';
 
 const authService = new AuthService();
 
@@ -49,4 +50,23 @@ export function requireRole(...roles: string[]) {
     }
     next();
   };
+}
+
+/** Blocks Management and Developers from company net profit / master ledger APIs. */
+export function requireCompanyFinancials(req: AuthenticatedRequest, res: Response, next: NextFunction): void {
+  if (!req.user) {
+    res.status(401).json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } });
+    return;
+  }
+  if (!canViewCompanyFinancials(req.user.role)) {
+    res.status(403).json({
+      success: false,
+      error: {
+        code: 'FORBIDDEN',
+        message: 'Company financial data is restricted to Super Admin',
+      },
+    });
+    return;
+  }
+  next();
 }
