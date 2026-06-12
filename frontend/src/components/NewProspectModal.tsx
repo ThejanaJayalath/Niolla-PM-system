@@ -24,6 +24,7 @@ export default function NewProspectModal({ open, onClose, onSuccess }: NewProspe
     phoneNumber: '',
     businessModel: '',
     projectDescription: '',
+    dateOfBirth: '',
   });
   const [duplicateAlert, setDuplicateAlert] = useState(false);
   const [error, setError] = useState('');
@@ -36,6 +37,7 @@ export default function NewProspectModal({ open, onClose, onSuccess }: NewProspe
         phoneNumber: '',
         businessModel: '',
         projectDescription: '',
+        dateOfBirth: '',
       });
       setDuplicateAlert(false);
       setError('');

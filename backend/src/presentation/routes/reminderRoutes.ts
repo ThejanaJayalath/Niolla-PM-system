@@ -9,6 +9,7 @@ import {
   getUpcomingReminders,
   updateReminder,
   deleteReminder,
+  retryMeetingRecording,
 } from '../controllers/ReminderController';
 
 const router = Router();
@@ -35,6 +36,8 @@ router.post(
     body('attendees').optional().isArray().withMessage('attendees must be an array'),
     body('attendees.*').optional().isEmail().withMessage('Each attendee must be a valid email'),
     body('sendInvites').optional().isBoolean().withMessage('sendInvites must be boolean'),
+    body('autoRecord').optional().isBoolean().withMessage('autoRecord must be boolean'),
+    body('meetingLink').optional().trim().isURL().withMessage('meetingLink must be a valid URL'),
     body('recurrence').optional().isArray().withMessage('recurrence must be an array of RRULE strings'),
   ],
   validate,
@@ -44,6 +47,7 @@ router.post(
 router.get('/', [query('limit').optional().isInt({ min: 1, max: 200 }), query('type').optional().isIn(['reminder', 'meeting']), query('upcoming').optional().isIn(['true', 'false'])], validate, getRemindersList);
 router.get('/upcoming', [query('limit').optional().isInt({ min: 1, max: 100 })], validate, getUpcomingReminders);
 router.get('/inquiry/:inquiryId', [param('inquiryId').isMongoId()], validate, getRemindersByInquiry);
+router.post('/:id/retry-recording', [param('id').isMongoId()], validate, retryMeetingRecording);
 router.get('/:id', [param('id').isMongoId()], validate, getReminder);
 router.patch(
   '/:id',

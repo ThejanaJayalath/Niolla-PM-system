@@ -260,7 +260,7 @@ export default function ProposalDetail() {
             className={styles.downloadBtn}
           >
             <Download size={16} />
-            {downloading ? 'Downloading...' : 'Download PDF'}
+            {downloading ? 'Downloading...' : 'Download proposal'}
           </button>
           <button onClick={handleDelete} className={styles.deleteBtn}>
             <Trash2 size={16} /> Delete Proposal

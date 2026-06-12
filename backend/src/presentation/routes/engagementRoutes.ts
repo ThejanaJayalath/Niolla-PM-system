@@ -1,3 +1,4 @@
+import multer from 'multer';
 import { Router } from 'express';
 import { body, param } from 'express-validator';
 import { validationResult } from 'express-validator';
@@ -11,6 +12,18 @@ import {
   sendAnniversaryCard,
   sendFestivalBlast,
 } from '../controllers/EngagementController';
+import {
+  deleteGreetingTemplate,
+  getGreetingTemplateInfo,
+  listGreetingTemplates,
+  previewGreetingTemplate,
+  uploadGreetingTemplate,
+} from '../controllers/GreetingCardTemplateController';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+});
 
 const router = Router();
 
@@ -27,6 +40,16 @@ const validate = (req: import('express').Request, res: import('express').Respons
 
 router.use(authMiddleware);
 router.use(requireRole('owner', 'pm'));
+
+router.get('/templates', listGreetingTemplates);
+router.get('/templates/:templateType/preview', previewGreetingTemplate);
+router.get('/templates/:templateType', getGreetingTemplateInfo);
+router.post(
+  '/templates/:templateType',
+  upload.single('template'),
+  uploadGreetingTemplate
+);
+router.delete('/templates/:templateType', deleteGreetingTemplate);
 
 router.get('/anniversaries/today', listTodayAnniversaries);
 router.get('/festival/prospects', listFestivalProspects);

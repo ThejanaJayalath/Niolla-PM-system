@@ -8,6 +8,12 @@ export interface ReminderDocument extends Document {
   description?: string;
   meetingLink?: string;
   googleEventId?: string;
+  meetingDurationMinutes?: number;
+  nioBotMeetingId?: string;
+  recordingStatus?: 'none' | 'scheduled' | 'recording' | 'transcoding' | 'ready' | 'failed';
+  recordingWatchUrl?: string;
+  recordingDownloadUrl?: string;
+  recordingErrorMessage?: string;
   scheduledAt: Date;
   notes?: string;
   status: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
@@ -25,6 +31,15 @@ const reminderSchema = new Schema<ReminderDocument>(
     description: { type: String },
     meetingLink: { type: String },
     googleEventId: { type: String },
+    meetingDurationMinutes: { type: Number },
+    nioBotMeetingId: { type: String },
+    recordingStatus: {
+      type: String,
+      enum: ['none', 'scheduled', 'recording', 'transcoding', 'ready', 'failed'],
+    },
+    recordingWatchUrl: { type: String },
+    recordingDownloadUrl: { type: String },
+    recordingErrorMessage: { type: String },
     scheduledAt: { type: Date, required: true },
     notes: { type: String },
     status: {

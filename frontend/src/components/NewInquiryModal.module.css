@@ -311,3 +311,25 @@
   background: #fff7ed;
   color: #ea580c;
 }
+
+@media (max-width: 480px) {
+  .overlay {
+    padding: 0.5rem;
+    align-items: flex-end;
+  }
+
+  .modal {
+    max-height: calc(100dvh - 1rem);
+    border-radius: 16px 16px 12px 12px;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .submitBtn,
+  .cancelBtn {
+    width: 100%;
+  }
+}

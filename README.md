@@ -95,6 +95,27 @@ If the file is missing, the cover shows “NIOLLA” text instead. See `backend/
 
 3. **Open** http://localhost:3000 in your browser and log in with **admin@niolla.com** / **admin123**.
 
+### Install as PWA (mobile / desktop)
+
+The frontend is a **Progressive Web App** — you can install it like a native app.
+
+1. **Production build** (service worker is generated on build):
+   ```bash
+   cd frontend
+   npm run build
+   npm run preview
+   ```
+   Open the preview URL (default **http://localhost:4173**).
+
+2. **Install**
+   - **Chrome / Edge (desktop):** address bar → **Install Niolla PM** (or ⋮ menu → *Install app*).
+   - **Android Chrome:** menu → *Add to Home screen* / *Install app*.
+   - **iPhone Safari:** Share → *Add to Home Screen*.
+
+3. **Updates:** the app auto-updates the service worker when you deploy a new build (`registerType: autoUpdate`).
+
+**Note:** API calls still need the backend running and reachable (same host in production, or configure your API base URL). GIF assets stay in the app; large GIFs are excluded from the install precache but cached at runtime when loaded.
+
 ### First Login
 
 - **Email:** admin@niolla.com  

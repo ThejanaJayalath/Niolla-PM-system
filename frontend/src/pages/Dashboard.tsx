@@ -1,22 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
-import {
-  FileText,
-  MessageSquare,
-  Bell,
-  ClipboardList,
-  Users,
-  FolderKanban,
-  Banknote,
-  Wallet,
-  Receipt,
-  AlertCircle,
-  CalendarClock,
-  PiggyBank,
-  TrendingUp,
-  Wrench,
-} from 'lucide-react';
+import { Wallet, PiggyBank, TrendingUp, Wrench } from 'lucide-react';
 import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
 import { useAuth } from '../context/AuthContext';
@@ -28,6 +13,11 @@ import {
 import CrmEngagementSection from '../components/CrmEngagementSection';
 import TopProductsLeaderboard from '../components/TopProductsLeaderboard';
 import TopSellingProductChart from '../components/TopSellingProductChart';
+import DashboardWelcomeHero from '../components/dashboard/DashboardWelcomeHero';
+import DashboardMetricCards from '../components/dashboard/DashboardMetricCards';
+import DashboardActiveProjects from '../components/dashboard/DashboardActiveProjects';
+import DashboardCharts from '../components/dashboard/DashboardCharts';
+import DashboardBottomPanels from '../components/dashboard/DashboardBottomPanels';
 import styles from './Dashboard.module.css';
 
 interface Stats {
@@ -62,28 +52,6 @@ interface LiveBusinessBalance {
   netProfit: number;
   finalProfit: number;
   expenseBreakdown: { marketing: number; payouts: number; overheads: number };
-}
-
-interface ReminderRow {
-  _id: string;
-  inquiryId: string | { _id: string; customerName?: string };
-  title: string;
-  scheduledAt: string;
-  type: string;
-}
-
-function getInquiryName(inq: ReminderRow['inquiryId']): string {
-  if (!inq) return 'Unknown';
-  if (typeof inq === 'object' && inq !== null && 'customerName' in inq)
-    return (inq as { customerName?: string }).customerName || 'Inquiry';
-  return 'Inquiry';
-}
-
-function getInquiryId(inq: ReminderRow['inquiryId']): string {
-  if (!inq) return '';
-  if (typeof inq === 'object' && inq !== null && '_id' in inq)
-    return (inq as { _id: string })._id;
-  return String(inq);
 }
 
 type PayoutReleaseStatus = 'accruing' | 'submitted' | 'released';
@@ -169,7 +137,6 @@ export default function Dashboard() {
   });
   const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
   const [liveBalance, setLiveBalance] = useState<LiveBusinessBalance | null>(null);
-  const [reminders, setReminders] = useState<ReminderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingEarnings, setPendingEarnings] = useState<DeveloperPendingEarnings | null>(null);
   const [pendingEarningsLoading, setPendingEarningsLoading] = useState(false);
@@ -189,9 +156,6 @@ export default function Dashboard() {
     const showCompanyFinancials = canViewCompanyFinancials(user?.role);
     Promise.all([
       canAccessLeadsAndBilling(user?.role) ? api.get<unknown[]>('/inquiries') : Promise.resolve({ success: true, data: [] }),
-      canAccessLeadsAndBilling(user?.role)
-        ? api.get<ReminderRow[]>('/reminders/upcoming?limit=10')
-        : Promise.resolve({ success: true, data: [] }),
       canAccessLeadsAndBilling(user?.role) ? api.get<unknown[]>('/proposals') : Promise.resolve({ success: true, data: [] }),
       showPaymentOverview
         ? api.get<PaymentSummary>('/reports/summary')
@@ -199,7 +163,7 @@ export default function Dashboard() {
       showCompanyFinancials
         ? api.get<LiveBusinessBalance>('/reports/live-business-balance')
         : Promise.resolve({ success: false as const, data: undefined }),
-    ]).then(([inqRes, remRes, propRes, summaryRes, balanceRes]) => {
+    ]).then(([inqRes, propRes, summaryRes, balanceRes]) => {
       const inquiries = (inqRes.success && inqRes.data ? inqRes.data : []) as { status?: string }[];
       const total = inquiries.length;
       const newCount = inquiries.filter((i) => i.status === 'new').length;
@@ -207,10 +171,9 @@ export default function Dashboard() {
       setStats({
         totalInquiries: total,
         newInquiries: newCount,
-        upcomingReminders: remRes.success && remRes.data ? remRes.data.length : 0,
+        upcomingReminders: 0,
         proposalsCreated: proposals.length,
       });
-      if (remRes.success && remRes.data) setReminders(remRes.data);
       if (summaryRes.success && summaryRes.data) setPaymentSummary(summaryRes.data);
       else
         setPaymentSummary({
@@ -383,11 +346,12 @@ export default function Dashboard() {
     }
   };
 
-  return (
-    <div>
-      <h1 className={styles.pageTitle}>Dashboard</h1>
+  const showLeadsDashboard = canAccessLeadsAndBilling(user?.role);
+  const showFinancials = canViewCompanyFinancials(user?.role);
+  const showPayments = canViewPaymentOverview(user?.role);
 
-      {canAccessLeadsAndBilling(user?.role) && <CrmEngagementSection enabled />}
+  return (
+    <div className={styles.dashboard}>
 
       {user?.role === 'employee' && (
         <section className={styles.devWalletSection}>
@@ -618,8 +582,31 @@ export default function Dashboard() {
         </section>
       )}
 
+      {showLeadsDashboard && (
+        <>
+          <DashboardWelcomeHero userName={user?.name} />
+          <DashboardMetricCards
+            totalInquiries={stats.totalInquiries}
+            totalClients={paymentSummary?.totalClients ?? 0}
+            pendingReceivables={paymentSummary?.accountsReceivablePending ?? 0}
+            totalCollected={paymentSummary?.totalCollected ?? 0}
+            loading={loading}
+          />
+          <DashboardActiveProjects />
+          <DashboardCharts enabled={showPayments} />
+          <DashboardBottomPanels enabled />
+        </>
+      )}
+
+      {showFinancials && (
+        <div className={styles.secondarySection}>
+          <TopProductsLeaderboard enabled />
+          <TopSellingProductChart enabled />
+        </div>
+      )}
+
       {(user?.role === 'owner' || user?.role === 'pm') && (
-        <section style={{ marginBottom: '1.5rem' }}>
+        <section className={styles.approvalSection}>
           <h2 className={styles.sectionTitle} style={{ marginBottom: '0.75rem' }}>
             Update reviews awaiting approval
           </h2>
@@ -690,7 +677,7 @@ export default function Dashboard() {
       )}
 
       {(user?.role === 'owner' || user?.role === 'pm') && (
-        <section style={{ marginBottom: '1.5rem' }}>
+        <section className={styles.approvalSection}>
           <h2 className={styles.sectionTitle} style={{ marginBottom: '0.75rem' }}>
             Developer payout approvals
           </h2>
@@ -759,59 +746,7 @@ export default function Dashboard() {
         </section>
       )}
 
-      {canAccessLeadsAndBilling(user?.role) && (
-      <div className={styles.cardGrid}>
-        <div className={`${styles.card} ${styles.statCardPurple}`}>
-          <div className={styles.cardIcon}>
-            <ClipboardList size={24} />
-          </div>
-          <div className={styles.cardContent}>
-            <span className={styles.cardLabel}>Total Inquiries</span>
-            <span className={styles.cardValue}>{loading ? '—' : stats.totalInquiries}</span>
-          </div>
-        </div>
-        <div className={`${styles.card} ${styles.statCardGreen}`}>
-          <div className={styles.cardIcon}>
-            <MessageSquare size={24} />
-          </div>
-          <div className={styles.cardContent}>
-            <span className={styles.cardLabel}>New Inquiries</span>
-            <span className={styles.cardValue}>{loading ? '—' : stats.newInquiries}</span>
-          </div>
-        </div>
-        <div className={`${styles.card} ${styles.statCardBrown}`}>
-          <Link to="/reminders" className={styles.cardLink}>
-            <div className={styles.cardIcon}>
-              <Bell size={24} />
-            </div>
-            <div className={styles.cardContent}>
-              <span className={styles.cardLabel}>Upcoming Reminders</span>
-              <span className={styles.cardValue}>{loading ? '—' : stats.upcomingReminders}</span>
-            </div>
-          </Link>
-        </div>
-        <div className={`${styles.card} ${styles.statCardOrange}`}>
-          <Link to="/proposals" className={styles.cardLink}>
-            <div className={styles.cardIcon}>
-              <FileText size={24} />
-            </div>
-            <div className={styles.cardContent}>
-              <span className={styles.cardLabel}>Proposals Created</span>
-              <span className={styles.cardValue}>{loading ? '—' : stats.proposalsCreated}</span>
-            </div>
-          </Link>
-        </div>
-      </div>
-      )}
-
-      {canViewCompanyFinancials(user?.role) && (
-        <>
-          <TopProductsLeaderboard enabled />
-          <TopSellingProductChart enabled />
-        </>
-      )}
-
-      {liveBalance && canViewCompanyFinancials(user?.role) && (
+      {liveBalance && showFinancials && (
         <section className={styles.financeSection}>
           <div className={styles.financeSectionHeader}>
             <div className={styles.financeSectionIcon}>
@@ -879,120 +814,8 @@ export default function Dashboard() {
         </section>
       )}
 
-      {paymentSummary !== null && canViewPaymentOverview(user?.role) && (
-        <>
-          <h2 className={styles.sectionTitle} style={{ marginTop: '2rem', marginBottom: '1rem' }}>Payment overview</h2>
-          <div className={styles.paymentCardGrid}>
-            <Link to="/customer" className={`${styles.card} ${styles.payCardPurple}`}>
-              <div className={styles.cardIcon}>
-                <Users size={24} />
-              </div>
-              <div className={styles.cardContent}>
-                <span className={styles.cardLabel}>Total clients</span>
-                <span className={styles.cardValue}>{loading ? '—' : paymentSummary.totalClients}</span>
-              </div>
-            </Link>
-            <div className={`${styles.card} ${styles.payCardTeal}`}>
-              <div className={styles.cardIcon}>
-                <FolderKanban size={24} />
-              </div>
-              <div className={styles.cardContent}>
-                <span className={styles.cardLabel}>Total project value</span>
-                <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.totalProjectValue).toLocaleString()}`}</span>
-              </div>
-            </div>
-            <div className={`${styles.card} ${styles.payCardGreen}`}>
-              <div className={styles.cardIcon}>
-                <Banknote size={24} />
-              </div>
-              <div className={styles.cardContent}>
-                <span className={styles.cardLabel}>Business receipts (collected)</span>
-                <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.totalCollected).toLocaleString()}`}</span>
-              </div>
-            </div>
-            <Link to="/invoices?status=pending" className={`${styles.card} ${styles.payCardOrange}`}>
-              <div className={styles.cardIcon}>
-                <Receipt size={24} />
-              </div>
-              <div className={styles.cardContent}>
-                <span className={styles.cardLabel}>Accounts receivable (pending income)</span>
-                <span className={styles.cardValue}>
-                  {loading ? '—' : `Rs. ${Number(paymentSummary.accountsReceivablePending).toLocaleString()}`}
-                </span>
-              </div>
-            </Link>
-            <div className={`${styles.card} ${styles.payCardBrown}`}>
-              <div className={styles.cardIcon}>
-                <Wallet size={24} />
-              </div>
-              <div className={styles.cardContent}>
-                <span className={styles.cardLabel}>Installment pending balance</span>
-                <span className={styles.cardValue}>{loading ? '—' : `Rs. ${Number(paymentSummary.pendingBalance).toLocaleString()}`}</span>
-              </div>
-            </div>
-            <Link to="/installments?status=overdue" className={`${styles.card} ${styles.payCardRose}`}>
-              <div className={styles.cardIcon}>
-                <AlertCircle size={24} />
-              </div>
-              <div className={styles.cardContent}>
-                <span className={styles.cardLabel}>Overdue installments</span>
-                <span className={styles.cardValue}>{loading ? '—' : paymentSummary.overdueCount}</span>
-              </div>
-            </Link>
-            <Link to="/installments" className={`${styles.card} ${styles.payCardBlue}`}>
-              <div className={styles.cardIcon}>
-                <CalendarClock size={24} />
-              </div>
-              <div className={styles.cardContent}>
-                <span className={styles.cardLabel}>Due today</span>
-                <span className={styles.cardValue}>{loading ? '—' : paymentSummary.dueTodayCount}</span>
-              </div>
-            </Link>
-          </div>
-        </>
-      )}
+      {showLeadsDashboard && <CrmEngagementSection enabled />}
 
-      {canAccessLeadsAndBilling(user?.role) && (
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Upcoming Reminders</h2>
-        </div>
-        {loading ? (
-          <p className={styles.muted}>Loading...</p>
-        ) : reminders.length === 0 ? (
-          <p className={styles.emptyText}>No upcoming reminders. Add them from an inquiry detail page.</p>
-        ) : (
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Inquiry Name</th>
-                  <th>Reminder Title</th>
-                  <th>Date & Time</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reminders.map((r) => (
-                  <tr key={r._id}>
-                    <td>
-                      <span className="font-medium">{getInquiryName(r.inquiryId)}</span>
-                    </td>
-                    <td>{r.title}</td>
-                    <td>{format(new Date(r.scheduledAt), 'MMM d, yyyy · p')}</td>
-                    <td>
-                      <Link to={`/inquiries/${getInquiryId(r.inquiryId)}`} className={styles.viewLink}>
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-      )}
     </div>
   );
 }

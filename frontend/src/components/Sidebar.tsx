@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { X, Lock } from 'lucide-react';
-import MaintenanceModal from './MaintenanceModal';
+import { X } from 'lucide-react';
 import {
     LayoutDashboard,
     FolderKanban,
@@ -53,8 +51,6 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
     const showFinancialNav = canViewCompanyFinancials(role);
     const showReports = canViewOperationalReports(role) || showFinancialNav;
     const showCampaigns = canAccessLeadsAndBilling(role);
-    const [meetingsMaintenanceOpen, setMeetingsMaintenanceOpen] = useState(false);
-
     const navItems = isDev
         ? [
               { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
@@ -97,7 +93,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
               { icon: UserRoundSearch, label: 'Prospects', path: '/prospects' },
               { icon: MessageSquare, label: 'Inquiries', path: '/inquiries' },
               { icon: FileText, label: 'Proposal', path: '/proposals' },
-              { icon: Calendar, label: 'Meetings', path: '/meetings', locked: true },
+              { icon: Calendar, label: 'Meetings', path: '/meetings' },
           ]
         : [];
 
@@ -110,12 +106,6 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
 
     return (
         <>
-            <MaintenanceModal
-                open={meetingsMaintenanceOpen}
-                title="Meetings temporarily unavailable"
-                message="Meeting function closed temporarily due to maintenance."
-                onClose={() => setMeetingsMaintenanceOpen(false)}
-            />
             {/* Mobile sidebar */}
             <div
                 className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-orange-100 flex flex-col font-sans transform transition-transform duration-300 ease-in-out lg:hidden ${
@@ -174,22 +164,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             LEADS MANAGEMENT
                         </h3>
                         <nav className="space-y-1">
-                            {leadsItems.map((item) =>
-                                (item as { locked?: boolean }).locked ? (
-                                    <button
-                                        key={item.label}
-                                        type="button"
-                                        onClick={() => {
-                                            setMeetingsMaintenanceOpen(true);
-                                            onClose?.();
-                                        }}
-                                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-500 hover:bg-white/50 hover:text-gray-700 w-full text-left"
-                                    >
-                                        <item.icon size={20} className="text-gray-400" />
-                                        {item.label}
-                                        <Lock size={14} className="ml-auto text-gray-400" />
-                                    </button>
-                                ) : (
+                            {leadsItems.map((item) => (
                                     <NavLink
                                         key={item.label}
                                         to={item.path}
@@ -211,8 +186,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                                             </>
                                         )}
                                     </NavLink>
-                                )
-                            )}
+                            ))}
                         </nav>
                     </div>
                     ) : null}
@@ -327,19 +301,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                             LEADS MANAGEMENT
                         </h3>
                         <nav className="space-y-1">
-                            {leadsItems.map((item) =>
-                                (item as { locked?: boolean }).locked ? (
-                                    <button
-                                        key={item.label}
-                                        type="button"
-                                        onClick={() => setMeetingsMaintenanceOpen(true)}
-                                        className="flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-500 hover:bg-white/50 hover:text-gray-700 w-full text-left"
-                                    >
-                                        <item.icon size={20} className="text-gray-400" />
-                                        {item.label}
-                                        <Lock size={14} className="ml-auto text-gray-400" />
-                                    </button>
-                                ) : (
+                            {leadsItems.map((item) => (
                                     <NavLink
                                         key={item.label}
                                         to={item.path}
@@ -360,8 +322,7 @@ const Sidebar = ({ isOpen = true, onClose }: SidebarProps) => {
                                             </>
                                         )}
                                     </NavLink>
-                                )
-                            )}
+                            ))}
                         </nav>
                     </div>
                     ) : null}

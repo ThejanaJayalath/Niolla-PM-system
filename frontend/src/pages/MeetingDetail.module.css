@@ -113,11 +113,9 @@
 }
 
 .editBtn {
-  background: white;
-  border: 1px solid #e5e7eb;
-  color: #9ca66a;
-  /* Brassy/Goldish text in mockup? Let's use gray-600 or orange-600 */
-  color: #b45309;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--color-primary, #fb8c19) 35%, #e5e7eb);
+  color: var(--color-primary-hover, #e67e0f);
   padding: 0.5rem 1rem;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -126,17 +124,29 @@
   align-items: center;
   gap: 0.5rem;
   cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.editBtn:hover {
+  background: color-mix(in srgb, var(--color-primary, #fb8c19) 8%, #fff);
 }
 
 .saveBtn {
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  color: #ea580c;
+  background: linear-gradient(135deg, var(--color-primary, #fb8c19) 0%, var(--color-primary-hover, #e67e0f) 100%);
+  border: none;
+  color: #fff;
   padding: 0.5rem 1rem;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-primary, #fb8c19) 30%, transparent);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.saveBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--color-primary, #fb8c19) 35%, transparent);
 }
 
 /* Form Fields */
@@ -177,7 +187,7 @@
 }
 
 .inputParam:focus {
-  border-color: #f97316;
+  border-color: var(--color-primary, #fb8c19);
 }
 
 /* Chips */
@@ -246,7 +256,7 @@
 
 .orangeBtn {
   width: 100%;
-  background: #f97316;
+  background: linear-gradient(135deg, var(--color-primary, #fb8c19) 0%, var(--color-primary-hover, #e67e0f) 100%);
   color: white;
   border: none;
   padding: 0.8rem;
@@ -254,9 +264,49 @@
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--color-primary, #fb8c19) 30%, transparent);
 }
 
 .orangeBtn:hover {
-  background: #ea580c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--color-primary, #fb8c19) 35%, transparent);
+}
+
+.primaryLinkBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: #fff;
+  background: linear-gradient(135deg, var(--color-primary, #fb8c19) 0%, var(--color-primary-hover, #e67e0f) 100%);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.primaryLinkBtn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px color-mix(in srgb, var(--color-primary, #fb8c19) 35%, transparent);
+}
+
+.secondaryLinkBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--color-primary-hover, #e67e0f);
+  border: 1px solid color-mix(in srgb, var(--color-primary, #fb8c19) 35%, #e5e7eb);
+  background: #fff;
+  transition: background 0.2s;
+}
+
+.secondaryLinkBtn:hover {
+  background: color-mix(in srgb, var(--color-primary, #fb8c19) 8%, #fff);
 }

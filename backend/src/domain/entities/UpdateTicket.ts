@@ -44,6 +44,7 @@ export interface UpdateTicket {
   assignedByName?: string;
   linkedRequirementId?: string;
   linkedPaymentPlanId?: string;
+  linkedProjectTaskId?: string;
   requestedAt: Date;
   /** When the worker marked the update done (awaiting admin review). */
   workerSubmittedAt?: Date;

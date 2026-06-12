@@ -1,0 +1,218 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.dialog {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow:
+    0 24px 48px rgba(15, 23, 42, 0.18),
+    0 0 0 1px rgba(15, 23, 42, 0.06);
+  padding: 1.25rem 1.35rem 1.15rem;
+  animation: dialogIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dialogIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.closeBtn {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeBtn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding-right: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.appIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: contain;
+  flex-shrink: 0;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  padding: 5px;
+}
+
+.headerText {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.publisher {
+  margin: 0.2rem 0 0;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.bodyLead {
+  margin: 0 0 0.65rem;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.45;
+}
+
+.benefits {
+  margin: 0 0 1.15rem;
+  padding-left: 1.15rem;
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.55;
+}
+
+.benefits li {
+  margin-bottom: 0.2rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.65rem;
+}
+
+.installBtn {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border: none;
+  border-radius: 10px;
+  background: #1f2937;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.installBtn:hover {
+  background: #111827;
+}
+
+.installBtn:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.laterBtn {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.laterBtn:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.headerBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: 36px;
+  padding: 0 0.5rem;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: #fff7ed;
+  color: #ea580c;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.headerBtn:hover {
+  background: #ffedd5;
+  border-color: #fb923c;
+  color: #c2410c;
+}
+
+.headerBtnVisible {
+  display: inline-flex;
+}
+
+.headerBtnLabel {
+  display: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .headerBtn {
+    padding: 0 0.65rem;
+  }
+
+  .headerBtnLabel {
+    display: inline;
+  }
+}
+
+@media (max-width: 480px) {
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .dialog {
+    max-width: none;
+    border-radius: 16px 16px 0 0;
+    padding-bottom: max(1.15rem, env(safe-area-inset-bottom));
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+}

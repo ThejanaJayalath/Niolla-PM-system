@@ -42,6 +42,7 @@ import Audit from './pages/Audit';
 import AssignEmployees from './pages/AssignEmployees';
 import Tasks from './pages/Tasks';
 import RoleGate from './components/RoleGate';
+import { PwaInstallProvider } from './components/PwaInstallPrompt';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -52,7 +53,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
+    <PwaInstallProvider>
+      <Routes>
       <Route path="/login" element={<Login />} />
       <Route
         path="/"
@@ -108,5 +110,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </PwaInstallProvider>
   );
 }

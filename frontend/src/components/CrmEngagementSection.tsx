@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { pushSystemToast } from '../lib/systemToast';
 import { openWhatsAppWithCardDownload } from '../lib/whatsappCardSend';
 import BirthdayTodaySection from './BirthdayTodaySection';
+import GreetingTemplateManager from './GreetingTemplateManager';
 import styles from './BirthdayTodaySection.module.css';
 
 interface AnniversaryRow {
@@ -117,7 +118,7 @@ export default function CrmEngagementSection({ enabled }: { enabled: boolean }) 
             await openWhatsAppWithCardDownload(
               res.data.whatsappDeepLink,
               imageUrl,
-              `anniversary-${row.customerName.replace(/\s+/g, '-')}`
+              `anniversary-${row.clientName.replace(/\s+/g, '-')}`
             );
           } catch {
             window.open(res.data.whatsappDeepLink, '_blank', 'noopener,noreferrer');
@@ -176,20 +177,21 @@ export default function CrmEngagementSection({ enabled }: { enabled: boolean }) 
 
       if (channel === 'whatsapp' && manual > 0 && res.data.results) {
         const manualRows = res.data.results.filter((r) => r.whatsappDeepLink);
-        if (manualRows.length === 1 && manualRows[0].whatsappDeepLink) {
+        if (manualRows.length === 1) {
           const row = manualRows[0];
-          if (row.cardDownloadUrl) {
+          const link = row.whatsappDeepLink;
+          if (link && row.cardDownloadUrl) {
             try {
               await openWhatsAppWithCardDownload(
-                row.whatsappDeepLink,
+                link,
                 row.cardDownloadUrl,
                 `festival-${(row.customerName || 'prospect').replace(/\s+/g, '-')}`
               );
             } catch {
-              window.open(row.whatsappDeepLink, '_blank', 'noopener,noreferrer');
+              window.open(link, '_blank', 'noopener,noreferrer');
             }
-          } else {
-            window.open(row.whatsappDeepLink, '_blank', 'noopener,noreferrer');
+          } else if (link) {
+            window.open(link, '_blank', 'noopener,noreferrer');
           }
         } else if (manualRows.length > 1) {
           pushSystemToast(
@@ -511,6 +513,10 @@ export default function CrmEngagementSection({ enabled }: { enabled: boolean }) 
         {anniversarySection}
         {festivalSection}
       </div>
+      <GreetingTemplateManager
+        festivalKey={festivalKey}
+        festivalLabel={FESTIVAL_LABELS[festivalKey] || festivalKey}
+      />
       {engagementSection}
     </>
   );

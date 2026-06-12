@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e3a8a"/>
+      <stop offset="55%" style="stop-color:#2563eb"/>
+      <stop offset="100%" style="stop-color:#38bdf8"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" rx="24" fill="url(#bg)"/>
+  <circle cx="100" cy="90" r="70" fill="#ffffff" opacity="0.1"/>
+  <circle cx="720" cy="400" r="100" fill="#ffffff" opacity="0.08"/>
+  <rect x="48" y="128" width="704" height="248" rx="20" fill="#ffffff" opacity="0.12"/>
+  <text x="400" y="88" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="34" font-weight="700" fill="#ffffff">NIOLLA</text>
+  <text x="400" y="268" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="40" font-weight="700" fill="#ffffff">{{greeting}}</text>
+  <text x="400" y="330" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="20" fill="#e0f2fe">Warm wishes from NIOLLA</text>
+  <text x="400" y="460" text-anchor="middle" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="rgba(255,255,255,0.85)">Niolla PVT.LTD � niolla.lk</text>
+</svg>

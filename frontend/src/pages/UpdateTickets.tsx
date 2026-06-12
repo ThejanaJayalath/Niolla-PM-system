@@ -46,6 +46,7 @@ interface UpdateTicketRow {
   assignedAt?: string;
   assignedByName?: string;
   linkedPaymentPlanId?: string;
+  linkedProjectTaskId?: string;
   requestedAt: string;
   workerSubmittedAt?: string;
   completedAt?: string;
@@ -526,6 +527,15 @@ export default function UpdateTickets() {
                           <Users size={12} />
                           {t.assignees?.length ? 'Change worker' : 'Assign worker'}
                         </button>
+                      ) : null}
+                      {t.linkedProjectTaskId ? (
+                        <Link
+                          to={`/tasks`}
+                          className="text-xs font-semibold text-orange-700 hover:underline"
+                          title="Worker sees this in Tasks after assignment"
+                        >
+                          View linked task
+                        </Link>
                       ) : null}
                       {t.status === 'PENDING_REVIEW' ? (
                         <button

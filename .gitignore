@@ -9,9 +9,15 @@ node_modules/
 # Google service account key (never commit)
 backend/config/google-service.json
 
+# Local MongoDB data (dev)
+backend/data/
+
 # Build output
 dist/
 build/
+frontend/dev-dist/
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 # Logs
 *.log

@@ -137,21 +137,33 @@ export default function AddCampaignModal({
         : {}),
     };
 
-    const res = isEdit
-      ? await api.patch<unknown>(`/campaigns/${editCampaign._id}`, payload)
-      : await api.post<{ campaign: unknown; promotionalBlast?: { sent: number; manual: number; failed: number; skipped: number; messagePreview: string } }>(
-          '/campaigns',
-          payload
-        );
-
-    setSubmitting(false);
-    if (!res.success) {
-      setError(res.error?.message || 'Failed to save campaign');
-      return;
-    }
-    if (!isEdit && sendBlast && res.data?.promotionalBlast) {
-      const toast = formatPromotionalBlastToast(res.data.promotionalBlast);
-      pushSystemToast(toast.message, toast.variant);
+    if (isEdit) {
+      const res = await api.patch<unknown>(`/campaigns/${editCampaign._id}`, payload);
+      setSubmitting(false);
+      if (!res.success) {
+        setError(res.error?.message || 'Failed to save campaign');
+        return;
+      }
+    } else {
+      const res = await api.post<{
+        campaign: unknown;
+        promotionalBlast?: {
+          sent: number;
+          manual: number;
+          failed: number;
+          skipped: number;
+          messagePreview: string;
+        };
+      }>('/campaigns', payload);
+      setSubmitting(false);
+      if (!res.success) {
+        setError(res.error?.message || 'Failed to save campaign');
+        return;
+      }
+      if (sendBlast && res.data?.promotionalBlast) {
+        const toast = formatPromotionalBlastToast(res.data.promotionalBlast);
+        pushSystemToast(toast.message, toast.variant);
+      }
     }
     onSuccess();
     onClose();

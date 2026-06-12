@@ -129,7 +129,7 @@ export class CustomerService {
       }
     }
 
-    const o = doc.toObject() as Record<string, unknown>;
+    const o = doc.toObject() as unknown as Record<string, unknown>;
     const product = o.productId as { name?: string; code?: string } | null | undefined;
     const serviceCategories = (o.serviceCategories as string[]) || [];
     const businessModel =
