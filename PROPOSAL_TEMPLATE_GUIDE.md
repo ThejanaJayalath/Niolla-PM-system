@@ -18,6 +18,13 @@ Use **double curly braces** and **UPPERCASE with underscore**. No spaces inside 
 | `{{PROJECT_COST}}` | Project cost (e.g. LKR 15,000.00) |
 | `{{TOTAL_COST}}` | Total amount (e.g. LKR 20,000.00) |
 | `{{DELIVERABLE_SECTION}}` | Milestones / deliverables list |
+| `{{TECHNOLOGY_STACK}}` | Technology stack (defaults to —) |
+| `{{FINANCIALS_SECTION}}` | Full financials block (advance, cost, total, installments) |
+| `{{MAINTENANCE_SECTION}}` | Optional maintenance note / monthly cost |
+| `{{VALID_UNTIL}}` | Proposal validity date |
+| `{{CONCLUSION}}` | Closing paragraph |
+
+**Default template:** If no custom `.docx` is uploaded, the app uses the bundled **Project proposal sample template** (same layout as `Project proposal sample template.pdf` in the repo root).
 
 ---
 

@@ -5,6 +5,17 @@
   color: var(--text);
 }
 
+@media (max-width: 768px) {
+  .title {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .empty {
+    padding: 2rem 1rem;
+  }
+}
+
 .muted {
   color: var(--text-muted);
   margin: 0;

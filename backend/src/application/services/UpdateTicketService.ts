@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import { UpdateTicket, UpdateTicketStatus } from '../../domain/entities/UpdateTicket';
 import { UpdateTicketModel } from '../../infrastructure/database/models/UpdateTicketModel';
+import { ProjectTaskModel } from '../../infrastructure/database/models/ProjectTaskModel';
 import { CustomerModel } from '../../infrastructure/database/models/CustomerModel';
 import { ProjectModel } from '../../infrastructure/database/models/ProjectModel';
 import { CustomerRequirementService } from './CustomerRequirementService';
@@ -241,10 +242,59 @@ export class UpdateTicketService {
     });
 
     if (ticket.status === 'APPROVED') ticket.status = 'IN_PROGRESS';
+    await this.upsertLinkedProjectTask(ticket, oids, assignedBy);
     await ticket.save();
     await this.customerRequirementService.refreshWorkflowLabelForProject(ticket.projectRef.toString());
     await this.notifyWorkersAssigned(ticket, oids.map((o) => o.toString()), payout);
     return this.populateOne(id);
+  }
+
+  /** Keep a project task in sync when a worker is assigned to an update ticket. */
+  private async upsertLinkedProjectTask(
+    ticket: {
+      _id: mongoose.Types.ObjectId;
+      ticketId: string;
+      projectRef: mongoose.Types.ObjectId;
+      title: string;
+      description?: string;
+      linkedRequirementId?: mongoose.Types.ObjectId;
+      linkedProjectTaskId?: mongoose.Types.ObjectId;
+    },
+    assigneeOids: mongoose.Types.ObjectId[],
+    assignedBy?: string
+  ): Promise<void> {
+    const taskTitle = `${ticket.ticketId}: ${ticket.title}`;
+    const createdBy =
+      assignedBy && mongoose.Types.ObjectId.isValid(assignedBy)
+        ? new mongoose.Types.ObjectId(assignedBy)
+        : assigneeOids[0];
+
+    if (ticket.linkedProjectTaskId) {
+      await ProjectTaskModel.findByIdAndUpdate(ticket.linkedProjectTaskId, {
+        $set: {
+          title: taskTitle,
+          description: ticket.description,
+          assigneeIds: assigneeOids,
+          requirementId: ticket.linkedRequirementId,
+          completed: false,
+          completedAt: undefined,
+          completedBy: undefined,
+        },
+      });
+      return;
+    }
+
+    const task = await ProjectTaskModel.create({
+      projectId: ticket.projectRef,
+      requirementId: ticket.linkedRequirementId,
+      updateTicketId: ticket._id,
+      title: taskTitle,
+      description: ticket.description,
+      assigneeIds: assigneeOids,
+      completed: false,
+      createdBy,
+    });
+    ticket.linkedProjectTaskId = task._id;
   }
 
   /** @deprecated Use assignWorkers */
@@ -341,9 +391,24 @@ export class UpdateTicketService {
   async findAssignedForWorker(employeeId: string): Promise<UpdateTicket[]> {
     if (!mongoose.Types.ObjectId.isValid(employeeId)) return [];
     const eid = new mongoose.Types.ObjectId(employeeId);
+    const needsLink = await UpdateTicketModel.find({
+      assignedEmployeeIds: eid,
+      status: { $in: ['APPROVED', 'IN_PROGRESS'] },
+      linkedProjectTaskId: { $exists: false },
+    });
+    for (const ticket of needsLink) {
+      if ((ticket.assignedEmployeeIds || []).length > 0) {
+        await this.upsertLinkedProjectTask(
+          ticket,
+          ticket.assignedEmployeeIds as mongoose.Types.ObjectId[]
+        );
+        await ticket.save();
+      }
+    }
     const docs = await UpdateTicketModel.find({
       assignedEmployeeIds: eid,
       status: { $in: ['APPROVED', 'IN_PROGRESS'] },
+      linkedProjectTaskId: { $exists: false },
     })
       .populate('customerRef', 'name customerId')
       .populate({
@@ -378,6 +443,16 @@ export class UpdateTicketService {
 
     if (ticket.linkedRequirementId) {
       await this.customerRequirementService.update(ticket.linkedRequirementId.toString(), { status: 'DONE' });
+    }
+
+    if (ticket.linkedProjectTaskId && mongoose.Types.ObjectId.isValid(workerId)) {
+      await ProjectTaskModel.findByIdAndUpdate(ticket.linkedProjectTaskId, {
+        $set: {
+          completed: true,
+          completedAt: new Date(),
+          completedBy: new mongoose.Types.ObjectId(workerId),
+        },
+      });
     }
 
     await ticket.save();
@@ -772,6 +847,9 @@ export class UpdateTicketService {
         : undefined,
       linkedPaymentPlanId: o.linkedPaymentPlanId
         ? (o.linkedPaymentPlanId as { toString: () => string }).toString()
+        : undefined,
+      linkedProjectTaskId: o.linkedProjectTaskId
+        ? (o.linkedProjectTaskId as { toString: () => string }).toString()
         : undefined,
       requestedAt: o.requestedAt as Date,
       workerSubmittedAt: o.workerSubmittedAt as Date | undefined,

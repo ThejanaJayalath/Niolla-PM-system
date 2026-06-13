@@ -38,6 +38,10 @@ export interface Proposal {
   maintenanceNote?: string;
   validUntil?: string;
   notes?: string;
+  /** Relative path under backend cwd, e.g. uploads/proposals/proposal-name-id.docx */
+  documentPath?: string;
+  documentFileName?: string;
+  documentGeneratedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

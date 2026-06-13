@@ -13,9 +13,68 @@
 }
 
 @layer base {
+  html {
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
   body {
     @apply antialiased text-gray-800 bg-gray-50;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    overflow-x: hidden;
+    min-height: 100dvh;
+  }
+
+  #root {
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  img,
+  video,
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font-size: inherit;
+  }
+}
+
+/* App-wide mobile layout helpers */
+@layer utilities {
+  .mobile-scroll-x {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  .mobile-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Tailwind modals / dialogs used across pages */
+  .fixed.inset-0.flex.items-center.justify-center > div.max-w-md,
+  .fixed.inset-0.flex.items-center.justify-center > div.max-w-lg,
+  .fixed.inset-0.flex.items-center.justify-center > div.max-w-xl {
+    max-width: calc(100vw - 2rem) !important;
+    width: 100%;
+    max-height: calc(100dvh - 2rem);
+    overflow-y: auto;
+  }
+
+  /* Full-width primary actions in page headers */
+  .font-sans .flex.flex-wrap.gap-3 > button.w-full,
+  .font-sans .flex.flex-wrap.gap-2 > button {
+    min-height: 2.75rem;
   }
 }
 

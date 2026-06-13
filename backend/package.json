@@ -5,9 +5,11 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "npx ts-node-dev --respawn --exit-child --transpile-only src/index.ts",
+    "start:mongo": "node scripts/startMongo.js",
     "build": "tsc",
     "start": "node dist/index.js",
     "seed": "npx ts-node scripts/seedAdmin.ts",
+    "seed:proposal-template": "npx ts-node scripts/seedProposalTemplate.ts",
     "job:birthdays": "npx ts-node scripts/scanBirthdays.ts",
     "job:anniversaries": "npx ts-node scripts/scanAnniversaries.ts",
     "cleanup:demo-finance": "npx ts-node scripts/cleanupDemoInvoicesAndBilling.ts",

@@ -1,6 +1,7 @@
 import Docxtemplater from 'docxtemplater';
 import PizZip from 'pizzip';
 import { Proposal } from '../../domain/entities/Proposal';
+import { sanitizeDocxText } from './textSanitize';
 
 /**
  * Fills a Word template that uses placeholders {{PROJECT_NAME}}, {{DATE}}, etc.
@@ -76,11 +77,45 @@ export function getTemplateData(proposal: Proposal): Record<string, string> {
           .join('\n\n')
       : '—';
 
-  return {
+  const validUntil = proposal.validUntil
+    ? new Date(proposal.validUntil).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : '';
+
+  const financialsLines = [
+    `Advance Payment: ${advancePayment}`,
+    `Project Cost: ${projectCost}`,
+    hasCampaignDiscount
+      ? `Original Price: ${originalPrice}\nDiscount (${proposal.campaignName || 'Campaign'}): −${discountAmount}\nFinal Payable Price: ${finalPayable}`
+      : `Total Cost: ${totalCost}`,
+  ];
+  if (proposal.installmentMonths && proposal.monthlyInstallment) {
+    financialsLines.push(
+      `Payment Plan: ${proposal.installmentMonths}-month installment`,
+      `Monthly Installment: ${formatLkr(proposal.monthlyInstallment)}`
+    );
+  }
+  if (validUntil) financialsLines.push(`Valid until: ${validUntil}`);
+
+  const maintenanceLines: string[] = [];
+  if (proposal.maintenanceCostPerMonth != null && proposal.maintenanceCostPerMonth > 0) {
+    maintenanceLines.push(
+      `Maintenance cost per month: ${formatLkr(proposal.maintenanceCostPerMonth)}`
+    );
+  }
+  if (proposal.maintenanceNote?.trim()) {
+    maintenanceLines.push(proposal.maintenanceNote.trim());
+  }
+
+  const raw = {
     PROJECT_NAME: projectName,
     DATE: date,
     INTRODUCTION: introduction,
     KEY_FEATURES: keyFeatures,
+    TECHNOLOGY_STACK: '—',
     ADVANCE_PAYMENT: advancePayment,
     PROJECT_COST: projectCost,
     TOTAL_COST: totalCost,
@@ -88,8 +123,27 @@ export function getTemplateData(proposal: Proposal): Record<string, string> {
     DISCOUNT_AMOUNT: discountAmount || '—',
     FINAL_PAYABLE: finalPayable,
     PRICING_SECTION: pricingSection,
+    FINANCIALS_SECTION: financialsLines.join('\n'),
     DELIVERABLE_SECTION: deliverableSection,
+    MAINTENANCE_SECTION:
+      maintenanceLines.length > 0
+        ? `Deployment, Maintain & Publication cost\n${maintenanceLines.join('\n')}`
+        : '',
+    VALID_UNTIL: validUntil || '—',
+    CONCLUSION:
+      proposal.notes?.trim() ||
+      'This proposal outlines the scope, deliverables, and financial terms for the project. Final pricing, scope, and deliverables may change upon further discussion and agreement.',
   };
+
+  return Object.fromEntries(
+    Object.entries(raw).map(([key, value]) => [key, sanitizeDocxText(value)])
+  );
+}
+
+export function assertValidDocxBuffer(buffer: Buffer): void {
+  if (buffer.length < 4 || buffer[0] !== 0x50 || buffer[1] !== 0x4b) {
+    throw new Error('Generated file is not a valid Word document');
+  }
 }
 
 export function fillProposalTemplate(templateBuffer: Buffer, proposal: Proposal): Buffer {

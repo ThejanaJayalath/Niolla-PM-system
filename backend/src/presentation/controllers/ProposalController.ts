@@ -1,14 +1,15 @@
 import { Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { ProposalService } from '../../application/services/ProposalService';
-import { buildProposalDocx } from '../../infrastructure/pdf/ProposalDocxBuilder';
-import { fillProposalTemplate } from '../../infrastructure/pdf/ProposalDocxGenerator';
+import { ProposalDocumentService } from '../../application/services/ProposalDocumentService';
 import { buildProposalPdf } from '../../infrastructure/pdf/ProposalPdfBuilder';
 import { convertDocxToPdf } from '../../infrastructure/pdf/convertDocxToPdf';
+import { sanitizeDownloadFileName, sanitizeHttpHeaderValue } from '../../infrastructure/pdf/textSanitize';
 import { ProposalTemplateModel } from '../../infrastructure/database/models/ProposalTemplateModel';
 import { AuthenticatedRequest } from '../middleware/auth';
 
 const proposalService = new ProposalService();
+const proposalDocumentService = new ProposalDocumentService();
 
 export async function createProposal(
   req: AuthenticatedRequest,
@@ -101,21 +102,6 @@ export async function getProposalsByInquiry(req: AuthenticatedRequest, res: Resp
   res.json({ success: true, data: proposals });
 }
 
-function toBuffer(raw: unknown): Buffer | null {
-  if (!raw) return null;
-  if (Buffer.isBuffer(raw)) return raw.length > 0 ? raw : null;
-  if (typeof (raw as { buffer?: Uint8Array }).buffer !== 'undefined') {
-    const b = (raw as { buffer: Uint8Array }).buffer;
-    return b && b.length > 0 ? Buffer.from(b) : null;
-  }
-  try {
-    const b = Buffer.from(raw as ArrayLike<number>);
-    return b.length > 0 ? b : null;
-  } catch {
-    return null;
-  }
-}
-
 export async function downloadProposalPdf(req: AuthenticatedRequest, res: Response): Promise<void> {
   try {
     const proposal = await proposalService.findById(req.params.id);
@@ -123,31 +109,24 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
       res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Proposal not found' } });
       return;
     }
-    const safeName = (proposal.customerName || 'proposal').toString().replace(/\s+/g, '-');
+    const safeName = sanitizeDownloadFileName(
+      (proposal.customerName || 'proposal').toString(),
+      'proposal'
+    ).replace(/\.docx$/i, '');
     const timestamp = Date.now();
+    const pdfFileName = sanitizeDownloadFileName(`proposal-${safeName}-${timestamp}.pdf`);
+    const docxFileName = sanitizeDownloadFileName(`proposal-${safeName}-${timestamp}.docx`);
 
-    let docxBuffer: Buffer;
-    let usedTemplate = false;
-    const templateDoc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).select('templateDocx');
-    const raw = templateDoc?.templateDocx;
-    const templateBuffer = toBuffer(raw);
-
-    if (templateBuffer && templateBuffer.length > 0) {
-      try {
-        docxBuffer = fillProposalTemplate(templateBuffer, proposal);
-        usedTemplate = true;
-      } catch (templateErr) {
-        console.warn('Template fill failed, using built docx:', (templateErr as Error)?.message);
-        docxBuffer = await buildProposalDocx(proposal);
-      }
-    } else {
-      docxBuffer = await buildProposalDocx(proposal);
-    }
+    const { buffer: docxBuffer, usedTemplate, fileName: storedFileName } =
+      await proposalDocumentService.getDocumentForDownload(proposal);
 
     const wantDocx = req.query.format === 'docx';
     if (wantDocx) {
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="${sanitizeDownloadFileName(storedFileName || docxFileName)}"`
+      );
       res.send(docxBuffer);
       return;
     }
@@ -155,30 +134,43 @@ export async function downloadProposalPdf(req: AuthenticatedRequest, res: Respon
     const pdfBuffer = await convertDocxToPdf(docxBuffer);
     if (pdfBuffer && pdfBuffer.length > 0) {
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${pdfFileName}"`);
       res.send(pdfBuffer);
       return;
     }
 
-    // DOCX→PDF needs LibreOffice (unavailable on many hosts, e.g. Vercel). Fall back to data-driven PDF (pdf-lib).
+    // Filled sample template: deliver Word so layout matches the .docx design (not the plain pdf-lib fallback).
+    if (usedTemplate) {
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${docxFileName}"`);
+      res.setHeader(
+        'X-Message',
+        sanitizeHttpHeaderValue(
+          'PDF needs LibreOffice on this PC. You received your filled proposal as Word — open it and use File > Save As > PDF. Install LibreOffice to get PDF directly from Download PDF.'
+        )
+      );
+      res.send(docxBuffer);
+      return;
+    }
+
+    // Template fill failed: generic PDF layout (no LibreOffice).
     try {
       const generatedPdf = await buildProposalPdf(proposal);
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${pdfFileName}"`);
       res.send(generatedPdf);
       return;
     } catch (pdfErr) {
       console.warn('Generated PDF failed after DOCX conversion failed:', (pdfErr as Error)?.message);
     }
 
-    // Last resort: proposal as Word (user can Save as PDF locally).
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-    res.setHeader('Content-Disposition', `attachment; filename="proposal-${safeName}-${timestamp}.docx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${docxFileName}"`);
     res.setHeader(
       'X-Message',
-      usedTemplate
-        ? 'Could not build a PDF on this server. You received your filled template as Word — open it and use File > Save As > PDF. For server-side PDF from your template, deploy the API where LibreOffice is installed.'
-        : 'Could not build a PDF on this server. You received the proposal as Word — use File > Save As > PDF if needed.'
+      sanitizeHttpHeaderValue(
+        'Could not build a PDF on this server. You received the proposal as Word — use File > Save As > PDF if needed.'
+      )
     );
     res.send(docxBuffer);
   } catch (err) {
@@ -218,17 +210,12 @@ export async function uploadProposalTemplate(req: AuthenticatedRequest, res: Res
 }
 
 export async function getProposalTemplateInfo(req: AuthenticatedRequest, res: Response): Promise<void> {
-  const doc = await ProposalTemplateModel.findOne().sort({ uploadedAt: -1 }).select('fileName uploadedAt').lean();
-  if (!doc) {
-    res.json({ success: true, data: { hasTemplate: false } });
-    return;
-  }
   res.json({
     success: true,
     data: {
       hasTemplate: true,
-      fileName: doc.fileName,
-      uploadedAt: doc.uploadedAt,
+      fileName: 'Project proposal sample template.docx',
+      isDefault: true,
     },
   });
 }

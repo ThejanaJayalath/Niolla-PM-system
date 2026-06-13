@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Plus, Calendar, User, FileText, StickyNote, Mail, Repeat, Users } from 'lucide-react';
 import { api } from '../api/client';
+import { pushSystemToast } from '../lib/systemToast';
 import styles from './CreateMeetingModal.module.css';
 
 interface CreateMeetingModalProps {
@@ -51,6 +52,8 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
         notes: '',
         attendeesText: '',
         sendInvites: true,
+        autoRecord: true,
+        meetingLink: '',
         recurrence: '',
     });
     const [errorCode, setErrorCode] = useState<string | undefined>(undefined);
@@ -69,6 +72,8 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                 notes: '',
                 attendeesText: '',
                 sendInvites: true,
+                autoRecord: true,
+                meetingLink: '',
                 recurrence: '',
             });
             setError(null);
@@ -175,12 +180,19 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                 meetingDurationMinutes: formData.durationMinutes,
                 attendees: attendees.length > 0 ? attendees : undefined,
                 sendInvites: formData.sendInvites && attendees.length > 0,
+                autoRecord: formData.autoRecord,
+                meetingLink: formData.meetingLink.trim() || undefined,
                 recurrence,
             };
 
             const res = await api.post('/reminders', payload);
 
             if (res.success) {
+                if (res.warnings?.length) {
+                    pushSystemToast(res.warnings.join(' '), 'warning');
+                } else {
+                    pushSystemToast('Meeting created successfully.', 'success');
+                }
                 onSuccess();
                 onClose();
             } else {
@@ -273,7 +285,7 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
 
                     <form onSubmit={handleSubmit} className={styles.form}>
                         {error && (
-                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4">
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-sm mb-4" role="alert">
                                 {error}
                                 {errorCode === 'GOOGLE_MEET_ERROR' && (
                                     <div className="mt-2">
@@ -303,6 +315,24 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                                 className={styles.input}
                                 required
                             />
+                        </div>
+
+                        <div className={styles.formGroup}>
+                            <label htmlFor="meetingLink">
+                                <Calendar size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
+                                Google Meet link (optional)
+                            </label>
+                            <input
+                                id="meetingLink"
+                                type="url"
+                                placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                                value={formData.meetingLink}
+                                onChange={e => setFormData({ ...formData, meetingLink: e.target.value })}
+                                className={styles.input}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Paste a Meet link if Google Calendar is not connected in Settings. Required for NioBot auto-record.
+                            </p>
                         </div>
 
                         <div className={styles.formGroup}>
@@ -435,6 +465,18 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                         </div>
 
                         <div className={styles.formGroup}>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.autoRecord}
+                                    onChange={e => setFormData({ ...formData, autoRecord: e.target.checked })}
+                                    className="rounded border-gray-300"
+                                />
+                                <span>Auto-record with NioBot (joins Meet and saves 720p video)</span>
+                            </label>
+                        </div>
+
+                        <div className={styles.formGroup}>
                             <label htmlFor="recurrence">
                                 <Repeat size={18} style={{ color: 'var(--color-primary, #FB8C19)' }} />
                                 Recurrence
@@ -467,7 +509,7 @@ export default function CreateMeetingModal({ isOpen, onClose, onSuccess, initial
                         </div>
 
                         <p className="text-xs text-gray-500 mb-4">
-                            A Google Meet link will be created automatically.
+                            If Google Calendar is connected, a Meet link is created automatically. Otherwise paste a link above.
                         </p>
 
                         <div className={styles.actions}>

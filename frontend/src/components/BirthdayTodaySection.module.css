@@ -478,3 +478,136 @@
   color: var(--text-secondary);
   font-size: 0.9rem;
 }
+
+.templatePanel {
+  margin-bottom: 2rem;
+  padding: 1.25rem 1.5rem;
+  border-radius: 1rem;
+  border: 1px solid #fed8b1;
+  background: linear-gradient(180deg, #fffbf7 0%, #ffffff 100%);
+  box-shadow: 0 2px 12px rgba(198, 65, 12, 0.08);
+}
+
+.templatePanelHead {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  color: #c2410c;
+}
+
+.templatePanelTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.25rem;
+}
+
+.templatePanelHint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  line-height: 1.45;
+}
+
+.templatePanelHint code {
+  font-size: 0.75rem;
+  background: #fff1e4;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  color: #9a3412;
+}
+
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .templateGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.templateCard {
+  border: 1px solid #fde4c8;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background: #fff;
+}
+
+.templateCardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.templateCardLabel {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.templateBadge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.templateBadgeMuted {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.templatePreviewWrap {
+  margin-bottom: 0.5rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid #f3f4f6;
+  max-height: 140px;
+}
+
+.templatePreviewImg {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  display: block;
+}
+
+.templateFileName {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  color: #6b7280;
+  word-break: break-all;
+}
+
+.templateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.templateUploadLabel {
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+}
+
+.hiddenFileInput {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}

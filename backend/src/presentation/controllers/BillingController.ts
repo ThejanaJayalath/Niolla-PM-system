@@ -215,7 +215,10 @@ export async function downloadBillingPdf(req: AuthenticatedRequest, res: Respons
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     res.setHeader('Content-Disposition', `attachment; filename="invoice-${safeName}-${timestamp}.docx"`);
-    res.setHeader('X-Message', 'PDF conversion not available on this server. You received the filled invoice as Word - open it and use File > Save As > PDF.');
+    res.setHeader(
+      'X-Message',
+      'PDF conversion not available on this server. You received the filled invoice as Word - open it and use File > Save As > PDF.'
+    );
     res.send(docxBuffer);
   } catch (err) {
     console.error('Download billing/invoice error:', err);

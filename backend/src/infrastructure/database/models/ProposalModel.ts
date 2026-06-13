@@ -26,6 +26,9 @@ export interface ProposalDocument extends Document {
   maintenanceNote?: string;
   validUntil?: string;
   notes?: string;
+  documentPath?: string;
+  documentFileName?: string;
+  documentGeneratedAt?: Date;
   status?: 'DRAFT' | 'SENT' | 'CONFIRMED' | 'LOST';
   createdAt: Date;
   updatedAt: Date;
@@ -67,6 +70,9 @@ const proposalSchema = new Schema<ProposalDocument>(
     maintenanceNote: { type: String },
     validUntil: { type: String },
     notes: { type: String },
+    documentPath: { type: String },
+    documentFileName: { type: String },
+    documentGeneratedAt: { type: Date },
     status: {
       type: String,
       enum: ['DRAFT', 'SENT', 'CONFIRMED', 'LOST'],

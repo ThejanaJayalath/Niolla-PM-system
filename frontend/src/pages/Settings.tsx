@@ -31,6 +31,11 @@ export default function Settings() {
   }, [fetchGoogleStatus]);
 
   const openGoogleOAuth = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login';
+      return;
+    }
     const width = 520;
     const height = 620;
     const left = Math.round((window.screen.width - width) / 2);

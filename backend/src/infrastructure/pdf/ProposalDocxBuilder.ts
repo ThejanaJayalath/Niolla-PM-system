@@ -1,6 +1,6 @@
 /**
  * Build proposal document from data using the "docx" package.
- * No Word template file — we generate valid .docx from code. No XML corruption, no placeholder splitting.
+ * Fallback when template fill fails — mirrors the Niolla sample proposal layout.
  */
 import {
   Document,
@@ -9,126 +9,125 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
+  PageBreak,
   convertInchesToTwip,
 } from 'docx';
 import { Proposal } from '../../domain/entities/Proposal';
+import { getTemplateData } from './ProposalDocxGenerator';
 
-function formatDate(proposal: Proposal): string {
-  const d = proposal.createdAt ? new Date(proposal.createdAt) : new Date();
-  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+function pageBreak(): Paragraph {
+  return new Paragraph({ children: [new PageBreak()] });
 }
 
-function formatLkr(value: number): string {
-  return `LKR ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+function heading(text: string, level: (typeof HeadingLevel)[keyof typeof HeadingLevel] = HeadingLevel.HEADING_1): Paragraph {
+  return new Paragraph({
+    text,
+    heading: level,
+    spacing: { before: 240, after: 120 },
+  });
+}
+
+function body(text: string): Paragraph {
+  return new Paragraph({
+    text,
+    spacing: { after: 80 },
+  });
+}
+
+function multiline(text: string): Paragraph[] {
+  return text.split('\n').map((line) => body(line));
 }
 
 export async function buildProposalDocx(proposal: Proposal): Promise<Buffer> {
-  const projectName = (proposal.projectName || proposal.customerName || '').trim() || 'Project';
-  const dateStr = formatDate(proposal);
-  const introduction = (proposal.projectDescription || '').trim() || '—';
-  const features = Array.isArray(proposal.requiredFeatures) ? proposal.requiredFeatures.filter(Boolean) : [];
-  const advancePayment = proposal.advancePayment != null ? proposal.advancePayment : 0;
-  const projectCost = proposal.projectCost != null ? proposal.projectCost : 0;
-  const totalCost = proposal.totalAmount != null ? proposal.totalAmount : 0;
-  const milestones = proposal.milestones || [];
+  const data = getTemplateData(proposal);
 
   const children: Paragraph[] = [
+    new Paragraph({ spacing: { before: 2400 } }),
     new Paragraph({
-      text: 'PROJECT PROPOSAL',
-      heading: HeadingLevel.TITLE,
+      children: [new TextRun({ text: data.PROJECT_NAME, bold: true, size: 32 })],
+      spacing: { after: 120 },
+    }),
+    new Paragraph({ spacing: { before: 480 } }),
+    body('Prepared by:'),
+    body('Niolla Solutions'),
+    body(data.DATE),
+    new Paragraph({ spacing: { before: 720 } }),
+    new Paragraph({
+      children: [new TextRun({ text: 'PROJECT PROPOSAL', bold: true, size: 48 })],
       alignment: AlignmentType.CENTER,
       spacing: { after: 240 },
     }),
+    pageBreak(),
+
     new Paragraph({
-      children: [new TextRun({ text: projectName, bold: true })],
-      spacing: { after: 120 },
-    }),
-    new Paragraph({
-      children: [new TextRun({ text: `Date: ${dateStr}` })],
-      spacing: { after: 360 },
-    }),
-    new Paragraph({
-      text: 'Introduction',
-      heading: HeadingLevel.HEADING_1,
-      spacing: { before: 240, after: 120 },
-    }),
-    new Paragraph({
-      text: introduction,
+      children: [new TextRun({ text: 'PROJECT PROPOSAL', bold: true })],
       spacing: { after: 240 },
     }),
+    body('Table of contents.'),
+    body('1. Project Overview.'),
+    body('1.1 Introduction'),
+    body('1.2 Key Features'),
+    body('1.3 Technology Stack'),
+    body('2. Project Management'),
+    body('3. Project Deliverables & Milestones'),
+    body('4. Financials'),
+    body('5. Conclusion'),
+    pageBreak(),
+
     new Paragraph({
-      text: 'Key Features',
-      heading: HeadingLevel.HEADING_1,
-      spacing: { before: 240, after: 120 },
+      children: [new TextRun({ text: 'PROJECT PROPOSAL', bold: true })],
+      spacing: { after: 240 },
     }),
+    heading('1. Project Overview.'),
+    heading('1.1 Introduction', HeadingLevel.HEADING_2),
+    body(data.INTRODUCTION),
+    heading('1.2 Key Features', HeadingLevel.HEADING_2),
+    ...multiline(data.KEY_FEATURES),
+    heading('1.3 Technology Stack', HeadingLevel.HEADING_2),
+    body(data.TECHNOLOGY_STACK),
+    pageBreak(),
+
+    new Paragraph({
+      children: [new TextRun({ text: 'PROJECT PROPOSAL', bold: true })],
+      spacing: { after: 240 },
+    }),
+    heading('2. Project Management.'),
+    heading('2.1 Project Structure & Phases', HeadingLevel.HEADING_2),
+    heading('2.1.1 Project Team', HeadingLevel.HEADING_3),
+    body('• Project Manager (1)'),
+    body('• Developers (2)'),
+    heading('2.2 Project Phases', HeadingLevel.HEADING_2),
+    body('1. Requirement Analysis & Information Gathering'),
+    body('2. System Architecture Design'),
+    body('3. UI/UX Design'),
+    body('4. System Development'),
+    body('5. Testing & Quality Assurance'),
+    body('6. Deployment & Maintenance'),
+    pageBreak(),
+
+    new Paragraph({
+      children: [new TextRun({ text: 'PROJECT PROPOSAL', bold: true })],
+      spacing: { after: 240 },
+    }),
+    heading('3. Project Deliverables & Milestones.'),
+    ...multiline(data.DELIVERABLE_SECTION),
+    heading('4. Financials.'),
+    heading('4.1 Project Costs', HeadingLevel.HEADING_2),
+    ...multiline(data.FINANCIALS_SECTION),
+    pageBreak(),
+
+    new Paragraph({
+      children: [new TextRun({ text: 'PROJECT PROPOSAL', bold: true })],
+      spacing: { after: 240 },
+    }),
+    heading('4.2 Deployment, Maintain & Publication cost', HeadingLevel.HEADING_2),
+    body('➢ Play Store one time registration fee - $25'),
+    body('➢ App store annual fee - $99'),
+    body('➢ Maintain & Server cost per month for first 10,000 users - $50 (then $0.01 per user)'),
+    ...(data.MAINTENANCE_SECTION ? multiline(data.MAINTENANCE_SECTION) : []),
+    heading('5. Conclusion'),
+    ...multiline(data.CONCLUSION),
   ];
-
-  if (features.length > 0) {
-    features.forEach((f) => {
-      children.push(
-        new Paragraph({
-          text: `• ${String(f).trim()}`,
-          bullet: { level: 0 },
-          spacing: { after: 60 },
-        })
-      );
-    });
-  } else {
-    children.push(new Paragraph({ text: '—', spacing: { after: 120 } }));
-  }
-
-  children.push(
-    new Paragraph({
-      text: 'Deliverables',
-      heading: HeadingLevel.HEADING_1,
-      spacing: { before: 240, after: 120 },
-    })
-  );
-
-  if (milestones.length > 0) {
-    milestones.forEach((m, i) => {
-      const line = [
-        `${i + 1}. ${m.title}`,
-        m.amount != null ? ` - LKR ${m.amount.toLocaleString()}` : '',
-        m.timePeriod ? ` (${m.timePeriod})` : '',
-      ].join('');
-      children.push(new Paragraph({ text: line, spacing: { after: 80 } }));
-      if (m.description) {
-        children.push(new Paragraph({ text: `   ${m.description}`, spacing: { after: 80 } }));
-      }
-    });
-  } else {
-    children.push(new Paragraph({ text: '—', spacing: { after: 120 } }));
-  }
-
-  children.push(
-    new Paragraph({
-      text: 'Financials',
-      heading: HeadingLevel.HEADING_1,
-      spacing: { before: 240, after: 120 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: 'Advance Payment: ', bold: true }),
-        new TextRun(formatLkr(advancePayment)),
-      ],
-      spacing: { after: 60 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: 'Project Cost: ', bold: true }),
-        new TextRun(formatLkr(projectCost)),
-      ],
-      spacing: { after: 60 },
-    }),
-    new Paragraph({
-      children: [
-        new TextRun({ text: 'Total Cost: ', bold: true }),
-        new TextRun({ text: formatLkr(totalCost), bold: true }),
-      ],
-      spacing: { after: 240 },
-    })
-  );
 
   const doc = new Document({
     sections: [
@@ -136,10 +135,10 @@ export async function buildProposalDocx(proposal: Proposal): Promise<Buffer> {
         properties: {
           page: {
             margin: {
-              top: convertInchesToTwip(0.75),
-              right: convertInchesToTwip(0.75),
-              bottom: convertInchesToTwip(0.75),
-              left: convertInchesToTwip(0.75),
+              top: convertInchesToTwip(1),
+              right: convertInchesToTwip(1),
+              bottom: convertInchesToTwip(1),
+              left: convertInchesToTwip(1),
             },
           },
         },

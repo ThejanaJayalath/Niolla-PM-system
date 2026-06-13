@@ -80,9 +80,15 @@ export default function ProductDirectory() {
     for (const p of products) {
       const match = live
         .filter((c) => campaignAppliesToProduct(c, p._id))
-        .sort((a, b) => b.discountPercent - a.discountPercent)[0];
+        .sort((a, b) => (b.discountPercent ?? 0) - (a.discountPercent ?? 0))[0];
       if (match) {
-        const { discountType, discountValue } = campaignDiscountFields(match);
+        const { discountType, discountValue } = campaignDiscountFields({
+          _id: match._id,
+          name: match.name,
+          discountType: match.discountType ?? 'percent',
+          discountValue: match.discountValue ?? match.discountPercent ?? 0,
+          discountPercent: match.discountPercent,
+        });
         const breakdown = computePriceBreakdown(p.basePricing, discountType, discountValue);
         map[p._id] = {
           campaignName: match.name,

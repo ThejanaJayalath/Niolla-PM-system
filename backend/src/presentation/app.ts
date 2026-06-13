@@ -84,8 +84,9 @@ app.use('/api/v1/birthdays', birthdayRoutes);
 app.use('/api/v1/engagement', engagementRoutes);
 app.use('/api/v1/audit', auditLogRoutes);
 app.use('/api/v1/update-tickets', updateTicketRoutes);
-app.use('/api/v1', interactionRoutes);
+/** Before /api/v1 interaction routes (they apply auth to all /api/v1 paths). */
 app.use('/api/v1/google-oauth', getOAuthStartRouter());
+app.use('/api/v1', interactionRoutes);
 app.get('/oauth2callback', handleOAuthCallback);
 app.get('/api/oauth2callback', handleOAuthCallback);
 

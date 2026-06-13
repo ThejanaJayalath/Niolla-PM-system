@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Menu, Moon, User, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { PwaInstallHeaderButton } from './PwaInstallPrompt';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api/client';
 import styles from './Header.module.css';
@@ -93,6 +94,8 @@ const Header = ({ onMenuClick }: HeaderProps) => {
             </div>
 
             <div className="flex items-center gap-2 md:gap-4">
+                <PwaInstallHeaderButton />
+
                 <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors">
                     <Moon size={20} />
                 </button>

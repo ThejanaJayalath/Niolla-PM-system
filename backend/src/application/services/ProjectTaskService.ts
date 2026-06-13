@@ -4,6 +4,7 @@ import { ProjectTaskModel } from '../../infrastructure/database/models/ProjectTa
 import { ProjectModel } from '../../infrastructure/database/models/ProjectModel';
 import { CustomerRequirementModel } from '../../infrastructure/database/models/CustomerRequirementModel';
 import { ProjectService } from './ProjectService';
+import { UpdateTicketService } from './UpdateTicketService';
 
 export interface ProjectTaskUpdateResult {
   task: ProjectTask;
@@ -33,6 +34,10 @@ export class ProjectTaskService {
   ): ProjectTask {
     const projectIdRaw = o.projectId as { toString?: () => string } | string | undefined;
     const requirementIdRaw = o.requirementId as { toString?: () => string } | string | undefined;
+    const updateTicketIdRaw = o.updateTicketId as
+      | { toString?: () => string; ticketId?: string }
+      | string
+      | undefined;
     const createdByRaw = o.createdBy as { toString?: () => string } | string | undefined;
     const completedByRaw = o.completedBy as { toString?: () => string } | string | undefined;
     const assignees = (o.assigneeIds as unknown[] | undefined) || [];
@@ -51,6 +56,14 @@ export class ProjectTaskService {
             ? requirementIdRaw
             : typeof requirementIdRaw === 'object' && requirementIdRaw.toString
               ? requirementIdRaw.toString()
+              : undefined,
+      updateTicketId:
+        updateTicketIdRaw === undefined || updateTicketIdRaw === null
+          ? undefined
+          : typeof updateTicketIdRaw === 'string'
+            ? updateTicketIdRaw
+            : typeof updateTicketIdRaw === 'object' && updateTicketIdRaw.toString
+              ? updateTicketIdRaw.toString()
               : undefined,
       title: String(o.title || ''),
       description: (o.description as string) || undefined,
@@ -114,6 +127,7 @@ export class ProjectTaskService {
     const populated = await ProjectTaskModel.findById(doc._id)
       .populate('projectId', 'projectName')
       .populate('requirementId', 'title')
+      .populate('updateTicketId', 'ticketId')
       .lean();
 
     return this.mapPopulated(populated as Record<string, unknown>);
@@ -122,10 +136,14 @@ export class ProjectTaskService {
   private mapPopulated(o: Record<string, unknown>): ProjectTask {
     const proj = o.projectId as { projectName?: string } | null;
     const req = o.requirementId as { title?: string } | null;
+    const ticket = o.updateTicketId as { ticketId?: string } | null;
     const base = this.toTask(o, {
       projectName: proj && typeof proj === 'object' ? proj.projectName : undefined,
       requirementTitle: req && typeof req === 'object' ? req.title : undefined,
     });
+    if (ticket && typeof ticket === 'object' && ticket.ticketId) {
+      base.ticketId = ticket.ticketId;
+    }
     if (proj && typeof proj === 'object' && '_id' in proj) {
       base.projectId = (proj as { _id: { toString: () => string } })._id.toString();
     }
@@ -140,6 +158,7 @@ export class ProjectTaskService {
     const doc = await ProjectTaskModel.findById(id)
       .populate('projectId', 'projectName')
       .populate('requirementId', 'title')
+      .populate('updateTicketId', 'ticketId')
       .lean();
     return doc ? this.mapPopulated(doc as unknown as Record<string, unknown>) : null;
   }
@@ -149,6 +168,7 @@ export class ProjectTaskService {
     const docs = await ProjectTaskModel.find({ projectId: new mongoose.Types.ObjectId(projectId) })
       .populate('projectId', 'projectName')
       .populate('requirementId', 'title')
+      .populate('updateTicketId', 'ticketId')
       .sort({ completed: 1, createdAt: -1 })
       .lean();
     return docs.map((d) => this.mapPopulated(d as unknown as Record<string, unknown>));
@@ -160,6 +180,7 @@ export class ProjectTaskService {
     const docs = await ProjectTaskModel.find({ assigneeIds: eid })
       .populate('projectId', 'projectName')
       .populate('requirementId', 'title')
+      .populate('updateTicketId', 'ticketId')
       .sort({ completed: 1, createdAt: -1 })
       .lean();
     return docs.map((d) => this.mapPopulated(d as unknown as Record<string, unknown>));
@@ -190,6 +211,20 @@ export class ProjectTaskService {
       const canToggle =
         opts.asAdmin || assignees.includes(opts.userId);
       if (!canToggle) throw new Error('Not assigned to this task');
+
+      const linkedUpdateTicketId = existing.updateTicketId
+        ? (existing.updateTicketId as { toString: () => string }).toString()
+        : undefined;
+      if (linkedUpdateTicketId && data.completed === true && !opts.asAdmin) {
+        const updateTicketService = new UpdateTicketService();
+        await updateTicketService.workerComplete(linkedUpdateTicketId, opts.userId);
+        const task = await this.findById(id);
+        return task ? { task } : null;
+      }
+      if (linkedUpdateTicketId && data.completed === false) {
+        throw new Error('Update ticket tasks cannot be reopened from Tasks');
+      }
+
       update.completed = Boolean(data.completed);
       if (data.completed) {
         update.completedAt = new Date();
@@ -208,6 +243,7 @@ export class ProjectTaskService {
     const doc = await ProjectTaskModel.findByIdAndUpdate(id, { $set: update }, { new: true })
       .populate('projectId', 'projectName')
       .populate('requirementId', 'title')
+      .populate('updateTicketId', 'ticketId')
       .lean();
     if (!doc) return null;
 
@@ -227,7 +263,13 @@ export class ProjectTaskService {
     if (!mongoose.Types.ObjectId.isValid(projectId) || !mongoose.Types.ObjectId.isValid(developerUserId)) return false;
     const pid = new mongoose.Types.ObjectId(projectId);
     const eid = new mongoose.Types.ObjectId(developerUserId);
-    const tasks = await ProjectTaskModel.find({ projectId: pid, assigneeIds: eid }).select('completed').lean();
+    const tasks = await ProjectTaskModel.find({
+      projectId: pid,
+      assigneeIds: eid,
+      updateTicketId: { $exists: false },
+    })
+      .select('completed')
+      .lean();
     if (tasks.length === 0) return false;
     if (!tasks.every((t) => t.completed)) return false;
 
