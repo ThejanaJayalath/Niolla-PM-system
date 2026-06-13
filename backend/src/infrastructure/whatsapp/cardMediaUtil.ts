@@ -1,6 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import sharp from 'sharp';
+
+async function convertToPng(inputPath: string, outputPath: string, quality?: number): Promise<void> {
+  const { default: sharp } = await import('sharp');
+  const pipeline = sharp(inputPath).png(quality != null ? { quality } : undefined);
+  await pipeline.toFile(outputPath);
+}
 
 /** WhatsApp only accepts raster images (not SVG). */
 export async function ensurePngForWhatsApp(
@@ -13,14 +18,14 @@ export async function ensurePngForWhatsApp(
   if (mimeType === 'image/jpeg' || mimeType === 'image/jpg') {
     const pngPath = absolutePath.replace(/\.(jpe?g)$/i, '') + '-wa.png';
     if (!fs.existsSync(pngPath) || fs.statSync(pngPath).mtime < fs.statSync(absolutePath).mtime) {
-      await sharp(absolutePath).png().toFile(pngPath);
+      await convertToPng(absolutePath, pngPath);
     }
     return { absolutePath: pngPath, mimeType: 'image/png' };
   }
   if (mimeType === 'image/svg+xml') {
     const pngPath = absolutePath.replace(/\.svg$/i, '') + '-wa.png';
     if (!fs.existsSync(pngPath) || fs.statSync(pngPath).mtime < fs.statSync(absolutePath).mtime) {
-      await sharp(absolutePath).png({ quality: 90 }).toFile(pngPath);
+      await convertToPng(absolutePath, pngPath, 90);
     }
     return { absolutePath: pngPath, mimeType: 'image/png' };
   }

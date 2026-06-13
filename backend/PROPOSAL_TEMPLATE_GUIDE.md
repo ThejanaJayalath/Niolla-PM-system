@@ -18,6 +18,15 @@ Use **double curly braces** and **UPPERCASE with underscore**. No spaces inside 
 | `{{PROJECT_COST}}` | Project cost (e.g. LKR 15,000.00) |
 | `{{TOTAL_COST}}` | Total amount (e.g. LKR 20,000.00) |
 | `{{DELIVERABLE_SECTION}}` | Milestones / deliverables list |
+| `{{TECHNOLOGY_STACK}}` | Technology stack (defaults to —) |
+| `{{FINANCIALS_SECTION}}` | Full financials block (advance, cost, total, installments) |
+| `{{MAINTENANCE_SECTION}}` | Optional maintenance note / monthly cost |
+| `{{VALID_UNTIL}}` | Proposal validity date |
+| `{{CONCLUSION}}` | Closing paragraph |
+
+**Default template:** The app uses **Project proposal sample template.docx** (repo root → prepared in `backend/assets/`). Layout and NIOLLA branding match **Project proposal sample template.pdf**.
+
+**On create/update:** The backend fills placeholders with **docxtemplater**, saves the Word file to `backend/uploads/proposals/`, and stores `documentPath` on the proposal record. **Download PDF** serves that filled document (PDF via LibreOffice when installed).
 
 ---
 

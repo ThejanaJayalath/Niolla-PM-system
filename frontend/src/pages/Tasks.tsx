@@ -53,6 +53,8 @@ interface ProjectTaskRow {
   projectName?: string;
   requirementId?: string;
   requirementTitle?: string;
+  updateTicketId?: string;
+  ticketId?: string;
   title: string;
   description?: string;
   assigneeIds: string[];
@@ -180,7 +182,10 @@ export default function Tasks() {
     const res = await api.patch<ProjectTaskRow>(`/project-tasks/${t._id}`, { completed: !t.completed });
     if (res.success && res.data) {
       setProjectTasks((prev) => prev.map((x) => (x._id === t._id ? { ...x, ...res.data! } : x)));
-      if (!t.completed && res.data.payoutSubmitted) {
+      if (!t.completed && t.updateTicketId) {
+        setUpdateTasks((prev) => prev.filter((u) => u._id !== t.updateTicketId));
+        pushSystemToast('Update submitted for admin review. You will be notified when approved.', 'success');
+      } else if (!t.completed && res.data.payoutSubmitted) {
         pushSystemToast(
           'All your tasks on this project are done — submitted to admin for wallet approval.',
           'success'
@@ -221,6 +226,9 @@ export default function Tasks() {
     if (res.success) {
       pushSystemToast('Submitted for admin review. You will be notified when approved.', 'success');
       setUpdateTasks((prev) => prev.filter((t) => t._id !== ticketId));
+      setProjectTasks((prev) =>
+        prev.map((pt) => (pt.updateTicketId === ticketId ? { ...pt, completed: true } : pt))
+      );
       if (linkedRequirementId) {
         setReqTasks((prev) => prev.filter((t) => t._id !== linkedRequirementId));
       }
@@ -229,6 +237,10 @@ export default function Tasks() {
     }
   };
 
+  const linkedProjectTaskTicketIds = new Set(
+    projectTasks.map((t) => t.updateTicketId).filter(Boolean) as string[]
+  );
+  const visibleUpdateTasks = updateTasks.filter((t) => !t._id || !linkedProjectTaskTicketIds.has(t._id));
   const linkedUpdateReqIds = new Set(
     updateTasks.map((t) => t.linkedRequirementId).filter(Boolean) as string[]
   );
@@ -386,6 +398,11 @@ export default function Tasks() {
                       </span>
                     </label>
                     <span className="text-xs text-gray-500">{t.projectName}</span>
+                    {t.ticketId ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-orange-50 text-orange-800">
+                        Update: {t.ticketId}
+                      </span>
+                    ) : null}
                     {t.requirementTitle ? (
                       <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-900">
                         Req: {t.requirementTitle}
@@ -412,13 +429,13 @@ export default function Tasks() {
             <p className="text-sm text-gray-600 mb-4">
               Customer update tickets assigned to you. Mark Task Completed when the work is delivered — admin will be notified for review.
             </p>
-            {updateTasks.length === 0 ? (
+            {visibleUpdateTasks.length === 0 ? (
               <p className="text-gray-500 text-sm border border-dashed border-gray-200 rounded-xl p-6 text-center">
                 No update tasks assigned to you yet.
               </p>
             ) : (
               <ul className="space-y-3">
-                {updateTasks.map((t) => {
+                {visibleUpdateTasks.map((t) => {
                   const busy = completingUpdateId === t._id;
                   const payout = t.workerPayoutValue ?? t.developerPayoutValue;
                   return (
@@ -473,7 +490,7 @@ export default function Tasks() {
           <section>
             <h2 className="text-lg font-bold text-gray-900 mb-2">Project tasks</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Admin-assigned tasks for your projects. Tick the box when finished.
+              Admin-assigned tasks for your projects, including linked update tickets. Tick the box when finished.
             </p>
             {projectTasks.length === 0 ? (
               <p className="text-gray-500 text-sm border border-dashed border-gray-200 rounded-xl p-6 text-center">
@@ -502,6 +519,11 @@ export default function Tasks() {
                         </div>
                         {t.description ? (
                           <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{t.description}</p>
+                        ) : null}
+                        {t.ticketId ? (
+                          <p className="text-xs text-orange-700 mt-2">
+                            Linked update ticket: <strong>{t.ticketId}</strong>
+                          </p>
                         ) : null}
                         {t.requirementTitle ? (
                           <p className="text-xs text-amber-800 mt-2">

@@ -148,7 +148,8 @@ export class EngagementService {
     const file = await writeGreetingCardFile(
       ctx.clientName,
       'anniversary',
-      () => buildAnniversaryTemplateSvg(ctx.clientName, ctx.projectName)
+      () => buildAnniversaryTemplateSvg(ctx.clientName, ctx.projectName),
+      { projectName: ctx.projectName }
     );
 
     const doc = await BirthdayCardModel.create({
@@ -304,11 +305,12 @@ export class EngagementService {
       }
 
       try {
-        const greetingMessage = buildFestivalGreeting(p.customerName, label);
+        const greetingMessage = buildFestivalGreeting(p.customerName, label, festivalKey);
         const file = await writeGreetingCardFile(
           p.customerName,
           'festival',
-          () => buildFestivalTemplateSvg(p.customerName, label)
+          () => buildFestivalTemplateSvg(p.customerName, label, festivalKey),
+          { festivalKey, festivalLabel: label }
         );
 
         const doc = await BirthdayCardModel.create({

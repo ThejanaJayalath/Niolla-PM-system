@@ -7,6 +7,12 @@ export interface Reminder {
   description?: string;
   meetingLink?: string;
   googleEventId?: string;
+  meetingDurationMinutes?: number;
+  nioBotMeetingId?: string;
+  recordingStatus?: 'none' | 'scheduled' | 'recording' | 'transcoding' | 'ready' | 'failed';
+  recordingWatchUrl?: string;
+  recordingDownloadUrl?: string;
+  recordingErrorMessage?: string;
   scheduledAt: Date;
   notes?: string;
   status?: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';

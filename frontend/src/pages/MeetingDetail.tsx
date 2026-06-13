@@ -9,7 +9,10 @@ import {
     Calendar,
     Link as LinkIcon,
     User,
-    Clock
+    Clock,
+    Video,
+    Download,
+    RefreshCw
 } from 'lucide-react';
 import { api } from '../api/client';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -26,6 +29,11 @@ interface Meeting {
     description?: string;
     meetingLink?: string;
     googleEventId?: string;
+    recordingStatus?: 'none' | 'scheduled' | 'recording' | 'transcoding' | 'ready' | 'failed';
+    recordingWatchUrl?: string;
+    recordingDownloadUrl?: string;
+    recordingErrorMessage?: string;
+    nioBotMeetingId?: string;
     scheduledAt: string;
     notes?: string;
     status: 'schedule' | 'overdue' | 'done' | 'cancel' | 'postpone';
@@ -117,6 +125,13 @@ export default function MeetingDetail() {
 
     useEffect(() => { load(); }, [id]);
 
+    useEffect(() => {
+        const inProgress = ['scheduled', 'recording', 'transcoding'].includes(meeting?.recordingStatus || '');
+        if (!inProgress) return;
+        const timer = window.setInterval(() => { load(); }, 15000);
+        return () => window.clearInterval(timer);
+    }, [meeting?.recordingStatus, id]);
+
     const updateStatus = async (status: string) => {
         if (!id || !meeting) return;
         setMeeting({ ...meeting, status: status as any });
@@ -129,6 +144,7 @@ export default function MeetingDetail() {
     };
 
     const [saveError, setSaveError] = useState<string | null>(null);
+    const [retryingRecording, setRetryingRecording] = useState(false);
 
     const handleSave = async () => {
         if (!id) return;
@@ -155,6 +171,21 @@ export default function MeetingDetail() {
         } catch (err) {
             console.error(err);
             setSaveError('Failed to save meeting details. Check your connection.');
+        }
+    };
+
+    const retryRecording = async () => {
+        if (!id) return;
+        setRetryingRecording(true);
+        try {
+            const res = await api.post<Meeting>(`/reminders/${id}/retry-recording`, {});
+            if (res.success && res.data) {
+                setMeeting(res.data);
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setRetryingRecording(false);
         }
     };
 
@@ -300,6 +331,62 @@ export default function MeetingDetail() {
                                 </div>
                             </div>
                         </div>
+
+                        {(meeting.recordingStatus && meeting.recordingStatus !== 'none') && (
+                            <div className={styles.formGroup}>
+                                <label>Meeting Recording</label>
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                                        <Video size={18} />
+                                        Status: <span className="uppercase">{meeting.recordingStatus}</span>
+                                        {meeting.recordingStatus !== 'ready' && meeting.recordingStatus !== 'failed' && (
+                                            <RefreshCw size={14} className="animate-spin text-gray-400" />
+                                        )}
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                    {meeting.recordingWatchUrl && (
+                                        <a
+                                            href={meeting.recordingWatchUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className={styles.primaryLinkBtn}
+                                        >
+                                            <Video size={16} /> Watch recording (720p)
+                                        </a>
+                                    )}
+                                    {meeting.recordingDownloadUrl && (
+                                        <a
+                                            href={meeting.recordingDownloadUrl}
+                                            className={styles.secondaryLinkBtn}
+                                        >
+                                            <Download size={16} /> Download MP4
+                                        </a>
+                                    )}
+                                    </div>
+                                    {meeting.recordingStatus === 'scheduled' && (
+                                        <p className="text-xs text-gray-500">NioBot will join and record when the meeting starts.</p>
+                                    )}
+                                    {meeting.recordingStatus === 'failed' && (
+                                        <>
+                                            <p className="text-xs text-red-600">
+                                                {meeting.recordingErrorMessage ||
+                                                    'Recording failed. Ensure NioBot API and worker are running (see backend/NIOBOT_SETUP.md).'}
+                                            </p>
+                                            <button
+                                                type="button"
+                                                onClick={retryRecording}
+                                                disabled={retryingRecording}
+                                                className={styles.primaryLinkBtn}
+                                                style={{ border: 'none', cursor: 'pointer' }}
+                                            >
+                                                <RefreshCw size={16} className={retryingRecording ? 'animate-spin' : ''} />
+                                                {retryingRecording ? 'Scheduling...' : 'Retry NioBot recording'}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
 
                         <div className={styles.formGroup}>
                             <label>Meeting Link</label>

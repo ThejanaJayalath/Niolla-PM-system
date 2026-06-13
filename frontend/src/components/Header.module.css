@@ -157,3 +157,17 @@
 .dropdownItemDanger svg {
   color: #dc2626;
 }
+
+@media (max-width: 480px) {
+  .dropdown {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    min-width: 0;
+    border-radius: 16px 16px 0 0;
+    max-height: 70dvh;
+    overflow-y: auto;
+  }
+}

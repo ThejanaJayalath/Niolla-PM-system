@@ -5,6 +5,7 @@ import { ProposalModel } from '../../infrastructure/database/models/ProposalMode
 import { CustomerService } from './CustomerService';
 import { InvoiceService } from './InvoiceService';
 import { CampaignService } from './CampaignService';
+import { ProposalDocumentService } from './ProposalDocumentService';
 
 export interface CreateProposalInput {
   inquiryId: string;
@@ -27,6 +28,7 @@ export class ProposalService {
   private customerService = new CustomerService();
   private invoiceService = new InvoiceService();
   private campaignService = new CampaignService();
+  private proposalDocumentService = new ProposalDocumentService();
 
   /** Next numeric suffix so `proposalId` stays unique even if the newest row uses a non-standard id. */
   private async getNextProposalIdNumber(): Promise<number> {
@@ -138,7 +140,12 @@ export class ProposalService {
       }
     }
 
-    return proposal.toObject() as unknown as Proposal;
+    try {
+      return await this.proposalDocumentService.generateAndSave(String(proposal._id));
+    } catch (err) {
+      console.warn('Proposal document generation failed:', (err as Error).message);
+      return proposal.toObject() as unknown as Proposal;
+    }
   }
 
   async findById(id: string): Promise<Proposal | null> {
@@ -178,6 +185,7 @@ export class ProposalService {
       $pull: { proposals: { _id: String(proposal._id) } },
     });
 
+    this.proposalDocumentService.deleteStoredFile(proposal.documentPath);
     await ProposalModel.findByIdAndDelete(id);
     return true;
   }
@@ -217,7 +225,13 @@ export class ProposalService {
         { arrayFilters: [{ 'p._id': proposalIdStr }] }
       );
     }
-    return o;
+
+    try {
+      return await this.proposalDocumentService.generateAndSave(String(doc._id));
+    } catch (err) {
+      console.warn('Proposal document regeneration failed:', (err as Error).message);
+      return o;
+    }
   }
 
   /**

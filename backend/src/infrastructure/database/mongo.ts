@@ -31,7 +31,7 @@ export async function connectDatabase(): Promise<void> {
   // If you still get querySrv ESERVFAIL, use the standard (non-SRV) connection string from Atlas:
   // In Atlas: Cluster → Connect → "Connect using MongoDB Compass" or "I have a connection string" → copy the
   // mongodb://... string (not mongodb+srv) and set MONGODB_URI to that.
-  const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/niolla_pm';
+  const uri = process.env.MONGODB_URI ?? 'mongodb://127.0.0.1:27017/niolla_pm';
   await mongoose.connect(uri);
   console.log('MongoDB connected');
   await migrateLegacyProjectStatuses();

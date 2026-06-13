@@ -19,6 +19,7 @@ export interface UpdateTicketDocument extends Document {
   assignedBy?: mongoose.Types.ObjectId;
   linkedRequirementId?: mongoose.Types.ObjectId;
   linkedPaymentPlanId?: mongoose.Types.ObjectId;
+  linkedProjectTaskId?: mongoose.Types.ObjectId;
   requestedAt: Date;
   workerSubmittedAt?: Date;
   completedAt?: Date;
@@ -56,6 +57,7 @@ const updateTicketSchema = new Schema<UpdateTicketDocument>(
     assignedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     linkedRequirementId: { type: Schema.Types.ObjectId, ref: 'CustomerRequirement', index: true },
     linkedPaymentPlanId: { type: Schema.Types.ObjectId, ref: 'PaymentPlan', index: true },
+    linkedProjectTaskId: { type: Schema.Types.ObjectId, ref: 'ProjectTask', index: true },
     requestedAt: { type: Date, required: true, default: Date.now, index: true },
     workerSubmittedAt: { type: Date },
     completedAt: { type: Date },

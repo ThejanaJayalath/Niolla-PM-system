@@ -53,7 +53,7 @@ export default function CreateProposal() {
     const [paymentPlan, setPaymentPlan] = useState<PaymentPlan>('FULL_PAYMENT');
     const [basePrice, setBasePrice] = useState('');
     const [submitting, setSubmitting] = useState(false);
-    const [templateInfo, setTemplateInfo] = useState<{ hasTemplate: boolean; fileName?: string }>({ hasTemplate: false });
+    const [templateInfo, setTemplateInfo] = useState<{ hasTemplate: boolean; fileName?: string; isDefault?: boolean }>({ hasTemplate: false });
     const [templateUploading, setTemplateUploading] = useState(false);
     const [templateError, setTemplateError] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -78,6 +78,7 @@ export default function CreateProposal() {
             setTemplateInfo({
                 hasTemplate: res.data.hasTemplate,
                 fileName: res.data.fileName,
+                isDefault: res.data.isDefault,
             });
         }
     };
@@ -157,7 +158,8 @@ export default function CreateProposal() {
         setLinkingCustomer(true);
         try {
             const res = await api.post<{ inquiryId: string; inquiry: Inquiry }>(
-                `/customers/${customer._id}/ensure-inquiry`
+                `/customers/${customer._id}/ensure-inquiry`,
+                {}
             );
             if (!res.success || !res.data?.inquiry) {
                 pushSystemToast(res.error?.message || 'Could not link customer to inquiry', 'error');
@@ -344,7 +346,9 @@ export default function CreateProposal() {
                     {templateInfo.hasTemplate && (
                         <span className={styles.templateSuccess}>
                             <Check size={18} strokeWidth={2.5} />
-                            Template Add successfully
+                            {templateInfo.isDefault
+                                ? 'Using Project proposal sample template'
+                                : 'Template added successfully'}
                         </span>
                     )}
                     <button type="button" className={styles.deleteBtn}>

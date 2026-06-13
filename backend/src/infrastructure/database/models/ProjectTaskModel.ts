@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ProjectTaskDocument extends Document {
   projectId: mongoose.Types.ObjectId;
   requirementId?: mongoose.Types.ObjectId;
+  updateTicketId?: mongoose.Types.ObjectId;
   title: string;
   description?: string;
   assigneeIds: mongoose.Types.ObjectId[];
@@ -18,6 +19,7 @@ const projectTaskSchema = new Schema<ProjectTaskDocument>(
   {
     projectId: { type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
     requirementId: { type: Schema.Types.ObjectId, ref: 'CustomerRequirement', index: true },
+    updateTicketId: { type: Schema.Types.ObjectId, ref: 'UpdateTicket', index: true },
     title: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
     assigneeIds: [{ type: Schema.Types.ObjectId, ref: 'User' }],

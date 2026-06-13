@@ -10,6 +10,7 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   meta?: Record<string, unknown>;
+  warnings?: string[];
   error?: { code: string; message: string };
 }
 
@@ -78,7 +79,10 @@ export const api = {
     }
     return json as ApiResponse<{ fileName: string; message: string }>;
   },
-  getProposalTemplateInfo: () => request<{ hasTemplate: boolean; fileName?: string; uploadedAt?: string }>('/proposals/template'),
+  getProposalTemplateInfo: () =>
+    request<{ hasTemplate: boolean; fileName?: string; uploadedAt?: string; isDefault?: boolean }>(
+      '/proposals/template'
+    ),
   uploadBillingTemplate: async (file: File): Promise<ApiResponse<{ fileName: string; message: string }>> => {
     const token = getToken();
     const formData = new FormData();
@@ -103,6 +107,69 @@ export const api = {
     return json as ApiResponse<{ fileName: string; message: string }>;
   },
   getBillingTemplateInfo: () => request<{ hasTemplate: boolean; fileName?: string; uploadedAt?: string }>('/billing/template'),
+  listGreetingTemplates: () =>
+    request<
+      {
+        _id: string;
+        templateType: 'birthday' | 'anniversary' | 'festival';
+        festivalKey?: string;
+        fileName: string;
+        uploadedAt: string;
+      }[]
+    >('/engagement/templates'),
+  getGreetingTemplateInfo: (templateType: string, festivalKey?: string) => {
+    const qs = festivalKey ? `?festivalKey=${encodeURIComponent(festivalKey)}` : '';
+    return request<{
+      hasTemplate: boolean;
+      fileName?: string;
+      uploadedAt?: string;
+      isDefault?: boolean;
+      templateType?: string;
+      festivalKey?: string;
+    }>(`/engagement/templates/${templateType}${qs}`);
+  },
+  uploadGreetingTemplate: async (
+    templateType: string,
+    file: File,
+    festivalKey?: string
+  ): Promise<ApiResponse<{ fileName: string; message: string }>> => {
+    const token = getToken();
+    const formData = new FormData();
+    formData.append('template', file);
+    if (festivalKey) formData.append('festivalKey', festivalKey);
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/engagement/templates/${templateType}`, {
+      method: 'POST',
+      body: formData,
+      headers,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      return {
+        success: false,
+        error: {
+          code: json?.error?.code || 'UPLOAD_FAILED',
+          message: json?.error?.message || 'Card template upload failed',
+        },
+      };
+    }
+    return json as ApiResponse<{ fileName: string; message: string }>;
+  },
+  deleteGreetingTemplate: (templateType: string, festivalKey?: string) => {
+    const qs = festivalKey ? `?festivalKey=${encodeURIComponent(festivalKey)}` : '';
+    return request<{ deleted: boolean }>(`/engagement/templates/${templateType}${qs}`, { method: 'DELETE' });
+  },
+  fetchGreetingTemplatePreview: async (templateType: string, festivalKey?: string): Promise<string | null> => {
+    const token = getToken();
+    const qs = festivalKey ? `?festivalKey=${encodeURIComponent(festivalKey)}` : '';
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    const res = await fetch(`${API_BASE}/engagement/templates/${templateType}/preview${qs}`, { headers });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  },
   /** Download proposal as PDF (or DOCX if format=docx). Uses uploaded template when available. */
   download: async (path: string, filename: string): Promise<void> => {
     const token = getToken();
@@ -125,19 +192,52 @@ export const api = {
     const blob = await res.blob();
     const disposition = res.headers.get('Content-Disposition');
     const serverFilename = disposition?.match(/filename="?([^";]+)"?/)?.[1]?.trim();
-    const downloadFilename = serverFilename || filename;
+    const contentType = res.headers.get('Content-Type') || '';
+    let downloadFilename = (serverFilename || filename)
+      .replace(/[/\\?%*:|"<>]/g, '-')
+      .trim();
+    if (contentType.includes('wordprocessingml') && !downloadFilename.toLowerCase().endsWith('.docx')) {
+      downloadFilename = downloadFilename.replace(/\.pdf$/i, '') + '.docx';
+    } else if (contentType.includes('pdf') && !downloadFilename.toLowerCase().endsWith('.pdf')) {
+      downloadFilename = downloadFilename.replace(/\.docx$/i, '') + '.pdf';
+    }
+    const mimeType = blob.type || 'application/octet-stream';
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+    if (isMobile && typeof navigator.share === 'function' && typeof File !== 'undefined') {
+      try {
+        const file = new File([blob], downloadFilename, { type: mimeType });
+        if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: downloadFilename });
+          const serverMessage = res.headers.get('X-Message');
+          if (serverMessage) {
+            setTimeout(() => pushSystemToast(serverMessage, 'warning'), 300);
+          }
+          return;
+        }
+      } catch (shareErr) {
+        if ((shareErr as Error)?.name === 'AbortError') return;
+      }
+    }
+
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = downloadFilename;
+    a.rel = 'noopener';
     a.style.display = 'none';
     document.body.appendChild(a);
     a.click();
-    // Revoke after a delay so the browser can start the download
+
+    // iOS Safari often ignores programmatic downloads — open the blob so the user can save/share.
+    if (isMobile && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
+
     setTimeout(() => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-    }, 500);
+    }, 2000);
 
     const serverMessage = res.headers.get('X-Message');
     if (serverMessage) {
